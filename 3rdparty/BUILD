@@ -230,31 +230,17 @@ jar_library(name = 'kryo-serializers',
             ]
            )
 
-jar_library(name = 'lucene-analyzers',
+jar_library(name = 'lucene-modules',
             dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-analyzers', rev = '3.0.2',
-                  apidocs = 'http://lucene.apache.org/java/3_0_2/api/all/').with_sources()
-             ]
-            )
-
-jar_library(name = 'lucene-smartcn',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-smartcn', rev = '3.0.2',
-                  apidocs = 'http://lucene.apache.org/java/3_0_2/api/all/').with_sources()
+              jar(org = 'org.apache.lucene', name = 'lucene-modules', rev = 'r1211247',
+                  apidocs = 'https://builds.apache.org//job/Lucene-trunk/javadoc/all/index.html').withSources()
              ]
             )
 
 jar_library(name = 'lucene-core',
             dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-core', rev = '3.0.2',
-                  apidocs = 'http://lucene.apache.org/java/3_0_2/api/all/').with_sources()
-            ]
-           )
-
-jar_library(name = 'lucene-snowball',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-snowball', rev = '3.0.2',
-                  apidocs = 'http://lucene.apache.org/java/3_0_2/api/all/').with_sources()
+              jar(org = 'org.apache.lucene', name = 'lucene-core', rev = 'r1211247',
+                  apidocs = 'https://builds.apache.org//job/Lucene-trunk/javadoc/all/index.html').withSources()
             ]
            )
 

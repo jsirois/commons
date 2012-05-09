@@ -57,7 +57,7 @@ public class TokenStreamSerializerTest {
     stream.reset(text);
     while (stream.incrementToken()) {
       assertTrue(deserialized.incrementToken());
-      assertEquals(stream.toString(), deserialized.toString());
+      assertEquals(stream.reflectAsString(true), deserialized.reflectAsString(true));
     }
     assertFalse(deserialized.incrementToken());
   }
