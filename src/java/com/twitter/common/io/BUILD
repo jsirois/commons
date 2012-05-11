@@ -33,6 +33,16 @@ java_library(name = 'io',
   ]
 )
 
+java_library(name = 'base64zlibcodec',
+  dependencies = [
+    pants('3rdparty:commons-codec'),
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:gson'),
+    pants('3rdparty:guava'),
+  ],
+  sources = ["Base64ZlibCodec.java"]
+)
+
 java_library(name = 'streamer',
   dependencies = [
     '3rdparty:guava',
