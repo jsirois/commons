@@ -10,3 +10,7 @@ class Lockable(object):
       with self.__lock:
         return method(self, *args, **kw)
     return wrapper
+
+  @property
+  def lock(self):
+    return self.__lock

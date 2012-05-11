@@ -18,6 +18,7 @@ __author__ = 'Brian Wickman'
 
 from sys import version_info as sys_version_info
 from numbers import Integral, Real
+from .lockable import Lockable
 
 try:
   # CPython 2.x
@@ -117,6 +118,7 @@ def exec_function(ast, globals_map):
 """, "<exec_function>", "exec"))
 
 __all__ = [
-  'Singleton',
   'Compatibility',
+  'Lockable',
+  'Singleton',
 ]

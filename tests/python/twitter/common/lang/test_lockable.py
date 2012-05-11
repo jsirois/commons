@@ -14,18 +14,45 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.common.lang.synchronizable import Lockable
+import threading
+from twitter.common.lang import Lockable
 
-def test_basic():
+def test_basic_mutual_exclusion():
   class Foo(Lockable):
     def __init__(self):
-      self._pooped = 0
+      self.counter = 0
+      self.start_event = threading.Event()
+      self.finish_event = threading.Event()
       Lockable.__init__(self)
 
     @Lockable.sync
     def pooping(self):
-      self._pooped += 1
+      self.counter += 1
+      self.start_event.set()
+      self.finish_event.wait()
 
   f = Foo()
-  f.pooping()
-  assert f._pooped == 1
+
+  class FooSetter(threading.Thread):
+    def run(self):
+      f.pooping()
+
+  fs1 = FooSetter()
+  fs2 = FooSetter()
+  fs1.start()
+  fs2.start()
+
+  # yield threads
+  f.start_event.wait(timeout=1.0)
+  assert f.start_event.is_set()
+
+  # assert mutual exclusion
+  assert f.counter == 1
+
+  # unblock ==> other wakes up
+  f.start_event.clear()
+  f.finish_event.set()
+
+  f.start_event.wait(timeout=1.0)
+  assert f.start_event.is_set()
+  assert f.counter == 2
