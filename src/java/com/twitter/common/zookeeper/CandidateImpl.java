@@ -22,11 +22,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
@@ -107,6 +107,7 @@ public class CandidateImpl implements Candidate {
     this.dataSupplier = Preconditions.checkNotNull(dataSupplier);
   }
 
+  @Nullable
   @Override
   public byte[] getLeaderData()
       throws ZooKeeperConnectionException, KeeperException, InterruptedException {
@@ -177,6 +178,6 @@ public class CandidateImpl implements Candidate {
   }
 
   private String getLeader(Iterable<String> memberIds) {
-    return judge.apply(memberIds);
+    return Iterables.isEmpty(memberIds)? null : judge.apply(memberIds);
   }
 }

@@ -16,10 +16,20 @@
 
 package com.twitter.common.zookeeper;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Ordering;
+
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
+import org.junit.Before;
+import org.junit.Test;
 
 import com.twitter.common.base.ExceptionalCommand;
 import com.twitter.common.quantity.Amount;
@@ -27,17 +37,11 @@ import com.twitter.common.quantity.Time;
 import com.twitter.common.zookeeper.Candidate.Leader;
 import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.testing.BaseZooKeeperTest;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.ACL;
-import org.junit.Before;
-import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingDeque;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author John Sirois
@@ -222,4 +226,16 @@ public class CandidateImplTest extends BaseZooKeeperTest {
     assertArrayEquals(candidate1.getLeaderData(), suppliedValue.getBytes());
   }
 
+
+  @Test
+  public void testEmptyMembership() throws Exception {
+    ZooKeeperClient zkClient1 = createZkClient(TIMEOUT);
+    final CandidateImpl candidate1 = new CandidateImpl(createGroup(zkClient1));
+    Reign candidate1Reign = new Reign("1", candidate1);
+
+    candidate1.offerLeadership(candidate1Reign);
+    assertSame(candidate1, candidateBuffer.takeLast());
+    candidate1Reign.abdicate();
+    assertSame(null, candidate1.getLeaderData());
+  }
 }

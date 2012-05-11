@@ -17,11 +17,13 @@
 package com.twitter.common.zookeeper;
 
 import com.google.common.base.Supplier;
+
+import org.apache.zookeeper.KeeperException;
+
 import com.twitter.common.base.ExceptionalCommand;
 import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.Group.WatchException;
 import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Interface definition for becoming or querying for a ZooKeeper-based group leader.
