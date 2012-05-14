@@ -50,6 +50,7 @@ from twitter.common.log.formatters import glog, plain
 from twitter.common.log.options import LogOptions
 from twitter.common.dirutil import safe_mkdir
 
+
 class GenericFilter(logging.Filter):
   def __init__(self, levelfn=lambda record_level: True):
     self._levelfn = levelfn
@@ -59,6 +60,7 @@ class GenericFilter(logging.Filter):
     if self._levelfn(record.levelno):
       return 1
     return 0
+
 
 class ProxyFormatter(logging.Formatter):
   class UnknownSchemeException(Exception): pass
@@ -72,11 +74,20 @@ class ProxyFormatter(logging.Formatter):
     logging.Formatter.__init__(self)
     self._scheme_fn = scheme_fn
 
+  def preamble(self):
+    scheme = self._scheme_fn()
+    if scheme not in ProxyFormatter._SCHEME_TO_FORMATTER:
+      raise ProxyFormatter.UnknownSchemeException("Unknown logging scheme: %s" % scheme)
+    formatter = ProxyFormatter._SCHEME_TO_FORMATTER[scheme]
+    if hasattr(formatter, 'logfile_preamble') and callable(formatter.logfile_preamble):
+      return formatter.logfile_preamble()
+
   def format(self, record):
     scheme = self._scheme_fn()
     if scheme not in ProxyFormatter._SCHEME_TO_FORMATTER:
       raise ProxyFormatter.UnknownSchemeException("Unknown logging scheme: %s" % scheme)
     return ProxyFormatter._SCHEME_TO_FORMATTER[scheme].format(record)
+
 
 _FILTER_TYPES = {
   logging.DEBUG: 'DEBUG',
@@ -85,6 +96,7 @@ _FILTER_TYPES = {
   logging.ERROR: 'ERROR',
   logging.FATAL: 'FATAL' # strangely python logging transaltes this to CRITICAL
 }
+
 
 def _safe_setup_link(link_filename, real_filename):
   """
@@ -100,6 +112,19 @@ def _safe_setup_link(link_filename, real_filename):
   except OSError as e:
     # Typically permission denied.
     pass
+
+
+class PreambleFileHandler(logging.FileHandler):
+  def __init__(self, filename, preamble=None):
+    self._preamble = preamble
+    logging.FileHandler.__init__(self, filename)
+
+  def _open(self):
+    stream = logging.FileHandler._open(self)
+    if self._preamble:
+      stream.write(self._preamble)
+    return stream
+
 
 def _setup_disk_logging(filebase):
   handlers = []
@@ -120,6 +145,7 @@ def _setup_disk_logging(filebase):
   username = getpass.getuser()
   pid = os.getpid()
   datestring = time.strftime('%Y%m%d-%H%M%S', time.localtime())
+
   def gen_verbose_filename(filebase, level):
     return '%(filebase)s.%(hostname)s.%(user)s.log.%(level)s.%(date)s.%(pid)s' % {
       'filebase': filebase,
@@ -136,15 +162,17 @@ def _setup_disk_logging(filebase):
     full_filebase = os.path.join(logroot, filebase)
     logfile_link = gen_link_filename(full_filebase, filter_name)
     logfile_full = gen_verbose_filename(full_filebase, filter_name)
-    file_handler = logging.FileHandler(logfile_full)
+    file_handler = PreambleFileHandler(logfile_full, formatter.preamble())
     file_handler.setFormatter(formatter)
     file_handler.addFilter(filter)
     handlers.append(file_handler)
     _safe_setup_link(logfile_link, logfile_full)
   return handlers
 
+
 _STDERR_LOGGERS = []
 _DISK_LOGGERS = []
+
 
 def _setup_stderr_logging():
   filter = GenericFilter(lambda r_l: r_l >= LogOptions.stderr_log_level())
@@ -154,6 +182,7 @@ def _setup_stderr_logging():
   stderr_handler.addFilter(filter)
   return [stderr_handler]
 
+
 def teardown_stderr_logging():
   root_logger = logging.getLogger()
   global _STDERR_LOGGERS
@@ -161,12 +190,14 @@ def teardown_stderr_logging():
     root_logger.removeHandler(handler)
   _STDERR_LOGGERS = []
 
+
 def teardown_disk_logging():
   root_logger = logging.getLogger()
   global _DISK_LOGGERS
   for handler in _DISK_LOGGERS:
     root_logger.removeHandler(handler)
   _DISK_LOGGERS = []
+
 
 def init(filebase=None):
   """
