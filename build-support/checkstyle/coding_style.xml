@@ -293,13 +293,6 @@ classpath." />
         <property name="ignoreDirectoryName" value="true"/>
       </module>
       <module name="JUnitTestCase"/>
-      <module name="IllegalType">
-        <message key="illegal.type"
-                 value="Return values or parameters of
-type ''{0}'' is not allowed. Use interface type instead, e.g. Map&lt;T&gt; =
-new HashMap&lt;T&gt;();"/>
-        <property name="tokens" value="PARAMETER_DEF,METHOD_DEF"/>
-      </module>
       <module name="ParameterAssignment"/>
       <module name="DefaultComesLast"/>
       <module name="FallThrough"/>
