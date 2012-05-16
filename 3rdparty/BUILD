@@ -251,14 +251,15 @@ jar_library(name = 'meat-locker',
 jar_library(name = 'ostrich',
             dependencies = [ jar(org = 'com.twitter', name = 'ostrich', rev = '2.3.6') ])
 
-jar_library(name = 'protobuf-2.3.0',
+jar_library(name = 'protobuf-2.4.1',
             dependencies = [
-              jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.3.0')
+              jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.4.1')
+	        .with_sources()
             ]
            )
 
 jar_library(name = 'protobuf-java',
-            dependencies = [ pants(':protobuf-2.3.0') ])
+            dependencies = [ pants(':protobuf-2.4.1') ])
 
 jar_library(name = 'scala-compiler',
             dependencies = [
