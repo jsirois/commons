@@ -37,6 +37,7 @@ from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
 from twitter.pants.targets.internal import InternalTarget
 from twitter.pants.targets.jar_dependency import JarDependency
 from twitter.pants.targets.jar_library import JarLibrary
+from twitter.pants.targets.java_antlr_library import JavaAntlrLibrary
 from twitter.pants.targets.java_library import JavaLibrary
 from twitter.pants.targets.java_thrift_library import JavaThriftLibrary
 from twitter.pants.targets.java_thriftstore_dml_library import JavaThriftstoreDMLLibrary
@@ -71,6 +72,7 @@ __all__ = [
   'InternalTarget',
   'JarDependency',
   'JarLibrary',
+  'JavaAntlrLibrary',
   'JavaLibrary',
   'JavaThriftLibrary',
   # TODO(Anand) Remove this from pants proper when a code adjoinment mechanism exists

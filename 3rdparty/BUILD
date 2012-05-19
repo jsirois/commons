@@ -27,6 +27,13 @@ jar_library(name = 'antlr2',
 jar_library(name = 'antlr3',
             dependencies = [ jar(org = 'antlr', name = 'antlr', rev = '3.1.3') ])
 
+jar_library(name = 'antlr-3.4',
+            dependencies = [
+                jar(org = 'org.antlr', name = 'antlr', rev = '3.4'),
+                jar(org = 'org.antlr', name = 'antlr-runtime', rev = '3.4')
+             ]
+           )
+
 jar_library(name = 'aopalliance',
             dependencies = [
               jar(org = 'aopalliance', name = 'aopalliance', rev = '1.0').with_sources()

@@ -443,6 +443,7 @@ class Goal(Command):
 
 # Install all default pants provided goals
 from twitter.pants.targets import JavaLibrary, JavaTests
+from twitter.pants.tasks.antlr_gen import AntlrGen
 from twitter.pants.tasks.binary_create import BinaryCreate
 from twitter.pants.tasks.build_lint import BuildLint
 from twitter.pants.tasks.bundle_create import BundleCreate
@@ -462,7 +463,6 @@ from twitter.pants.tasks.scala_compile import ScalaCompile
 from twitter.pants.tasks.scala_repl import ScalaRepl
 from twitter.pants.tasks.specs_run import SpecsRun
 from twitter.pants.tasks.thrift_gen import ThriftGen
-
 
 class Invalidator(Task):
   def execute(self, targets):
@@ -529,7 +529,7 @@ goal(
 # recognize flags to narrow the gen set
 goal(name='thrift', action=ThriftGen).install('gen').with_description('Generate code.')
 goal(name='protoc', action=ProtobufGen).install('gen')
-
+goal(name='antlr', action=AntlrGen).install('gen')
 
 goal(
   name='checkstyle',

@@ -90,6 +90,7 @@ exclude = Exclude
 fancy_pants = Pants
 jar = JarDependency
 java_library = JavaLibrary
+java_antlr_library = JavaAntlrLibrary
 java_protobuf_library = JavaProtobufLibrary
 java_tests = JavaTests
 java_thrift_library = JavaThriftLibrary
@@ -242,6 +243,7 @@ __all__ = (
   'is_test',
   'jar',
   'jar_library',
+  'java_antlr_library',
   'java_library',
   'java_protobuf_library',
   'java_tests',
