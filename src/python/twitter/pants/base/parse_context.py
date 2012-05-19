@@ -106,7 +106,6 @@ class ParseContext(object):
 
     if self.buildfile not in ParseContext._parsed:
       buildfile_family = tuple(self.buildfile.family())
-      ParseContext._parsed.update(buildfile_family)
 
       pants_context = {}
       for str_to_exec in self._strs_to_exec:
@@ -119,6 +118,8 @@ class ParseContext(object):
           os.chdir(self.buildfile.parent_path)
           for buildfile in buildfile_family:
             self.buildfile = buildfile
+            ParseContext._parsed.add(self.buildfile)
+
             eval_globals = copy.copy(pants_context)
             eval_globals.update({
               'ROOT_DIR': buildfile.root_dir,
