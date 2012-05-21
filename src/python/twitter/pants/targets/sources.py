@@ -46,7 +46,7 @@ class SourceRoot(object):
   @staticmethod
   def find(target):
     """
-      Finds the source root for the given target target.  If none is registered, the parent
+      Finds the source root for the given target.  If none is registered, the parent
       directory of the target's BUILD file is returned.
     """
     target_path = os.path.relpath(target.address.buildfile.parent_path, get_buildroot())

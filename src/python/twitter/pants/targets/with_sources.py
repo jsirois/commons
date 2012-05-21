@@ -37,6 +37,8 @@ class TargetWithSources(Target):
 
     self.add_label('sources')
     self.target_base = SourceRoot.find(self)
+    self.sources = None
+    self._sources = sources or []
 
   def expand_files(self, recursive=True, include_buildfile=True):
     """Expand files used to build this target to absolute paths.  By default this expansion is done
@@ -59,6 +61,16 @@ class TargetWithSources(Target):
 
     _expand(self)
     return files
+
+  @property
+  def sources(self):
+    if self._resolved_sources is None:
+      self.sources = self._resolve_paths(self.target_base, self._sources or [])
+    return self._resolved_sources
+
+  @sources.setter
+  def sources(self, sources):
+    self._resolved_sources = sources
 
   def _resolve_paths(self, rel_base, paths):
     """

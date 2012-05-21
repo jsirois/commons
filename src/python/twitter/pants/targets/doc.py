@@ -25,12 +25,11 @@ class Doc(InternalTarget, TargetWithSources):
   """A target that processes documentation in a directory"""
   def __init__(self, name, dependencies=(), sources=None, resources=None):
     InternalTarget.__init__(self, name, dependencies, None)
-    TargetWithSources.__init__(self, name)
+    TargetWithSources.__init__(self, name, sources=sources)
     if not sources:
       raise TargetDefinitionException(self, 'No sources specified')
     self.add_label('doc')
     self.name = name
-    self.sources = self._resolve_paths(self.target_base, sources)
     self.resources = self._resolve_paths(self.target_base, resources) if resources else []
 
 
@@ -48,17 +47,14 @@ class Page(InternalTarget, TargetWithSources):
   """A target that identifies a single documentation page."""
   def __init__(self, name, source, dependencies=None, resources=None):
     InternalTarget.__init__(self, name, dependencies, is_meta=False)
-    TargetWithSources.__init__(self, name)
-
-    self.sources = self._resolve_paths(self.target_base, [source])
-    self._source = self.sources.pop()
+    TargetWithSources.__init__(self, name, sources=[source])
 
     self.resources = self._resolve_paths(self.target_base, resources) if resources else []
     self._wikis = {}
 
   @property
   def source(self):
-    return self._source
+    return self.sources[0]
 
   def register_wiki(self, wiki, **kwargs):
     """
