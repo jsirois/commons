@@ -209,7 +209,7 @@ class JUnitRun(JvmTask):
               '-in', self.coverage_file,
               '-exit'
             ]
-            source_bases = set(t.target_base for t in targets)
+            source_bases = set(t.target_base for t in self.test_target_candidates(targets))
             for source_base in source_bases:
               args.extend(['-sp', source_base])
 
@@ -278,12 +278,16 @@ class JUnitRun(JvmTask):
       for c in self.normalize(cls):
         yield c
 
-  def calculate_tests(self, targets):
+  def test_target_candidates(self, targets):
     for target in targets:
       if (is_java(target) or is_scala(target)) and is_test(target):
-        for test in target.sources:
-          for cls in self.normalize(test, target.target_base):
-            yield cls
+        yield target
+
+  def calculate_tests(self, targets):
+    for target in self.test_target_candidates(targets):
+      for test in target.sources:
+        for cls in self.normalize(test, target.target_base):
+          yield cls
 
   @staticmethod
   def classfile_to_classname(cls):
