@@ -369,7 +369,7 @@ class JarPublish(Task):
           user = credentials.username()
           password = credentials.password()
           self.context.log.debug('Found auth for repo: %s %s:%s' % (repo, user, password))
-          data[auth] = (user, password)
+          data['auth'] = (user, password)
       self.commit = context.options.jar_publish_commit
       self.snapshot = False
 
