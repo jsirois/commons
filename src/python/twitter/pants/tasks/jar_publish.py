@@ -362,6 +362,14 @@ class JarPublish(Task):
       self.snapshot = context.options.jar_publish_local_snapshot
     else:
       self.repos = context.config.getdict('jar-publish', 'repos')
+      for repo, data in self.repos.items():
+        auth = data.get('auth')
+        if auth:
+          credentials = context.resolve(auth).next()
+          user = credentials.username()
+          password = credentials.password()
+          self.context.log.debug('Found auth for repo: %s %s:%s' % (repo, user, password))
+          data[auth] = (user, password)
       self.commit = context.options.jar_publish_commit
       self.snapshot = False
 
@@ -543,10 +551,9 @@ class JarPublish(Task):
           jvmargs = []
           auth = repo['auth']
           if auth:
-            with ParseContext.temp():
-              credentials = pants(auth).resolve().next()
-              jvmargs.append(credentials.username())
-              jvmargs.append(credentials.password())
+            user, password = auth
+            jvmargs.append('-Dlogin=%s' % user)
+            jvmargs.append('-Dpassword=%s' % password)
 
           # Do the publish
           ivysettings = self.generate_ivysettings(published, publish_local=path)
