@@ -124,7 +124,10 @@ class Context(object):
     """Replaces all targets in the context with the given roots and their transitive
     dependencies.
     """
-    self._target_roots = target_roots
+    self._target_roots = []
+    for target_root in target_roots:
+      self.target_roots.extend(target_root.resolve())
+
     self._targets = OrderedSet()
     for target in target_roots:
       self._add_target(target)

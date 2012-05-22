@@ -538,13 +538,6 @@ goal(
 ).install().with_description('Run checkstyle against java source code.')
 
 
-# Support straight up checkstyle runs in addition to checkstyle as last phase of compile below
-goal(name='javac',
-     action=JavaCompile,
-     group=group('gen', lambda target: is_codegen(target)),
-     dependencies=['gen', 'resolve']).install('checkstyle')
-
-
 def is_java(target):
  return isinstance(target, JavaLibrary) or \
         isinstance(target, JavaTests)

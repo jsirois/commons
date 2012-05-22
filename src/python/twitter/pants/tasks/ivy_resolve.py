@@ -26,7 +26,7 @@ from contextlib import contextmanager
 
 from twitter.common.dirutil import safe_mkdir, safe_open
 
-from twitter.pants import get_buildroot, is_internal, is_jvm
+from twitter.pants import get_buildroot, is_internal, is_jar, is_jvm
 from twitter.pants.base.generator import Generator, TemplateData
 from twitter.pants.tasks import binary_utils, TaskError
 from twitter.pants.tasks.ivy_utils import IvyUtils
@@ -136,8 +136,10 @@ class IvyResolve(NailgunTask):
         sha.update(t.id)
       return sha.hexdigest()
 
-    def is_classpath(t):
-      return is_internal(t) and any(jar for jar in t.jar_dependencies if jar.rev)
+    def is_classpath(target):
+      return is_jar(target) or (
+        is_internal(target) and any(jar for jar in target.jar_dependencies if jar.rev)
+      )
 
     classpath_targets = filter(is_classpath, targets)
     target_workdir = os.path.join(self._work_dir, dirname_for_requested_targets(targets))
@@ -248,15 +250,22 @@ class IvyResolve(NailgunTask):
       binary_utils.open(*reports)
 
   def _calculate_classpath(self, targets):
+    def is_jardependant(target):
+      return is_jar(target) or is_jvm(target)
+
     jars = set()
     excludes = set()
     def collect_jars(target):
-      if target.jar_dependencies:
+      if is_jar(target):
+        jars.add(target)
+      elif target.jar_dependencies:
         jars.update(jar for jar in target.jar_dependencies if jar.rev)
       if target.excludes:
         excludes.update(target.excludes)
+
     for target in targets:
-      target.walk(collect_jars, is_jvm)
+      target.walk(collect_jars, is_jardependant)
+
     return jars, excludes
 
   def _generate_jar_template(self, jar):

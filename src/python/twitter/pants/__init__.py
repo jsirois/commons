@@ -120,6 +120,7 @@ def has_sources(target):
   return target.has_label('sources')
 
 
+
 def is_exported(target):
   """Returns True if the target provides an artifact exportable from the repo."""
   return target.has_label('exportable')
@@ -128,6 +129,11 @@ def is_exported(target):
 def is_internal(target):
   """Returns True if the target is internal to the repo (ie: it might have dependencies)."""
   return target.has_label('internal')
+
+
+def is_jar(target):
+  """Returns True if the target is a jar."""
+  return isinstance(target, JarDependency)
 
 
 def is_jvm(target):
@@ -232,10 +238,12 @@ __all__ = (
   'goal',
   'group',
   'is_apt',
+  'is_codegen',
   'is_doc',
   'is_exported',
   'is_internal',
   'is_jar_library',
+  'is_jar',
   'is_java',
   'is_jvm',
   'is_python',

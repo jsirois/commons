@@ -121,6 +121,10 @@ class JarDependency(object):
   def resolve(self):
     yield self
 
+  def walk(self, work, predicate = None):
+    if not predicate or predicate(self):
+      work(self)
+
   def _as_jar_dependencies(self):
     yield self
 

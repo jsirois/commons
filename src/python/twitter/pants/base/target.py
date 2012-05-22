@@ -154,7 +154,7 @@ class Target(object):
 
   def _walk(self, walked, work, predicate = None):
     for target in self.resolve():
-      if target not in walked and isinstance(target, Target):
+      if target not in walked:
         walked.add(target)
         if not predicate or predicate(target):
           additional_targets = work(target)
@@ -164,7 +164,6 @@ class Target(object):
             for additional_target in additional_targets:
               if hasattr(additional_target, '_walk'):
                 additional_target._walk(walked, work, predicate)
-
 
   # TODO(John Sirois): Kill this method once ant backend is gone
   @deprecated_with_warning("you're using deprecated pants commands, http://go/pantsmigration")
