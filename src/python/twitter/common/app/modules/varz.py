@@ -30,6 +30,13 @@ from twitter.common.metrics import (
 
 from twitter.common.app.modules.http import RootServer
 
+try:
+  from twitter.common.python.pex import PEX
+  HAS_PEX=True
+except ImportError:
+  HAS_PEX=False
+
+
 class VarsSubsystem(app.Module):
   """
     Exports a /vars endpoint on the root http server bound to twitter.common.metrics.RootMetrics.
@@ -56,6 +63,8 @@ class VarsSubsystem(app.Module):
         options.twitter_common_metrics_vars_sampling_delay_ms, Time.MILLISECONDS))
       rs.mount_routes(varz)
       register_diagnostics()
+      register_build_properties()
+
 
 class VarsEndpoint(object):
   """
@@ -78,7 +87,7 @@ class VarsEndpoint(object):
 
     if var is None:
       body='<br>'.join(
-        '%s %s' % (key, val) for key, val in samples.items())
+        '%s %s' % (key, val) for key, val in sorted(samples.items()))
       return '<html><body><pre>%s</pre></body></html>' % body
     else:
       if var in samples:
@@ -94,6 +103,7 @@ class VarsEndpoint(object):
     self._monitor.shutdown()
     self._monitor.join()
 
+
 def register_diagnostics():
   import os, sys, time
   rm = RootMetrics().scope('sys')
@@ -108,3 +118,15 @@ def register_diagnostics():
   rm.register(Label('prefix', sys.prefix))
   rm.register(Label('exec_prefix', sys.exec_prefix))
   rm.register(Label('uname', ' '.join(os.uname())))
+
+
+def register_build_properties():
+  if not HAS_PEX:
+    return
+  rm = RootMetrics().scope('build')
+  try:
+    build_properties = PEX().info.build_properties
+  except PEX.NotFound:
+    return
+  for key, value in build_properties.items():
+    rm.register(Label(str(key), str(value)))

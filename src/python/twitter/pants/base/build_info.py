@@ -36,7 +36,7 @@ def get_build_root():
     build_root = os.path.dirname(build_root)
   return os.path.realpath(build_root)
 
-BuildInfo = namedtuple('BuildInfo', 'date time timestamp branch tag sha name machine path')
+BuildInfo = namedtuple('BuildInfo', 'date time timestamp branch tag sha user machine path')
 
 def get_build_info():
   buildroot = get_build_root()
@@ -58,6 +58,6 @@ def get_build_info():
     branch=branchname,
     tag=tag,
     sha=revision,
-    name=getpass.getuser(),
+    user=getpass.getuser(),
     machine=socket.gethostname(),
     path=buildroot)

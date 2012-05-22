@@ -17,6 +17,9 @@ class PEX(object):
   """
     PEX, n. A self-contained python environment.
   """
+  class Error(Exception): pass
+  class NotFound(Error): pass
+
   @staticmethod
   def start_coverage():
     try:
@@ -42,8 +45,14 @@ class PEX(object):
 
   def __init__(self, pex=sys.argv[0]):
     self._pex = PythonDirectoryWrapper.get(pex)
+    if not self._pex:
+      raise self.NotFound('Could not find PEX at %s!' % pex)
     self._pex_info = PexInfo.from_pex(self._pex)
     self._env = PEXEnvironment(self._pex.path(), self._pex_info)
+
+  @property
+  def info(self):
+    return self._pex_info
 
   def entry(self):
     """
