@@ -31,6 +31,7 @@ from twitter.pants.targets import JavaLibrary, JavaThriftLibrary, PythonLibrary,
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.binary_utils import select_binary
 from twitter.pants.tasks.code_gen import CodeGen
+from twitter.pants.thrift_util import calculate_compile_roots
 
 class ThriftGen(CodeGen):
   class GenInfo(object):
@@ -102,7 +103,7 @@ class ThriftGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
-    bases, sources = self._calculate_sources(targets)
+    bases, sources = calculate_compile_roots(targets, self.is_gentarget)
 
     if lang == 'java':
       gen = self.gen_java.gen
@@ -137,24 +138,6 @@ class ThriftGen(CodeGen):
     # TODO(John Sirois): Use map sources to targets and invalidate less thrift targets on failure.
     if sum(p.wait() for p in processes) != 0:
       raise TaskError
-
-  def _calculate_sources(self, thrift_targets):
-    bases = set()
-    sources = set()
-    def collect_sources(target):
-      if self.is_gentarget(target):
-        bases.add(target.target_base)
-        sources.update(os.path.join(target.target_base, source) for source in target.sources)
-    for target in thrift_targets:
-      target.walk(collect_sources)
-    sources = self._find_root_sources(bases, sources)
-    return bases, sources
-
-  def _find_root_sources(self, bases, sources):
-    root_sources = set(sources)
-    for source in sources:
-      root_sources.difference_update(find_includes(bases, source))
-    return root_sources
 
   def createtarget(self, lang, gentarget, dependees):
     if lang == 'java':
@@ -196,27 +179,6 @@ class ThriftGen(CodeGen):
     for dependee in dependees:
       dependee.dependencies.add(tgt)
     return tgt
-
-
-INCLUDE_PARSER = re.compile(r'^\s*include\s+"([^"]+)"\s*$')
-
-
-def find_includes(bases, source):
-  all_bases = [os.path.dirname(source)]
-  all_bases.extend(bases)
-
-  includes = set()
-  with open(source, 'r') as thrift:
-    for line in thrift.readlines():
-      match = INCLUDE_PARSER.match(line)
-      if match:
-        capture = match.group(1)
-        for base in all_bases:
-          include = os.path.join(base, capture)
-          if os.path.exists(include):
-            log.debug('%s has include %s' % (source, include))
-            includes.add(include)
-  return includes
 
 
 NAMESPACE_PARSER = re.compile(r'^\s*namespace\s+([^\s]+)\s+([^\s]+)\s*$')

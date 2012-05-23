@@ -27,6 +27,8 @@ from twitter.common.dirutil import safe_rmtree
 from twitter.common.dirutil.chroot import RelativeChroot
 from twitter.pants import Config
 from twitter.pants.python.egg_builder import EggBuilder
+from twitter.pants.targets.python_thrift_library import PythonThriftLibrary
+from twitter.pants.thrift_util import calculate_compile_roots
 
 class PythonThriftBuilder(object):
   """
@@ -69,23 +71,31 @@ class PythonThriftBuilder(object):
     return os.path.join(root_dir, 'build-support', 'bin', 'thrift', *self.platmap[platform])
 
   def run_thrifts(self):
-    for src in self.target.sources:
-      if not self._run_thrift(src):
+    def is_py_thrift(target):
+      return isinstance(target, PythonThriftLibrary)
+    bases, roots = calculate_compile_roots([self.target], is_py_thrift)
+
+    for src in roots:
+      if not self._run_thrift(src, bases):
         raise PythonThriftBuilder.CodeGenerationException(
           "Could not generate .py from %s!" % src)
 
-  def _run_thrift(self, source):
+  def _run_thrift(self, source, bases):
     thrift_file = source
-    thrift_abs_path = os.path.join(self.root, self.target.target_base, thrift_file)
+    thrift_abs_path = os.path.join(self.root, thrift_file)
     thrift_abs_path = os.path.abspath(thrift_abs_path)
 
     args = [
       self.thrift_binary(self.root),
       '--gen',
       'py:new_style',
+      '-recurse',
       '-o',
-      self.codegen_root,
-      thrift_abs_path]
+      self.codegen_root
+    ]
+    for base in bases:
+      args.extend(('-I', base))
+    args.append(thrift_abs_path)
 
     cwd = os.getcwd()
     os.chdir(self.chroot.path())
