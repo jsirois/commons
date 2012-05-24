@@ -83,7 +83,7 @@ python_library(
 
 python_library(
   name = 'rbtools',
-  dependencies = [egg('RBTools-0.3.4-py2.6.egg')])
+  dependencies = [python_requirement('RBTools==0.4.1')])
 
 python_library(
   name = 'thrift-0.5',
