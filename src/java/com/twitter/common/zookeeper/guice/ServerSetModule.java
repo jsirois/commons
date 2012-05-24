@@ -19,6 +19,7 @@ package com.twitter.common.zookeeper.guice;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -33,6 +34,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Atomics;
 import com.google.inject.BindingAnnotation;
 import com.google.inject.AbstractModule;
@@ -50,7 +53,9 @@ import com.twitter.common.args.constraints.NotEmpty;
 import com.twitter.common.args.constraints.NotNull;
 import com.twitter.common.base.Command;
 import com.twitter.common.base.ExceptionalCommand;
+import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.base.Supplier;
+import com.twitter.common.zookeeper.CompoundServerSet;
 import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.ServerSet;
 import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
@@ -90,8 +95,9 @@ public class ServerSetModule extends AbstractModule {
 
   @NotNull
   @NotEmpty
-  @CmdLine(name = "serverset_path", help = "ServerSet registration path")
-  protected static final Arg<String> SERVERSET_PATH = Arg.create(null);
+  @CmdLine(name = "serverset_path", help = "ServerSet registration path. "
+      + "For multiple paths pass this as comma separated values.")
+  protected static final Arg<List<String>> SERVERSET_PATH = Arg.create(null);
 
   @CmdLine(name = "aux_port_as_primary",
       help = "Name of the auxiliary port to use as the primary port in the server set."
@@ -167,7 +173,17 @@ public class ServerSetModule extends AbstractModule {
   @Provides
   @Singleton
   ServerSet provideServerSet(ZooKeeperClient zkClient) {
-    return new ServerSetImpl(zkClient, SERVERSET_PATH.get());
+    List<String> paths = SERVERSET_PATH.get();
+    MorePreconditions.checkNotBlank(paths);
+    if (paths.size() == 1) {
+      return new ServerSetImpl(zkClient, paths.get(0));
+    } else {
+      ImmutableList.Builder<ServerSet> builder = ImmutableList.builder();
+      for (String path : paths) {
+        builder.add(new ServerSetImpl(zkClient, path));
+      }
+      return new CompoundServerSet(builder.build());
+    }
   }
 
   static class EndpointSupplier implements Supplier<EndpointStatus> {
