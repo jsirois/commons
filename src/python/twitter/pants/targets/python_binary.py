@@ -15,9 +15,11 @@
 # ==================================================================================================
 
 import sys
+from twitter.common.lang import Compatibility
+from twitter.common.python.platforms import Platform
 from twitter.pants.targets.python_target import PythonTarget
 from twitter.pants.base import TargetDefinitionException
-from twitter.common.python.platforms import Platform
+
 
 class PythonBinary(PythonTarget):
   def __init__(self,
@@ -31,7 +33,7 @@ class PythonBinary(PythonTarget):
                indices=None,
                ignore_errors=False,
                allow_pypi=False,
-               platforms=(Platform.current(),),
+               platforms=(),
                interpreters=(sys.version[:3],)):
     """
       name: target name
@@ -55,8 +57,7 @@ class PythonBinary(PythonTarget):
       allow_pypi: whether or not this binary should be allowed to hit pypi for dependency
                   management
 
-      platforms: the platforms to target when building this binary.  by
-                 default the current platform.
+      platforms: extra platforms to target when building this binary.
 
       interpreters: the interpreter versions to target when building this binary.  by default the
                     current interpreter version (specify in the form: '2.6', '2.7', '3.2' etc.)
@@ -73,11 +74,17 @@ class PythonBinary(PythonTarget):
     self._entry_point = entry_point
     self._inherit_path = bool(inherit_path)
     self._zip_safe = bool(zip_safe)
-    self._platforms = platforms
     self._interpreters = interpreters
     self._repositories = repositories or []
     self._indices = indices or []
     self._allow_pypi = bool(allow_pypi)
     self._ignore_errors = bool(ignore_errors)
+
+    self._platforms = [Platform.current()]
+    if isinstance(platforms, Compatibility.string):
+      self._platforms.append(platforms)
+    else:
+      self._platforms.extend(platforms)
+    self._platforms = tuple(self._platforms)
 
     PythonTarget.__init__(self, name, [] if source is None else [source], dependencies=dependencies)
