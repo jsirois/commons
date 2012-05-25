@@ -34,7 +34,6 @@ from twitter.pants import get_buildroot, goal, group, is_apt, is_codegen, is_sca
 from twitter.pants.base import Address, BuildFile, Config, ParseContext, Target, Timer
 from twitter.pants.base.rcfile import RcFile
 from twitter.pants.commands import Command
-from twitter.pants.targets import InternalTarget
 from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.nailgun_task import NailgunTask
 from twitter.pants.goal import Context, GoalError, Phase
@@ -699,3 +698,12 @@ goal(
   name='paths',
   action=Paths,
 ).install().with_description('Find all dependency paths from one target to another')
+
+
+from twitter.pants.tasks.dependees import ReverseDepmap
+
+goal(
+  name='dependees',
+  action=ReverseDepmap
+).install().with_description('Print a reverse dependency mapping for the given targets')
+
