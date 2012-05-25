@@ -62,6 +62,12 @@ class JUnitRun(JvmTask):
                             help = "[%default] Causes an xml report to be output for each test "
                                    "class that is run.")
 
+    option_group.add_option(mkflag("per-test-timer"), mkflag("per-test-timer", negate=True),
+                            dest = "junit_run_per_test_timer",
+                            action="callback", callback=mkflag.set_bool, default=False,
+                            help = "[%default] Shows progress and timer for each test "
+                                   "class that is run.")
+
     option_group.add_option(mkflag("coverage"), mkflag("coverage", negate=True),
                             dest = "junit_run_coverage",
                             action="callback", callback=mkflag.set_bool, default=False,
@@ -164,6 +170,9 @@ class JUnitRun(JvmTask):
       self.flags.append('-suppress-output')
       self.flags.append('-outdir')
       self.flags.append(self.outdir)
+
+    if context.options.junit_run_per_test_timer:
+      self.flags.append('-per-test-timer')
 
   def execute(self, targets):
     if not self.context.options.junit_run_skip:

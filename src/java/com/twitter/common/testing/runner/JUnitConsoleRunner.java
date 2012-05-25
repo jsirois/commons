@@ -213,11 +213,14 @@ public class JUnitConsoleRunner {
   private final boolean suppressOutput;
   private final boolean xmlReport;
   private final File outdir;
+  private final boolean perTestTimer;
 
-  JUnitConsoleRunner(boolean failFast, boolean suppressOutput, boolean xmlReport, File outdir) {
+  JUnitConsoleRunner(boolean failFast, boolean suppressOutput, boolean xmlReport,
+                     boolean perTestTimer, File outdir) {
     this.failFast = failFast;
     this.suppressOutput = suppressOutput;
     this.xmlReport = xmlReport;
+    this.perTestTimer = perTestTimer;
     this.outdir = outdir;
   }
 
@@ -252,7 +255,11 @@ public class JUnitConsoleRunner {
       }
     }
 
-    abortableListener.addListener(new ConsoleListener(out));
+    if (perTestTimer) {
+      abortableListener.addListener(new PerClassConsoleListener(out));
+    } else {
+      abortableListener.addListener(new ConsoleListener(out));
+    }
 
     Thread abnormalExitHook = new Thread() {
       @Override public void run() {
@@ -313,8 +320,15 @@ public class JUnitConsoleRunner {
       }
     }
     List<Request> requests = Lists.newArrayList();
+
     if (!classes.isEmpty()) {
-      requests.add(Request.classes(classes.toArray(new Class<?>[classes.size()])));
+      if (perTestTimer) {
+        for (Class clazz : classes) {
+          requests.add(Request.aClass(clazz));
+        }
+      } else {
+        requests.add(Request.classes(classes.toArray(new Class<?>[classes.size()])));
+      }
     }
     for (TestMethod testMethod : testMethods) {
       requests.add(Request.method(testMethod.clazz, testMethod.name));
@@ -338,6 +352,7 @@ public class JUnitConsoleRunner {
       private boolean failFast = false;
       private boolean suppressOutput = false;
       private boolean xmlReport = false;
+      private boolean perTestTimer = false;
       private File outdir = new File(System.getProperty("java.io.tmpdir"));
       private List<String> tests = Lists.newArrayList();
 
@@ -364,6 +379,12 @@ public class JUnitConsoleRunner {
         this.outdir = outdir;
       }
 
+      @Option(name = "-per-test-timer",
+          usage = "Show progress and timer for each test class.")
+      public void setPerTestTimer(boolean perTestTimer) {
+        this.perTestTimer = perTestTimer;
+      }
+
       @Argument(usage = "Names of junit test classes or test methods to run.  Names prefixed "
                         + "with @ are considered arg file paths and these will be loaded and the "
                         + "whitespace delimited arguments found inside added to the list",
@@ -388,6 +409,7 @@ public class JUnitConsoleRunner {
         new JUnitConsoleRunner(options.failFast,
             options.suppressOutput,
             options.xmlReport,
+            options.perTestTimer,
             options.outdir);
 
     List<String> tests = Lists.newArrayList();
