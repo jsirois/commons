@@ -124,7 +124,7 @@ jar_library(name = 'commons-beanutils',
 
 jar_library(name = 'commons-codec',
             dependencies = [
-              jar(org = 'commons-codec', name = 'commons-codec', rev = '1.4').with_sources()
+              jar(org = 'commons-codec', name = 'commons-codec', rev = '1.6').with_sources()
             ]
            )
 
