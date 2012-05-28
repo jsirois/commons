@@ -71,9 +71,12 @@ class ThriftGen(CodeGen):
     def create_geninfo(key):
       gen_info = context.config.getdict('thrift-gen', key)
       gen = gen_info['gen']
-      deps = OrderedSet()
-      for dep in gen_info['deps']:
-        deps.update(context.resolve(dep))
+      deps = {}
+      for category, depspecs in gen_info['deps'].items():
+        dependencies = OrderedSet()
+        deps[category] = dependencies
+        for depspec in depspecs:
+          dependencies.update(context.resolve(depspec))
       return ThriftGen.GenInfo(gen, deps)
 
     self.gen_java = create_geninfo('java')
@@ -148,36 +151,37 @@ class ThriftGen(CodeGen):
       raise TaskError('Unrecognized thrift gen lang: %s' % lang)
 
   def _create_java_target(self, target, dependees):
-    gen_java_dir = os.path.join(self.output_dir, 'gen-java')
-    genfiles = []
+    def create_target(files, deps):
+       return self.context.add_new_target(os.path.join(self.output_dir, 'gen-java'),
+                                          JavaLibrary,
+                                          name=target.id,
+                                          provides=target.provides,
+                                          sources=files,
+                                          dependencies=deps)
+    return self._inject_target(target, dependees, self.gen_java, 'java', create_target)
+
+  def _create_python_target(self, target, dependees):
+    def create_target(files, deps):
+     return self.context.add_new_target(os.path.join(self.output_dir, 'gen-py'),
+                                        PythonLibrary,
+                                        name=target.id,
+                                        sources=files,
+                                        dependencies=deps)
+    return self._inject_target(target, dependees, self.gen_python, 'py', create_target)
+
+  def _inject_target(self, target, dependees, geninfo, namespace, create_target):
+    files = []
+    has_service = False
     for source in target.sources:
-      genfiles.extend(calculate_genfiles(os.path.join(target.target_base, source)).get('java', []))
-    tgt = self.context.add_new_target(gen_java_dir,
-                                      JavaLibrary,
-                                      name=target.id,
-                                      provides=target.provides,
-                                      sources=genfiles,
-                                      dependencies=self.gen_java.deps,
-                                      derived_from=target)
+      services, genfiles = calculate_gen(os.path.join(target.target_base, source))
+      has_service = has_service or services
+      files.extend(genfiles.get(namespace, []))
+    deps = geninfo.deps['service' if has_service else 'structs']
+    tgt = create_target(files, deps)
     tgt.id = target.id + '.thrift_gen'
     tgt.add_label('codegen')
     for dependee in dependees:
       dependee.update_dependencies([tgt])
-    return tgt
-
-  def _create_python_target(self, target, dependees):
-    gen_python_dir = os.path.join(self.output_dir, 'gen-py')
-    genfiles = []
-    for source in target.sources:
-      genfiles.extend(calculate_genfiles(os.path.join(target.target_base, source)).get('py', []))
-    tgt = self.context.add_new_target(gen_python_dir,
-                                      PythonLibrary,
-                                      name=target.id,
-                                      sources=genfiles,
-                                      dependencies=self.gen_python.deps)
-    tgt.id = target.id
-    for dependee in dependees:
-      dependee.dependencies.add(tgt)
     return tgt
 
 
@@ -186,7 +190,12 @@ TYPE_PARSER = re.compile(r'^\s*(const|enum|exception|service|struct|union)\s+([^
 
 
 # TODO(John Sirois): consolidate thrift parsing to 1 pass instead of 2
-def calculate_genfiles(source):
+def calculate_gen(source):
+  """Calculates the service types and files generated for the given thrift IDL source.
+
+  Returns a tuple of (service types, generated files).
+  """
+
   with open(source, 'r') as thrift:
     lines = thrift.readlines()
     namespaces = {}
@@ -200,9 +209,9 @@ def calculate_genfiles(source):
       else:
         match = TYPE_PARSER.match(line)
         if match:
-          type = match.group(1)
+          typename = match.group(1)
           name = match.group(2)
-          types[type].add(name)
+          types[typename].add(name)
 
     genfiles = defaultdict(set)
 
@@ -214,7 +223,7 @@ def calculate_genfiles(source):
     if namespace:
       genfiles['java'].update(calculate_java_genfiles(namespace, types))
 
-    return genfiles
+    return types['service'], genfiles
 
 
 def calculate_python_genfiles(namespace, types):
@@ -237,6 +246,6 @@ def calculate_java_genfiles(namespace, types):
     return os.path.join(basepath, '%s.java' % name)
   if 'const' in types:
     yield path('Constants')
-  for type in ['enum', 'exception', 'service', 'struct', 'union']:
-    for name in types[type]:
+  for typename in ['enum', 'exception', 'service', 'struct', 'union']:
+    for name in types[typename]:
       yield path(name)

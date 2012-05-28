@@ -316,19 +316,17 @@ jar_library(name = 'libthrift-0.5.0',
             ]
            )
 
-jar_library(name = 'thrift-0.5',
+jar_library(name = 'thrift-0.5.0',
             dependencies = [
+              pants(':commons-lang'),
               pants(':libthrift-0.5.0'),
-              pants(':slf4j-api'),
-              pants(':slf4j-jdk14'), # need a concrete slf4j backend at runtime
+              pants(':slf4j-api')
             ]
            )
 
 jar_library(name = 'thrift-0.5.0-finagle',
             dependencies = [
-              pants(':libthrift-0.5.0'),
-              pants(':commons-lang'),
-              pants(':slf4j-api'),
+              pants(':thrift-0.5.0'),
 
               # finagle thrift extra deps
               pants(':finagle-core'),
@@ -339,12 +337,12 @@ jar_library(name = 'thrift-0.5.0-finagle',
 
 jar_library(name = 'thrift-0.7.0',
             dependencies = [
-	      jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.7.0'),
+	            jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.7.0'),
             ]
            )
 
 jar_library(name = 'thrift',
-            dependencies = [ pants(':thrift-0.5') ])
+            dependencies = [ pants(':thrift-0.5.0') ])
 
 jar_library(name = 'twitter4j',
             dependencies = [
