@@ -32,9 +32,10 @@ from twitter.pants.tasks.jvm_binary_task import JvmBinaryTask
 
 
 class Archiver(object):
-  def archive(self, basedir, outdir, name):
-    """
-      Archivers should archive all files found under basedir to a file at outdir of the given name.
+  def archive(self, basedir, outdir, name, prefix=None):
+    """Archivers should archive all files found under basedir to a file at outdir of the given name.
+
+    If prefix is specified, it should be prepended to all archive paths.
     """
 
 
@@ -44,10 +45,10 @@ class TarArchiver(Archiver):
     self.mode = mode
     self.extension = extension
 
-  def archive(self, basedir, outdir, name):
+  def archive(self, basedir, outdir, name, prefix=None):
     tarpath = os.path.join(outdir, '%s.%s' % (name, self.extension))
     with open_tar(tarpath, self.mode, dereference=True) as tar:
-      tar.add(basedir, arcname='')
+      tar.add(basedir, arcname=prefix or '')
     return tarpath
 
 
@@ -56,13 +57,15 @@ class ZipArchiver(Archiver):
     Archiver.__init__(self)
     self.compression = compression
 
-  def archive(self, basedir, outdir, name):
+  def archive(self, basedir, outdir, name, prefix=None):
     zippath = os.path.join(outdir, '%s.zip' % name)
     with open_zip(zippath, 'w', compression=ZIP_DEFLATED) as zip:
       for root, _, files in os.walk(basedir):
         for file in files:
           full_path = os.path.join(root, file)
           relpath = os.path.relpath(full_path, basedir)
+          if prefix:
+            relpath = os.path.join(prefix, relpath)
           zip.write(full_path, relpath)
     return zippath
 
@@ -80,10 +83,18 @@ class BundleCreate(JvmBinaryTask):
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
     JvmBinaryTask.setup_parser(option_group, args, mkflag)
-    option_group.add_option(mkflag("archive"), dest="bundle_create_archive",
+
+    archive = mkflag("archive")
+    option_group.add_option(archive, dest="bundle_create_archive",
                             type="choice", choices=list(ARCHIVER_BY_TYPE.keys()),
                             help="[%%default] Create an archive from the bundle. "
                                  "Choose from %s" % ARCHIVER_BY_TYPE.keys())
+
+    option_group.add_option(mkflag("archive-prefix"), mkflag("archive-prefix", negate=True),
+                            dest="bundle_create_prefix", default=False,
+                            action="callback", callback=mkflag.set_bool,
+                            help="[%%default] Used in conjunction with %s this packs the archive "
+                                 "with its basename as the path prefix." % archive)
 
   def __init__(self, context):
     JvmBinaryTask.__init__(self, context)
@@ -92,6 +103,8 @@ class BundleCreate(JvmBinaryTask):
       context.options.jvm_binary_create_outdir
       or context.config.get('bundle-create', 'outdir')
     )
+
+    self.prefix = context.options.bundle_create_prefix
 
     def fill_archiver_type():
       self.archiver_type = context.options.bundle_create_archive
@@ -116,7 +129,12 @@ class BundleCreate(JvmBinaryTask):
       basedir = self.bundle(app)
       if archiver:
         archivemap = self.context.products.get(self.archiver_type)
-        archivepath = archiver.archive(basedir, self.outdir, app.basename)
+        archivepath = archiver.archive(
+          basedir,
+          self.outdir,
+          app.basename,
+          prefix=app.basename if self.prefix else None
+        )
         archivemap.add(app, self.outdir, [archivepath])
         self.context.log.info('created %s' % os.path.relpath(archivepath, get_buildroot()))
 
