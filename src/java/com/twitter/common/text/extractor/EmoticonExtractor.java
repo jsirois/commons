@@ -24,7 +24,7 @@ import com.google.common.base.Preconditions;
  * Extracts emoticons (e.g., :), :-( ) from a text.
  */
 public class EmoticonExtractor extends RegexExtractor {
-  public static final Pattern SMILEY_REGEX_PATTERN = Pattern.compile(":[)DpP]|:[ -]\\)");
+  public static final Pattern SMILEY_REGEX_PATTERN = Pattern.compile(":[)DdpP]|:[ -]\\)|<3");
   public static final Pattern FROWNY_REGEX_PATTERN = Pattern.compile(":[(<]|:[ -]\\(");
   public static final Pattern EMOTICON_REGEX_PATTERN = Pattern.compile("(?:^|\\s)("
       + SMILEY_REGEX_PATTERN.pattern() + "|" + FROWNY_REGEX_PATTERN.pattern()
@@ -39,7 +39,6 @@ public class EmoticonExtractor extends RegexExtractor {
   /** Default constructor. **/
   public EmoticonExtractor() {
     setRegexPattern(EMOTICON_REGEX_PATTERN, 1, 1);
-    setTriggeringChar(':');
   }
 
   /**
