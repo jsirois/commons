@@ -286,15 +286,17 @@ jar_library(name = 'servlet-api',
             ]
            )
 
+SLF4J_VERSION = '1.6.1'
+
 jar_library(name = 'slf4j-api',
             dependencies = [
-              jar(org = 'org.slf4j', name = 'slf4j-api', rev = '1.6.1').with_sources()
+              jar(org = 'org.slf4j', name = 'slf4j-api', rev = SLF4J_VERSION).with_sources()
             ]
            )
 
 jar_library(name = 'slf4j-jdk14',
             dependencies = [
-              jar(org = 'org.slf4j', name = 'slf4j-jdk14', rev = '1.6.1').with_sources()
+              jar(org = 'org.slf4j', name = 'slf4j-jdk14', rev = SLF4J_VERSION).with_sources()
             ]
            )
 
@@ -320,7 +322,11 @@ jar_library(name = 'thrift-0.5.0',
             dependencies = [
               pants(':commons-lang'),
               pants(':libthrift-0.5.0'),
-              pants(':slf4j-api')
+              pants(':slf4j-api'),
+
+	      # TODO(John Sirois): Find a sane way to have thrift dependees who do not themselves
+	      # use slf4j get a concrete binding.
+              pants(':slf4j-jdk14'),
             ]
            )
 
