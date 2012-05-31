@@ -16,27 +16,6 @@
 
 package com.twitter.common.net.http.handlers;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import com.twitter.common.base.ExceptionalClosure;
-import com.twitter.common.quantity.Amount;
-import com.twitter.common.quantity.Data;
-import org.antlr.stringtemplate.StringTemplate;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -51,15 +30,34 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+
+import org.antlr.stringtemplate.StringTemplate;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.StringUtils;
+
+import com.twitter.common.base.ExceptionalClosure;
+import com.twitter.common.quantity.Amount;
+import com.twitter.common.quantity.Data;
+
 /**
  * HTTP handler to page through log files. Supports GET and POST requests.  GET requests are
  * responsible for fetching chrome and javascript, while the POST requests are used to fetch actual
  * log data.
- *
- * TODO(William Farner): Change all links (Next, Prev, filter) to issue AJAX requests rather than
- *     reloading the page.
- *
- * @author William Farner
  */
 public class LogPrinter extends StringTemplateServlet {
   private static final Logger LOG = Logger.getLogger(LogPrinter.class.getName());
@@ -384,13 +382,25 @@ public class LogPrinter extends StringTemplateServlet {
     }
   }
 
+  private static String sanitize(String text) {
+    text = StringEscapeUtils.escapeHtml(text);
+
+    StringBuilder newString = new StringBuilder();
+    for (char ch : text.toCharArray()) {
+      if ((ch > 0x001F && ch < 0x00FD) || ch == '\t' || ch == '\r') {
+        // Directly include anything from 0x1F (SPACE) to 0xFD (tilde)
+        // as well as tab and carriage-return.
+        newString.append(ch);
+      } else {
+        // Encode everything else.
+        newString.append("&#").append((int) ch).append(";");
+      }
+    }
+    return StringEscapeUtils.escapeXml(newString.toString());
+  }
+
   private String logChunkXml(String text, long lastBytePosition) {
-    // TODO(William Farner): There still seems to be a problem with the sanitization here, data is sent
-    // back to the client that breaks XML syntax when some non-ascii characters appear in the log
-    // (i think).
-    String sanitized = StringEscapeUtils.escapeXml(
-        StringEscapeUtils.escapeHtml(text).replaceAll("\n", "&#10;"));
-    return String.format(XML_RESP_FORMAT, sanitized , lastBytePosition);
+    return String.format(XML_RESP_FORMAT, sanitize(text) , lastBytePosition);
   }
 
   @VisibleForTesting
