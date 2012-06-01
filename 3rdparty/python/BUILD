@@ -194,7 +194,7 @@ python_library(
 
 python_library(
   name = 'pystachio',
-  dependencies = [egg('pystachio-0.4.2-py2.*.egg')])
+  dependencies = [egg('pystachio-0.4.3-*.egg')])
 
 python_library(
   name = 'cherrypy',
