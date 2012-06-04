@@ -262,6 +262,14 @@ jar_library(name = 'meat-locker',
   dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ]
   )
 
+jar_library(name = 'mustache',
+            dependencies = [
+              jar(org = 'com.github.spullara.mustache.java',
+                  name = 'compiler',
+                  rev = '0.7.0-SNAPSHOT')
+              ]
+            )
+
 jar_library(name = 'ostrich',
             dependencies = [ jar(org = 'com.twitter', name = 'ostrich', rev = '2.3.6') ])
 
