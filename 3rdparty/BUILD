@@ -156,8 +156,8 @@ jar_library(name = 'commons-logging',
 # common rev for all com.twitter%finagle* artifacts
 FINAGLE_REV = '4.0.5'
 
-jar_library(name = 'finagle-b3',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-b3', rev = FINAGLE_REV),
+jar_library(name = 'finagle-zipkin',
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV),
                            ])
 jar_library(name = 'finagle-core',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV),
