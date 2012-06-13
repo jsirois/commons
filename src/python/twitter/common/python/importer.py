@@ -379,7 +379,7 @@ class EggZipImporter(object):
     """
     submodname, is_package, relpath = self._get_info(fullmodname)
     fullpath = '%s%s%s' % (self.archive, os.sep, relpath)
-    source = Nested.read(fullpath).decode('utf-8')
+    source = Nested.read(fullpath)
     assert source is not None
     source = source.replace('\r\n', '\n')
     source = source.replace('\r', '\n')
@@ -395,7 +395,7 @@ class EggZipImporter(object):
         pyc_object = CodeMarshaller.from_pyc(Nested.read(pyc))
     except (Nested.FileNotFound, ValueError, CodeMarshaller.InvalidCode) as e:
       with timed('Compiling %s because of %s' % (fullpath, e.__class__.__name__), at_level=2):
-        py = Nested.read(fullpath).decode('utf-8')
+        py = Nested.read(fullpath)
         assert py is not None
         py = py.replace('\r\n', '\n').replace('\r', '\n')
         pyc_object = CodeMarshaller.from_py(py, fullpath)
