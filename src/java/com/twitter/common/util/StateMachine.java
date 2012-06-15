@@ -129,7 +129,7 @@ public class StateMachine<T> {
     try {
       if (!allowedStates.contains(currentState)) {
         throw new IllegalStateException(
-            String.format("In state %s, expected to be in %s.", allowedStates, currentState));
+            String.format("In state %s, expected to be in %s.", currentState, allowedStates));
       }
     } finally {
       readLock.unlock();
