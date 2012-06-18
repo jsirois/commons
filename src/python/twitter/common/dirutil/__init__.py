@@ -53,6 +53,17 @@ def safe_open(filename, *args, **kwargs):
   return open(filename, *args, **kwargs)
 
 
+def safe_delete(filename):
+  """
+  Delete a file safely. If its not present, its a no-op.
+  """
+  try:
+    os.unlink(filename)
+  except OSError as e:
+    if e.errno != errno.ENOENT:
+      raise
+
+
 def chmod_plus_x(path):
   """
     Equivalent of unix `chmod a+x path`
@@ -143,6 +154,7 @@ __all__ = [
   'lock_file',
   'safe_mkdir',
   'safe_open',
+  'safe_delete',
   'tail_f',
   'unlock_file',
   'Lock'
