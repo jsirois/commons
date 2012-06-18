@@ -46,6 +46,9 @@ class ConfluencePublish(Task):
                             help="[%default] Attempt to open the published confluence wiki page "
                                  "in a browser.")
 
+    option_group.add_option(mkflag("user"), dest="confluence_user",
+                            help="Confluence user name, defaults to unix user.")
+
   def __init__(self, context):
     Task.__init__(self, context)
 
@@ -58,6 +61,7 @@ class ConfluencePublish(Task):
     self.open = context.options.confluence_publish_open
     self.context.products.require('markdown_html')
     self._wiki = None
+    self.user = context.options.confluence_user
 
   def wiki(self):
     raise NotImplementedError('Subclasses must provide the wiki target they are associated with')
@@ -125,7 +129,7 @@ class ConfluencePublish(Task):
   def login(self):
     if not self._wiki:
       try:
-        self._wiki = Confluence.login(self.url)
+        self._wiki = Confluence.login(self.url, self.user)
       except ConfluenceError as e:
         raise TaskError('Failed to login to confluence: %s' % e)
     return self._wiki
