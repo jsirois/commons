@@ -451,7 +451,7 @@ class Application(object):
     if len(args) == 1 and kwargs == {} and isinstance(args[0], options.Option):
       return args[0]
     else:
-      return options.Option(*args, **kwargs)
+      return options.TwitterOption(*args, **kwargs)
 
 
   def add_option(self, *args, **kwargs):
