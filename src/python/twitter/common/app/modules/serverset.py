@@ -15,6 +15,7 @@
 # ==================================================================================================
 
 import sys
+import threading
 
 from twitter.common import app, options
 
@@ -22,6 +23,7 @@ try:
   from twitter.common import log
 except ImportError:
   import logging as log
+
 
 def add_port_to(option_name):
   def add_port_callback(option, opt, value, parser):
@@ -39,8 +41,10 @@ def add_port_to(option_name):
     getattr(parser.values, option_name)[name] = port
   return add_port_callback
 
+
 def set_bool(option, opt_str, value, parser):
   setattr(parser.values, option.dest, not opt_str.startswith('--no'))
+
 
 class ServerSetModule(app.Module):
   """
@@ -80,6 +84,8 @@ class ServerSetModule(app.Module):
     self._membership = None
     self._join_args = None
     self._torndown = False
+    self._rejoin_event = threading.Event()
+    self._joiner = None
 
   @property
   def serverset(self):
@@ -142,18 +148,38 @@ class ServerSetModule(app.Module):
       sys.exit(1)
     else:
       log.debug('Rejoining...')
-    self._join()
+
+    self._rejoin_event.set()
 
   def setup_function(self):
     options = app.get_options()
     if options.serverset_module_enable:
       self._assert_valid_inputs(options)
       self._construct_serverset(options)
-      self._join()
+      self._thread = ServerSetJoinThread(self._rejoin_event, self._join)
+      self._thread.start()
+      self._rejoin_event.set()
 
   def teardown_function(self):
-    import zookeeper
     self._torndown = True
     if self._membership:
       self._serverset.cancel(self._membership)
       self._zookeeper.stop()
+
+
+class ServerSetJoinThread(threading.Thread):
+  """
+    A thread to maintain serverset session.
+  """
+  def __init__(self, event, joiner):
+    self._event = event
+    self._joiner = joiner
+    threading.Thread.__init__(self)
+    self.daemon = True
+
+  def run(self):
+    while True:
+      self._event.wait()
+      log.debug('Join event triggered, joining serverset.')
+      self._event.clear()
+      self._joiner()
