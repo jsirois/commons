@@ -44,12 +44,20 @@ if WITH_APP:
       '--zookeeper',
       default='zookeeper.local.twitter.com:2181',
       metavar='HOST:PORT[,HOST:PORT,...]',
+      dest='twitter_common_zookeeper_ensemble',
       help='Comma-separated list of host:port of ZooKeeper servers')
   app.add_option(
       '--zookeeper_timeout',
       type='float',
-      default=5.0,
+      default=15.0,
+      dest='twitter_common_zookeeper_timeout',
       help='default timeout (in seconds) for ZK operations')
+  app.add_option(
+      '--zookeeper_reconnects',
+      type='int',
+      default=0,
+      dest='twitter_common_zookeeper_reconnects',
+      help='number permitted reconnections before failing zookeeper (0 = infinite)')
   app.add_option(
       '--enable_zookeeper_debug_logging',
       dest='twitter_common_zookeeper_debug',
@@ -291,7 +299,7 @@ class ZooKeeper(object):
                servers=None,
                timeout_secs=None,
                watch=None,
-               max_reconnects=MAX_RECONNECTS,
+               max_reconnects=None,
                logger=log.debug):
     """Create new ZooKeeper object.
 
@@ -306,10 +314,12 @@ class ZooKeeper(object):
 
     default_ensemble = self.DEFAULT_ENSEMBLE
     default_timeout = self.DEFAULT_TIMEOUT_SECONDS
+    default_reconnects = self.MAX_RECONNECTS
     if WITH_APP:
       options = app.get_options()
-      default_ensemble = options.zookeeper
-      default_timeout = options.zookeeper_timeout
+      default_ensemble = options.twitter_common_zookeeper_ensemble
+      default_timeout = options.twitter_common_zookeeper_timeout
+      default_reconnects = options.twitter_common_zookeeper_reconnects
     self._servers = servers or default_ensemble
     self._timeout_secs = timeout_secs or default_timeout
     self._init_count = 0
@@ -319,7 +329,7 @@ class ZooKeeper(object):
     self._zh = None
     self._watch = watch
     self._logger = logger
-    self._max_reconnects = max_reconnects
+    self._max_reconnects = max_reconnects if max_reconnects is not None else default_reconnects
     self.reconnect()
 
   def __del__(self):
@@ -413,7 +423,7 @@ class ZooKeeper(object):
       self._live.wait(self._timeout_secs + 1)
       if self._live.is_set():
         break
-      elif self._init_count >= self._max_reconnects:
+      elif self._max_reconnects > 0 and self._init_count >= self._max_reconnects:
         self._safe_close()
         raise ZooKeeper.ConnectionTimeout('Timed out waiting for ZK connection to %s' % servers)
     self._log('Successfully connected to ZK at %s' % servers)
