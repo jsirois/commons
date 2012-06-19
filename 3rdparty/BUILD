@@ -64,7 +64,7 @@ Notice: force is NOT transitive, so any indirectly depended package will not hav
 
 jar_library(name = 'cascading2-core',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-core', rev = '2.0.0-wip-291')
+              jar(org = 'cascading', name = 'cascading-core', rev = '2.0.0')
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
@@ -75,18 +75,18 @@ jar_library(name = 'cascading-kryo',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.1.9')
+              jar(org = 'com.twitter', name = 'maple', rev = '0.2.0')
             ])
 
 jar_library(name = 'cascading2-local',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-local', rev = '2.0.0-wip-291')
+              jar(org = 'cascading', name = 'cascading-local', rev = '2.0.0')
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
 jar_library(name = 'cascading2-hadoop',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-hadoop', rev = '2.0.0-wip-291')
+              jar(org = 'cascading', name = 'cascading-hadoop', rev = '2.0.0')
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
@@ -98,7 +98,7 @@ jar_library(name = 'cascading-thrift',
             ])
 
 jar_library(name = 'cascading2-test',
-    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = '2.0.0-wip-291') ]
+    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = '2.0.0') ]
   )
 
 jar_library(name = 'cascading.jdbc',
@@ -259,7 +259,7 @@ jar_library(name = 'lucene-core',
            )
 
 jar_library(name = 'meat-locker',
-  dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ]
+  dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.2.1') ]
   )
 
 jar_library(name = 'mustache',
