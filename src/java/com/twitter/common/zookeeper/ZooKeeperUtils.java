@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.ACL;
 
 import com.twitter.common.quantity.Amount;
@@ -144,6 +145,19 @@ public final class ZooKeeperUtils {
         LOG.info("Node existed when trying to ensure path " + path + ", somebody beat us to it?");
       }
     }
+  }
+
+  /**
+   * Validate and return a normalized zookeeper path which doesn't contain consecutive slashes and
+   * never ends with a slash (except for root path).
+   *
+   * @param path the path to be normalized
+   * @return normalized path string
+   */
+  public static String normalizePath(String path) {
+    String normalizedPath = path.replaceAll("//+", "/").replaceFirst("(.+)/$", "$1");
+    PathUtils.validatePath(normalizedPath);
+    return normalizedPath;
   }
 
   private ZooKeeperUtils() {

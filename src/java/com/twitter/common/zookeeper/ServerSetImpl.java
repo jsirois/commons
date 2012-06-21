@@ -16,8 +16,6 @@
 
 package com.twitter.common.zookeeper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -217,30 +215,25 @@ public class ServerSetImpl implements ServerSet {
 
     byte[] serializeServiceInstance() {
       ServiceInstance serviceInstance =
-          new ServiceInstance(toEndpoint(endpoint),
+          new ServiceInstance(ServerSets.toEndpoint(endpoint),
               Maps.transformValues(additionalEndpoints, TO_ENDPOINT), status);
+
       LOG.info("updating endpoint data to:\n\t" + serviceInstance);
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
       try {
-        codec.serialize(serviceInstance, output);
+        return ServerSets.serializeServiceInstance(serviceInstance, codec);
       } catch (IOException e) {
-        throw new IllegalStateException("Unexpected problem serializing thrift struct: " +
-                                        serviceInstance + " to a byte[]", e);
+        throw new IllegalStateException("Unexpected problem serializing thrift struct " +
+            serviceInstance + "to a byte[]", e);
       }
-      return output.toByteArray();
     }
   }
 
   private static final Function<InetSocketAddress, Endpoint> TO_ENDPOINT =
       new Function<InetSocketAddress, Endpoint>() {
         @Override public Endpoint apply(InetSocketAddress address) {
-          return toEndpoint(address);
+          return ServerSets.toEndpoint(address);
         }
       };
-
-  private static Endpoint toEndpoint(InetSocketAddress address) {
-    return new Endpoint(address.getHostName(), address.getPort());
-  }
 
   private static class ServiceInstanceFetchException extends RuntimeException {
     ServiceInstanceFetchException(String message, Throwable cause) {
@@ -328,7 +321,7 @@ public class ServerSetImpl implements ServerSet {
           @Override public ServiceInstance get() {
             try {
               byte[] data = zkClient.get().getData(nodePath, serviceInstanceWatcher, null);
-              return codec.deserialize(new ByteArrayInputStream(data));
+              return ServerSets.deserializeServiceInstance(data, codec);
             } catch (InterruptedException e) {
               Thread.currentThread().interrupt();
               throw new ServiceInstanceFetchException(

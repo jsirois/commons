@@ -25,6 +25,7 @@ MEDIUM = [
 LARGE = [
   'CandidateImplTest.java',
   'GroupTest.java',
+  'ServerSetsTest.java',
   'ServerSetImplTest.java',
   'ZooKeeperMapTest.java',
   'ZooKeeperNodeTest.java',
