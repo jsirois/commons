@@ -155,6 +155,13 @@ class Application(object):
            dest='twitter_common_app_profile_output',
            help="Dump the profiling output to a binary profiling format."),
 
+    'rc_filename':
+       options.Option('--app_rc_filename',
+           action='store_true',
+           default=False,
+           dest='twitter_common_app_rc_filename',
+           help="Print the filename for the rc file and quit."),
+
     'ignore_rc_file':
        options.Option(IGNORE_RC_FLAG,
            action='store_true',
@@ -273,12 +280,15 @@ class Application(object):
     """
     return self._construct_partial_parser().groups(self._global_options.values())
 
+  def _rc_filename(self):
+    rc_short_filename = '~/.%src' % self.name()
+    return os.path.expanduser(rc_short_filename)
+
   def _add_default_options(self, argv):
     """
       Return an argument list with options from the rc file prepended.
     """
-    rc_short_filename = '~/.%src' % self.name()
-    rc_filename = os.path.expanduser(rc_short_filename)
+    rc_filename = self._rc_filename()
 
     options = argv
 
@@ -662,6 +672,10 @@ class Application(object):
 
     # defer init as long as possible.
     self.init()
+
+    if self._option_values.twitter_common_app_rc_filename:
+      print('RC filename: %s' % self._rc_filename())
+      return
 
     try:
         caller_main = Inspection.find_main_from_caller()
