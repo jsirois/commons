@@ -79,6 +79,7 @@ class ProcessHandleParser(ScanfParser):
     attr_list = map(type_map.get, attrs)
     ScanfParser.__init__(self, ' '.join(attr_list))
 
+
 class ProcessHandleParserBase(object):
   """
     Given a provider of process lines, parse them into bundles of attributes that can be
@@ -129,10 +130,7 @@ class ProcessHandleParserBase(object):
 
   def get(self, key):
     probe_key = self.ALIASES[key] if key in self.ALIASES else key
-    if probe_key in self._attrs:
-      return self._attrs.get(probe_key)
-    else:
-      raise AttributeError("%s not in ProcessHandle" % probe_key)
+    return self._attrs.get(probe_key)
 
   def refresh(self, line=None):
     return self._realize() if line is None else self._realize_from_line(self, line)

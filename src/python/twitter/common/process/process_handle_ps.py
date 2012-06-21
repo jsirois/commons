@@ -57,10 +57,10 @@ class ProcessHandlePs(ProcessHandle, ProcessHandleParserBase):
     return self._get_process_attrs(ProcessHandlePs.ATTRS)
 
   def cpu_time(self):
-    return self.get('time')
+    return self.get('time') or 0.0
 
   def wall_time(self):
-    return self.get('starttime')
+    return self.get('starttime') or 0.0
 
   def pid(self):
     return self.get('pid')
