@@ -27,7 +27,7 @@ class ThriftstoreDMLGen(CodeGen):
 
   def __init__(self, context):
     CodeGen.__init__(self, context)
-    self.thriftstore_admin = context.config.get('thriftstore-dml-gen', 'thriftstore-admin')
+    self.thriftstore_codegen = context.config.get('thriftstore-dml-gen', 'thriftstore-codegen')
 
     self.output_dir = (context.options.thriftstore_gen_create_outdir
       or context.config.get('thriftstore-dml-gen', 'workdir'))
@@ -96,7 +96,7 @@ class ThriftstoreDMLGen(CodeGen):
     safe_mkdir(self.gen_thriftstore_java_dir)
 
     args = [
-      self.thriftstore_admin,
+      self.thriftstore_codegen,
       'dml',
       '-o', self.gen_thriftstore_java_dir
     ]
@@ -128,7 +128,7 @@ class ThriftstoreDMLGen(CodeGen):
 
   def _calculate_genfiles(self, source):
     args = [
-      self.thriftstore_admin,
+      self.thriftstore_codegen,
       'parse',
       source
     ]
