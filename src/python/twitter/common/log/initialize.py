@@ -102,6 +102,8 @@ def _safe_setup_link(link_filename, real_filename):
   """
     Create a symlink from link_filename to real_filename.
   """
+  real_filename = os.path.relpath(real_filename, os.path.dirname(link_filename))
+
   if os.path.exists(link_filename):
     try:
       os.unlink(link_filename)
