@@ -238,6 +238,9 @@ jar_library(name = 'jsr305',
             ]
            )
 
+jar_library(name = 'jvyaml',
+            dependencies = [ jar(org = 'org.jvyaml', name = 'jvyaml', rev = '0.2.1') ])
+
 jar_library(name = 'kryo-serializers',
             dependencies = [
               jar(org = 'de.javakaffee', name = 'kryo-serializers', rev = '0.9')
