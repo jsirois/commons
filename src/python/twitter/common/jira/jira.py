@@ -74,6 +74,21 @@ class Jira(object):
     except urllib2.URLError as e:
       raise JiraError(cause=e)
 
+  # create a new issue using project key and issuetype names, i.e. TEST, Incident
+  def create_issue(self, project, issue_type, summary, description=None):
+    data = {
+      'fields': {
+        'project': {'key': project},
+        'issuetype': {'name': issue_type},
+        'summary': summary,
+        'description': description
+      }
+    }
+    try:
+      self.api_call('issue', data)
+    except urllib2.URLError as e:
+      raise JiraError(cause=e)
+
   def api_call(self, endpoint, post_json=None):
     url = urlparse.urljoin(self._base_url, endpoint)
     headers = {'User-Agent': 'twitter.common.jira'}
