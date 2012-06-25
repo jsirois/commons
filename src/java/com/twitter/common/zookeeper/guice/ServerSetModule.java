@@ -19,28 +19,18 @@ package com.twitter.common.zookeeper.guice;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 import javax.annotation.Nullable;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Atomics;
-import com.google.inject.BindingAnnotation;
 import com.google.inject.AbstractModule;
+import com.google.inject.BindingAnnotation;
 import com.google.inject.Inject;
-import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 
@@ -49,28 +39,28 @@ import com.twitter.common.application.modules.LifecycleModule;
 import com.twitter.common.application.modules.LocalServiceRegistry;
 import com.twitter.common.args.Arg;
 import com.twitter.common.args.CmdLine;
-import com.twitter.common.args.constraints.NotEmpty;
-import com.twitter.common.args.constraints.NotNull;
 import com.twitter.common.base.Command;
 import com.twitter.common.base.ExceptionalCommand;
-import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.base.Supplier;
-import com.twitter.common.zookeeper.CompoundServerSet;
 import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.ServerSet;
 import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
 import com.twitter.common.zookeeper.ServerSet.UpdateException;
-import com.twitter.common.zookeeper.ServerSetImpl;
 import com.twitter.common.zookeeper.ZooKeeperClient;
 import com.twitter.thrift.Status;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * A module that registers all ports in the {@link LocalServiceRegistry} in an {@link ServerSet}.
  *
  * Required bindings:
  * <ul>
+ *   <li> {@link ServerSet}
  *   <li> {@link ZooKeeperClient}
  *   <li> {@link ShutdownRegistry}
  *   <li> {@link LocalServiceRegistry}
@@ -82,8 +72,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <ul>
  *   <li> {@link Supplier<EndpointStatus>}
  * </ul>
- *
- * @author William Farner
  */
 public class ServerSetModule extends AbstractModule {
 
@@ -92,12 +80,6 @@ public class ServerSetModule extends AbstractModule {
    */
   @BindingAnnotation @Target({ PARAMETER, METHOD, FIELD }) @Retention(RUNTIME)
   private @interface Default { }
-
-  @NotNull
-  @NotEmpty
-  @CmdLine(name = "serverset_path", help = "ServerSet registration path. "
-      + "For multiple paths pass this as comma separated values.")
-  protected static final Arg<List<String>> SERVERSET_PATH = Arg.create(null);
 
   @CmdLine(name = "aux_port_as_primary",
       help = "Name of the auxiliary port to use as the primary port in the server set."
@@ -109,30 +91,27 @@ public class ServerSetModule extends AbstractModule {
   private final Status initialStatus;
   private final Optional<String> auxPortAsPrimary;
 
-  /**
-   * Calls {@link #ServerSetModule(Optional)} with an absent value.
-   */
-  public ServerSetModule() {
-    this(Optional.<String>absent());
+  public static class Builder {
+    private Status initialStatus = Status.ALIVE;
+    private Optional<String> auxPortAsPrimary = Optional.absent();
+
+    public Builder initialStatus(Status initialStatus) {
+      this.initialStatus = initialStatus;
+      return this;
+    }
+
+    public Builder namedPrimaryPort(String auxPortName) {
+      this.auxPortAsPrimary = Optional.of(auxPortName);
+      return this;
+    }
+
+    public ServerSetModule build() {
+      return new ServerSetModule(initialStatus, auxPortAsPrimary);
+    }
   }
 
-  /**
-   * Calls {@link #ServerSetModule(Status, Optional)} with initial status {@link Status#ALIVE}.
-   *
-   * @param auxPortAsPrimary Name of the auxiliary port to use as the primary port.
-   */
-  public ServerSetModule(Optional<String> auxPortAsPrimary) {
-    this(Status.ALIVE, auxPortAsPrimary);
-  }
-
-  /**
-   * Constructs a ServerSetModule that registers a startup action that registers this process in
-   * ZooKeeper, with the specified initial Status.
-   *
-   * @param initialStatus initial Status to report to ZooKeeper.
-   */
-  public ServerSetModule(Status initialStatus) {
-    this(initialStatus, Optional.<String>absent());
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -143,13 +122,14 @@ public class ServerSetModule extends AbstractModule {
    * @param initialStatus initial Status to report to ZooKeeper.
    * @param auxPortAsPrimary Name of the auxiliary port to use as the primary port.
    */
-  public ServerSetModule(Status initialStatus, Optional<String> auxPortAsPrimary) {
-    this.initialStatus = Preconditions.checkNotNull(initialStatus);
-    this.auxPortAsPrimary = Preconditions.checkNotNull(auxPortAsPrimary);
+  ServerSetModule(Status initialStatus, Optional<String> auxPortAsPrimary) {
+    this.initialStatus = checkNotNull(initialStatus);
+    this.auxPortAsPrimary = checkNotNull(auxPortAsPrimary);
   }
 
   @Override
   protected void configure() {
+    requireBinding(ServerSet.class);
     requireBinding(ZooKeeperClient.class);
     requireBinding(ShutdownRegistry.class);
     requireBinding(LocalServiceRegistry.class);
@@ -168,22 +148,6 @@ public class ServerSetModule extends AbstractModule {
 
     bind(new TypeLiteral<Optional<String>>() { }).annotatedWith(Default.class)
         .toInstance(primaryPortName);
-  }
-
-  @Provides
-  @Singleton
-  ServerSet provideServerSet(ZooKeeperClient zkClient) {
-    List<String> paths = SERVERSET_PATH.get();
-    MorePreconditions.checkNotBlank(paths);
-    if (paths.size() == 1) {
-      return new ServerSetImpl(zkClient, paths.get(0));
-    } else {
-      ImmutableList.Builder<ServerSet> builder = ImmutableList.builder();
-      for (String path : paths) {
-        builder.add(new ServerSetImpl(zkClient, path));
-      }
-      return new CompoundServerSet(builder.build());
-    }
   }
 
   static class EndpointSupplier implements Supplier<EndpointStatus> {

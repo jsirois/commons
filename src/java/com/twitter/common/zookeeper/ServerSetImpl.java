@@ -74,15 +74,14 @@ import com.twitter.thrift.ServiceInstance;
 import com.twitter.thrift.Status;
 
 /**
- * Implementation of {@link ServerSet}.
- *
- * @author John Sirois
+ * ZooKeeper-backed implementation of {@link ServerSet}.
  */
 public class ServerSetImpl implements ServerSet {
   private static final Logger LOG = Logger.getLogger(ServerSetImpl.class.getName());
 
   @CmdLine(name = "serverset_encode_json",
-           help = "If true, use JSON for encoding server set information. Defaults to false (use Thrift).")
+           help = "If true, use JSON for encoding server set information."
+               + " Defaults to false (use Thrift).")
   private static final Arg<Boolean> ENCODE_JSON = Arg.create(false);
 
   private final ZooKeeperClient zkClient;

@@ -1,20 +1,66 @@
 package com.twitter.common.zookeeper;
 
-import com.twitter.common.io.Codec;
-import com.twitter.thrift.Endpoint;
-import com.twitter.thrift.ServiceInstance;
-import com.twitter.thrift.Status;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Set;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+
+import com.twitter.common.base.MorePreconditions;
+import com.twitter.common.io.Codec;
+import com.twitter.thrift.Endpoint;
+import com.twitter.thrift.ServiceInstance;
+import com.twitter.thrift.Status;
 
 /**
  * Common ServerSet related functions
  */
 public class ServerSets {
+
+  private ServerSets() {
+    // Utility class.
+  }
+
+  /**
+   * Creates a server set that registers at a single path.
+   *
+   * @param zkClient ZooKeeper client to register with.
+   * @param zkPath Path to register at.
+   * @see #create(ZooKeeperClient, java.util.Set)
+   * @return A server set that registers at {@code zkPath}.
+   */
+  public static ServerSet create(ZooKeeperClient zkClient, String zkPath) {
+    return create(zkClient, ImmutableSet.of(zkPath));
+  }
+
+  /**
+   * Creates a server set that registers at one or multiple paths.
+   *
+   * @param zkClient ZooKeeper client to register with.
+   * @param zkPaths Paths to register at, must be non-empty.
+   * @return A server set that registers at the given {@code zkPath}s.
+   */
+  public static ServerSet create(ZooKeeperClient zkClient, Set<String> zkPaths) {
+    Preconditions.checkNotNull(zkClient);
+    MorePreconditions.checkNotBlank(zkPaths);
+
+    if (zkPaths.size() == 1) {
+      return new ServerSetImpl(zkClient, Iterables.getOnlyElement(zkPaths));
+    } else {
+      ImmutableList.Builder<ServerSet> builder = ImmutableList.builder();
+      for (String path : zkPaths) {
+        builder.add(new ServerSetImpl(zkClient, path));
+      }
+      return new CompoundServerSet(builder.build());
+    }
+  }
+
   /**
    * Returns a serialized Thrift service instance object, with given endpoints and codec.
    *
@@ -68,9 +114,5 @@ public class ServerSets {
    */
   public static Endpoint toEndpoint(InetSocketAddress address) {
     return new Endpoint(address.getHostName(), address.getPort());
-  }
-
-  private ServerSets() {
-    // Utility class.
   }
 }

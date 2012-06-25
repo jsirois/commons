@@ -34,7 +34,8 @@ public class CompoundServerSet implements ServerSet {
    * @param serverSets serverSets to which the calls will be delegated.
    */
   public CompoundServerSet(Iterable<ServerSet> serverSets) {
-    this.serverSets = ImmutableList.copyOf(MorePreconditions.checkNotBlank(serverSets));
+    MorePreconditions.checkNotBlank(serverSets);
+    this.serverSets = ImmutableList.copyOf(serverSets);
   }
 
   /*
@@ -97,15 +98,15 @@ public class CompoundServerSet implements ServerSet {
   /**
    * Monitor the CompoundServerSet.
    *
-   * @param monitor HostChangeMonitor instance used to monitor host changes.
-   * @throws MonitorException
-   *
    * If any one of the monitor calls to the underlying serverSet raises a MonitorException, the
    * exception is propagated. The call is successful only if all the monitor calls to the
    * underlying serverSets are successful.
    *
    * NOTE: If an exception occurs during the monitor call, the serverSets in the composite will not
    * be monitored.
+   *
+   * @param monitor HostChangeMonitor instance used to monitor host changes.
+   * @throws MonitorException If there was a problem monitoring any of the underlying server sets.
    */
   @Override
   public synchronized void monitor(HostChangeMonitor<ServiceInstance> monitor)
