@@ -69,9 +69,8 @@ public class RootLogConfig {
   private static Arg<Map<Class<?>, LogLevel>> VMODULE =
       Arg.<Map<Class<?>, LogLevel>>create(new HashMap<Class<?>, LogLevel>());
 
-  // TODO(franco): change this flag's default to true, then remove after enough forewarning.
   @CmdLine(name = "use_glog_formatter", help = "True to use the glog formatter exclusively.")
-  private static Arg<Boolean> USE_GLOG_FORMATTER = Arg.create(false);
+  private static Arg<Boolean> USE_GLOG_FORMATTER = Arg.create(true);
 
   /**
    * A builder-pattern class used to perform the configuration programmatically
