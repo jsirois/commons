@@ -27,6 +27,7 @@ MAX_EXPIRE_WAIT_SECS = 60.0
 CONNECT_TIMEOUT_SECS = 10.0
 CONNECT_RETRIES = 6
 
+
 def make_zk(server, **kw):
   return ZooKeeper('localhost:%d' % server.zookeeper_port,
                    timeout_secs=CONNECT_TIMEOUT_SECS,

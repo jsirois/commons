@@ -29,6 +29,7 @@ import time
 from thrift.transport.TTransport import TTransportException
 import zookeeper
 
+from twitter.common.contextutil import environment_as
 from twitter.common.dirutil import safe_rmtree
 from twitter.common.rpc import make_client
 from twitter.common.rpc.finagle import TFinagleProtocol
@@ -71,7 +72,14 @@ class ZookeeperServer(object):
   @classmethod
   def build(cls):
     if not cls.BUILT:
+      pex_keys = {}
+      for key in os.environ:
+        if key.startswith('PEX'):
+          pex_keys[key] = os.environ[key]
+          os.unsetenv(key)
       assert subprocess.call(cls.BUILD_COMMAND.split()) == 0
+      for key in pex_keys:
+        os.putenv(key, pex_keys[key])
       cls.BUILT = True
 
   def __init__(self):

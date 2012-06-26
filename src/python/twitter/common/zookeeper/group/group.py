@@ -230,16 +230,16 @@ class Group(GroupInterface):
       self._zk.acreate(posixpath.join(self._path, self.MEMBER_PREFIX),
           blob, self._acl, zookeeper.SEQUENCE | zookeeper.EPHEMERAL, acreate_completion)
 
-    def exists_completion(_, rc, path):
-      if rc in self._zk.COMPLETION_RETRY:
-        self._zk.aexists(path, exists_watch, exists_completion)
-        return
-      if rc == zookeeper.NONODE:
-        exists_promise.set()
-
     def exists_watch(_, event, state, path):
       if (event == zookeeper.SESSION_EVENT and state == zookeeper.EXPIRED_SESSION_STATE) or (
           event == zookeeper.DELETED_EVENT):
+        exists_promise.set()
+
+    def exists_completion(path, _, rc, stat):
+      if rc in self._zk.COMPLETION_RETRY:
+        self._zk.aexists(path, exists_watch, functools.partial(exists_completion, path))
+        return
+      if rc == zookeeper.NONODE:
         exists_promise.set()
 
     def acreate_completion(_, rc, path):
@@ -254,7 +254,7 @@ class Group(GroupInterface):
           result_future.set_result(blob)
           self._members[membership] = result_future
         if expire_callback:
-          self._zk.aexists(path, exists_watch, exists_completion)
+          self._zk.aexists(path, exists_watch, functools.partial(exists_completion, path))
       else:
         membership = Membership.error()
       membership_promise.set(membership)

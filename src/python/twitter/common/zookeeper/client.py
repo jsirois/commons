@@ -15,7 +15,9 @@
 # ==================================================================================================
 
 import posixpath
+import random
 import socket
+import sys
 import threading
 import zookeeper
 from functools import wraps
@@ -238,25 +240,35 @@ class ZooKeeper(object):
   class Completion(object):
     def __init__(self, zk, function, *args, **kw):
       self._zk = zk
+      self._cid = random.randint(0, sys.maxint - 1)
       self._logger = kw.pop('logger', log.debug)
       @wraps(function)
       def wrapper(zh):
         return function(zh, *args, **kw)
       self._fn = wrapper
+      self._logger('Created %s args:(%s) kw:{%s}' % (
+        self,
+        ', '.join(map(repr, args)),
+        ', '.join('%s: %r' % (key, val) for key, val in kw.items())))
+
+    def __str__(self):
+      return '%s(id:%s, zh:%s, %s)' % (
+          self.__class__.__name__, self._cid, self._zk._zh, self._fn.__name__)
 
     def __call__(self):
       try:
-        self._logger('Completion(zh:%s, %s) start' % (self._zk._zh, self._fn.__name__))
+        self._logger('%s start' % self)
         result = self._fn(self._zk._zh)
-        self._logger('Completion(zh:%s, %s) success' % (self._zk._zh, self._fn.__name__))
+        self._logger('%s success' % self)
         return result
       except TypeError as e:
         # Raced; zh now dead, so re-enqueue.
         if self._zk._zh is not None:
           raise
+        self._logger('%s raced, re-enqueueing' % self)
         self._zk._add_completion(self._fn)
       except (zookeeper.ConnectionLossException, SystemError):
-        self._logger('Completion(zh:%s, %s) excepted, re-enqueueing' % (self._zk._zh, self._fn.__name__))
+        self._logger('%s excepted, re-enqueueing' % self)
         self._zk._add_completion(self._fn)
       return zookeeper.OK
 
@@ -275,20 +287,20 @@ class ZooKeeper(object):
     def __call__(self):
       while True:
         try:
-          self._logger('Completion(zh:%s, %s) start' % (self._zk._zh, self._fn.__name__))
+          self._logger('%s start' % self)
           result = self._fn(self._zk._zh)
-          self._logger('Completion(zh:%s, %s) success' % (self._zk._zh, self._fn.__name__))
+          self._logger('%s success' % self)
           return result
         except (zookeeper.ConnectionLossException, TypeError) as e:
           # TypeError because we raced on live latch from True=>False when _zh gets reinitialized.
           if isinstance(e, TypeError) and self._zk._zh is not None:
-            self._logger('Completion(zh:%s, %s) excepted, user error' % (self._zk._zh, self._fn.__name__))
+            self._logger('%s excepted, user error' % self)
             raise
           # We had the misfortune of the live latch being set but having a session event propagate
           # before the BlockingCompletion could be executed.
           while not self._zk._stopped.is_set():
-            self._logger('Completion(zh:%s, live:%s, %s) excepted on connection event' % (
-                self._zk._zh, self._zk._live.is_set(), self._fn.__name__))
+            self._logger('%s [live: %s] excepted on connection event' % (
+                self, self._zk._live.is_set()))
             self._zk._live.wait(timeout=0.1)
             if self._zk._live.is_set():
               break
