@@ -376,7 +376,7 @@ jar_library(name = 'twitter4j',
            )
 
 jar_library(name = 'twitter-text',
-            dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.4.10') ])
+            dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
 # common rev for all com.twitter%util* artifacts
 UTIL_REV = '4.0.0'
