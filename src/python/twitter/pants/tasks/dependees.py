@@ -32,8 +32,11 @@ class ReverseDepmap(ConsoleTask):
       yield dependant.address
 
   def get_dependants(self, dependees_by_target, targets):
+    check = set()
+    for target in targets:
+      check.update(target.resolve())
+
     known_dependants = set()
-    check = set(targets)
     while True:
       dependants = set(known_dependants)
       for target in check:
