@@ -61,10 +61,11 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
+CASCADING2_REV = '2.0.2-wip-321'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-core', rev = '2.0.0')
+              jar(org = 'cascading', name = 'cascading-core', rev = CASCADING2_REV)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
@@ -80,13 +81,13 @@ jar_library(name = 'maple',
 
 jar_library(name = 'cascading2-local',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-local', rev = '2.0.0')
+              jar(org = 'cascading', name = 'cascading-local', rev = CASCADING2_REV)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
 jar_library(name = 'cascading2-hadoop',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-hadoop', rev = '2.0.0')
+              jar(org = 'cascading', name = 'cascading-hadoop', rev = CASCADING2_REV)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
             ])
 
@@ -98,7 +99,7 @@ jar_library(name = 'cascading-thrift',
             ])
 
 jar_library(name = 'cascading2-test',
-    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = '2.0.0') ]
+    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV) ]
   )
 
 jar_library(name = 'cascading.jdbc',
