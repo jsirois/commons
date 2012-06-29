@@ -325,6 +325,21 @@ jar_library(name = 'spy-memcached',
             ]
            )
 
+jar_library(name = 'storm',
+            dependencies = [
+              jar(org = 'storm', name = 'storm', rev = '0.7.4')
+            ])
+
+jar_library(name = 'storm-kafka',
+            dependencies = [
+              jar(org = 'storm', name = 'storm-kafka', rev = '0.7.2-snaptmp8')
+            ])
+
+jar_library(name = 'storm-kestrel',
+            dependencies = [
+              jar(org = 'storm', name = 'storm-kestrel', rev = '0.7.2-snap2')
+            ])
+
 jar_library(name = 'stringtemplate',
             dependencies = [
               jar(org = 'org.antlr', name = 'stringtemplate', rev = '3.2.1').with_sources()
