@@ -61,7 +61,7 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
-CASCADING2_REV = '2.0.2-wip-321'
+CASCADING2_REV = '2.0.0-wip-291'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
@@ -76,7 +76,7 @@ jar_library(name = 'cascading-kryo',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.2.0')
+              jar(org = 'com.twitter', name = 'maple', rev = '0.1.9')
             ])
 
 jar_library(name = 'cascading2-local',
@@ -263,7 +263,7 @@ jar_library(name = 'lucene-core',
            )
 
 jar_library(name = 'meat-locker',
-  dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.2.1') ]
+  dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ]
   )
 
 jar_library(name = 'mustache',
