@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.Atomics;
 import com.google.inject.AbstractModule;
 import com.google.inject.BindingAnnotation;
 import com.google.inject.Inject;
+import com.google.inject.Key;
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 
@@ -46,7 +47,6 @@ import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.ServerSet;
 import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
 import com.twitter.common.zookeeper.ServerSet.UpdateException;
-import com.twitter.common.zookeeper.ZooKeeperClient;
 import com.twitter.thrift.Status;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -61,7 +61,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * Required bindings:
  * <ul>
  *   <li> {@link ServerSet}
- *   <li> {@link ZooKeeperClient}
  *   <li> {@link ShutdownRegistry}
  *   <li> {@link LocalServiceRegistry}
  * </ul>
@@ -78,8 +77,17 @@ public class ServerSetModule extends AbstractModule {
   /**
    * BindingAnnotation for defaults to use in the service instance node.
    */
-  @BindingAnnotation @Target({ PARAMETER, METHOD, FIELD }) @Retention(RUNTIME)
-  private @interface Default { }
+  @BindingAnnotation @Target({PARAMETER, METHOD, FIELD}) @Retention(RUNTIME)
+  private @interface Default {}
+
+  /**
+   * Binding annotation to give the ServerSetJoiner a fixed known ServerSet that is appropriate to
+   * {@link ServerSet#join} on.
+   */
+  @BindingAnnotation @Target({METHOD, PARAMETER}) @Retention(RUNTIME)
+  private @interface Joinable {}
+
+  private static final Key<ServerSet> JOINABLE_SS = Key.get(ServerSet.class, Joinable.class);
 
   @CmdLine(name = "aux_port_as_primary",
       help = "Name of the auxiliary port to use as the primary port in the server set."
@@ -88,51 +96,96 @@ public class ServerSetModule extends AbstractModule {
 
   private static final Logger LOG = Logger.getLogger(ServerSetModule.class.getName());
 
-  private final Status initialStatus;
-  private final Optional<String> auxPortAsPrimary;
-
+  /**
+   * Builds a Module tht can be used to join a {@link ServerSet} with the ports configured in a
+   * {@link LocalServiceRegistry}.
+   */
   public static class Builder {
+    private Key<ServerSet> key = Key.get(ServerSet.class);
     private Status initialStatus = Status.ALIVE;
     private Optional<String> auxPortAsPrimary = Optional.absent();
 
+    /**
+     * Sets the key of the ServerSet to join.
+     *
+     * @param key Key of the ServerSet to join.
+     * @return This builder for chaining calls.
+     */
+    public Builder key(Key<ServerSet> key) {
+      this.key = key;
+      return this;
+    }
+
+    /**
+     * Sets the initial status to join the ServerSet with.
+     *
+     * @param initialStatus The initial status to join the ServerSet with.
+     * @return This builder for chaining calls.
+     */
     public Builder initialStatus(Status initialStatus) {
       this.initialStatus = initialStatus;
       return this;
     }
 
+    /**
+     * Allows joining an auxillary port with the specified {@code name} as the primary port of the
+     * ServerSet.
+     *
+     * @param auxPortName The name of the auxillary port to join as the primary ServerSet port.
+     * @return This builder for chaining calls.
+     */
     public Builder namedPrimaryPort(String auxPortName) {
       this.auxPortAsPrimary = Optional.of(auxPortName);
       return this;
     }
 
+    /**
+     * Creates a Module that will register a startup action that joins a ServerSet when installed.
+     *
+     * @return A Module.
+     */
     public ServerSetModule build() {
-      return new ServerSetModule(initialStatus, auxPortAsPrimary);
+      return new ServerSetModule(key, initialStatus, auxPortAsPrimary);
     }
   }
 
+  /**
+   * Creates a builder that can be used to configure and create a ServerSetModule.
+   *
+   * @return A ServerSetModule builder.
+   */
   public static Builder builder() {
     return new Builder();
   }
+
+  private final Key<ServerSet> serverSetKey;
+  private final Status initialStatus;
+  private final Optional<String> auxPortAsPrimary;
 
   /**
    * Constructs a ServerSetModule that registers a startup action to register this process in
    * ZooKeeper, with the specified initial status and auxiliary port to represent as the primary
    * service port.
    *
-   * @param initialStatus initial Status to report to ZooKeeper.
+   * @param serverSetKey The key the ServerSet to join is bound under.
+   * @param initialStatus Initial Status to report to ZooKeeper.
    * @param auxPortAsPrimary Name of the auxiliary port to use as the primary port.
    */
-  ServerSetModule(Status initialStatus, Optional<String> auxPortAsPrimary) {
+  ServerSetModule(Key<ServerSet> serverSetKey,
+      Status initialStatus,
+      Optional<String> auxPortAsPrimary) {
+
+    this.serverSetKey = checkNotNull(serverSetKey);
     this.initialStatus = checkNotNull(initialStatus);
     this.auxPortAsPrimary = checkNotNull(auxPortAsPrimary);
   }
 
   @Override
   protected void configure() {
-    requireBinding(ServerSet.class);
-    requireBinding(ZooKeeperClient.class);
+    requireBinding(serverSetKey);
     requireBinding(ShutdownRegistry.class);
     requireBinding(LocalServiceRegistry.class);
+
     LifecycleModule.bindStartupAction(binder(), ServerSetJoiner.class);
 
     bind(new TypeLiteral<Supplier<EndpointStatus>>() { }).to(EndpointSupplier.class);
@@ -148,6 +201,8 @@ public class ServerSetModule extends AbstractModule {
 
     bind(new TypeLiteral<Optional<String>>() { }).annotatedWith(Default.class)
         .toInstance(primaryPortName);
+
+    bind(JOINABLE_SS).to(serverSetKey);
   }
 
   static class EndpointSupplier implements Supplier<EndpointStatus> {
@@ -173,7 +228,7 @@ public class ServerSetModule extends AbstractModule {
 
     @Inject
     ServerSetJoiner(
-        ServerSet serverSet,
+        @Joinable ServerSet serverSet,
         LocalServiceRegistry serviceRegistry,
         ShutdownRegistry shutdownRegistry,
         EndpointSupplier endpointSupplier,

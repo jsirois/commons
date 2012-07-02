@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import org.apache.zookeeper.data.ACL;
+
 import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.io.Codec;
 import com.twitter.thrift.Endpoint;
@@ -28,34 +30,38 @@ public class ServerSets {
   }
 
   /**
-   * Creates a server set that registers at a single path.
+   * Creates a server set that registers at a single path applying the given ACL to all nodes
+   * created in the path.
    *
    * @param zkClient ZooKeeper client to register with.
-   * @param zkPath Path to register at.
-   * @see #create(ZooKeeperClient, java.util.Set)
+   * @param acl The ACL to apply to the {@code zkPath} nodes the ServerSet creates.
+   * @param zkPath Path to register at.  @see #create(ZooKeeperClient, java.util.Set)
    * @return A server set that registers at {@code zkPath}.
    */
-  public static ServerSet create(ZooKeeperClient zkClient, String zkPath) {
-    return create(zkClient, ImmutableSet.of(zkPath));
+  public static ServerSet create(ZooKeeperClient zkClient, Iterable<ACL> acl, String zkPath) {
+    return create(zkClient, acl, ImmutableSet.of(zkPath));
   }
 
   /**
-   * Creates a server set that registers at one or multiple paths.
+   * Creates a server set that registers at one or multiple paths applying the given ACL to all
+   * nodes created in the paths.
    *
    * @param zkClient ZooKeeper client to register with.
+   * @param acl The ACL to apply to the {@code zkPath} nodes the ServerSet creates.
    * @param zkPaths Paths to register at, must be non-empty.
    * @return A server set that registers at the given {@code zkPath}s.
    */
-  public static ServerSet create(ZooKeeperClient zkClient, Set<String> zkPaths) {
+  public static ServerSet create(ZooKeeperClient zkClient, Iterable<ACL> acl, Set<String> zkPaths) {
     Preconditions.checkNotNull(zkClient);
+    MorePreconditions.checkNotBlank(acl);
     MorePreconditions.checkNotBlank(zkPaths);
 
     if (zkPaths.size() == 1) {
-      return new ServerSetImpl(zkClient, Iterables.getOnlyElement(zkPaths));
+      return new ServerSetImpl(zkClient, acl, Iterables.getOnlyElement(zkPaths));
     } else {
       ImmutableList.Builder<ServerSet> builder = ImmutableList.builder();
       for (String path : zkPaths) {
-        builder.add(new ServerSetImpl(zkClient, path));
+        builder.add(new ServerSetImpl(zkClient, acl, path));
       }
       return new CompoundServerSet(builder.build());
     }

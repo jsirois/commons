@@ -53,6 +53,12 @@ public final class ZooKeeperUtils {
   public static final int ANY_VERSION = -1;
 
   /**
+   * An ACL that gives all permissions any user authenticated or not.
+   */
+  public static final ImmutableList<ACL> OPEN_ACL_UNSAFE =
+      ImmutableList.copyOf(Ids.OPEN_ACL_UNSAFE);
+
+  /**
    * An ACL that gives all permissions to node creators and read permissions only to everyone else.
    */
   public static final ImmutableList<ACL> EVERYONE_READ_CREATOR_ALL =
