@@ -473,6 +473,7 @@ jar_library(name = 'specs_2.9',
               jar(org = 'org.scala-tools.testing', name = 'specs_2.9.1', rev = '1.6.9')
             ]
            )
+
 jar_library(name = 'specs', dependencies = [ pants(':specs_2.8') ])
 
 jar_library(name = 'tl4j',
