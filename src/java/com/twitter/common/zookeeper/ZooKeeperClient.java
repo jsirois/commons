@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -249,6 +250,16 @@ public class ZooKeeperClient {
         Iterables.transform(ImmutableSet.copyOf(zooKeeperServers),
             InetSocketAddressHelper.INET_TO_STR);
     this.zooKeeperServers = Joiner.on(',').join(servers);
+  }
+
+  /**
+   * Returns true if this client has non-empty credentials set.  For example, returns {@code false}
+   * if this client was constructed with {@link Credentials#NONE}.
+   *
+   * @return {@code true} if this client is configured with non-empty credentials.
+   */
+  public boolean hasCredentials() {
+    return !Strings.isNullOrEmpty(credentials.scheme()) && (credentials.authToken() != null);
   }
 
   /**
