@@ -503,14 +503,32 @@ class Application(object):
       Decorator to add an option only for a specific command.
     """
     def register_option(function):
-      if Inspection.find_calling_module() == '__main__':
-        added_option = self._get_option_from_args(args, kwargs)
-        if not hasattr(function, Application.OPTIONS_ATTR):
-          new_group = options.new_group('For command %s' % function.__name__)
-          setattr(function, Application.OPTIONS_ATTR, new_group)
-        getattr(function, Application.OPTIONS_ATTR).prepend_option(added_option)
+      added_option = self._get_option_from_args(args, kwargs)
+      if not hasattr(function, Application.OPTIONS_ATTR):
+        setattr(function, Application.OPTIONS_ATTR, deque())
+      getattr(function, Application.OPTIONS_ATTR).appendleft(added_option)
       return function
     return register_option
+
+  def copy_command_options(self, command_function):
+    """
+      Decorator to copy command options from another command.
+    """
+    def register_options(function):
+      if hasattr(command_function, Application.OPTIONS_ATTR):
+        if not hasattr(function, Application.OPTIONS_ATTR):
+          setattr(function, Application.OPTIONS_ATTR, deque())
+        command_options = getattr(command_function, Application.OPTIONS_ATTR)
+        getattr(function, Application.OPTIONS_ATTR).extendleft(command_options)
+      return function
+    return register_options
+
+  def add_command_options(self, command_function):
+    """
+      Function to add all options from a command
+    """
+    for option in getattr(command_function, Application.OPTIONS_ATTR, []):
+      self.add_option(option)
 
   def _debug_log(self, msg):
     if hasattr(self._option_values, 'twitter_common_app_debug') and (
