@@ -154,6 +154,12 @@ jar_library(name = 'commons-logging',
             ]
            )
 
+jar_library(name = 'commons-dbcp',
+            dependencies = [
+              jar(org = 'commons-dbcp', name = 'commons-dbcp', rev = '1.2.2'),
+            ]
+           )
+
 # common rev for all com.twitter%finagle* artifacts
 FINAGLE_REV = '4.0.5'
 
