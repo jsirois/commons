@@ -38,6 +38,11 @@ class BinaryCreate(JvmBinaryTask):
                             action="callback", callback=mkflag.set_bool,
                             help="[%default] Create a compressed binary jar.")
 
+    option_group.add_option(mkflag("zip64"), mkflag("zip64", negate=True),
+                            dest="binary_create_zip64", default=False,
+                            action="callback", callback=mkflag.set_bool,
+                            help="[%default] Create the binary jar with zip64 extensions.")
+
   def __init__(self, context):
     JvmBinaryTask.__init__(self, context)
 
@@ -46,6 +51,10 @@ class BinaryCreate(JvmBinaryTask):
       or context.config.get('binary-create', 'outdir')
     )
     self.compression = ZIP_DEFLATED if context.options.binary_create_compressed else ZIP_STORED
+    self.zip64 = (
+      context.options.binary_create_zip64
+      or context.config.getbool('binary-create', 'zip64', default=False)
+    )
     self.deployjar = context.options.jvm_binary_create_deployjar
 
     context.products.require('jars', predicate=self.is_binary)
@@ -66,7 +75,7 @@ class BinaryCreate(JvmBinaryTask):
     binaryjarpath = os.path.join(self.outdir, binary_jarname)
     self.context.log.info('creating %s' % os.path.relpath(binaryjarpath, get_buildroot()))
 
-    with open_jar(binaryjarpath, 'w', compression=self.compression) as jar:
+    with open_jar(binaryjarpath, 'w', compression=self.compression, allowZip64=self.zip64) as jar:
       def add_jars(target):
         generated = jarmap.get(target)
         if generated:
