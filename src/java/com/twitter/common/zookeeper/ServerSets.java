@@ -14,6 +14,7 @@ import com.google.common.collect.Iterables;
 
 import org.apache.zookeeper.data.ACL;
 
+import com.twitter.common.base.Function;
 import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.io.Codec;
 import com.twitter.thrift.Endpoint;
@@ -28,6 +29,16 @@ public class ServerSets {
   private ServerSets() {
     // Utility class.
   }
+
+  /**
+   * A function that invokes {@link #toEndpoint(InetSocketAddress)}.
+   */
+  public static final Function<InetSocketAddress, Endpoint> TO_ENDPOINT =
+      new Function<InetSocketAddress, Endpoint>() {
+        @Override public Endpoint apply(InetSocketAddress address) {
+          return ServerSets.toEndpoint(address);
+        }
+      };
 
   /**
    * Creates a server set that registers at a single path applying the given ACL to all nodes

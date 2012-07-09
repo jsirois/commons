@@ -124,7 +124,12 @@ java_library(name = 'server-set',
     ':client',
     ':group',
   ],
-  sources = [ 'ServerSet.java', 'ServerSets.java', 'ServerSetImpl.java', 'CompoundServerSet.java' ]
+  sources = [ 'CompoundServerSet.java',
+              'ServerSet.java',
+              'ServerSets.java',
+              'ServerSetImpl.java',
+              'StaticServerSet.java',
+  ]
 )
 
 java_library(name = 'singleton-service',

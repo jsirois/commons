@@ -215,7 +215,7 @@ public class ServerSetImpl implements ServerSet {
     byte[] serializeServiceInstance() {
       ServiceInstance serviceInstance =
           new ServiceInstance(ServerSets.toEndpoint(endpoint),
-              Maps.transformValues(additionalEndpoints, TO_ENDPOINT), status);
+              Maps.transformValues(additionalEndpoints, ServerSets.TO_ENDPOINT), status);
 
       LOG.info("updating endpoint data to:\n\t" + serviceInstance);
       try {
@@ -226,13 +226,6 @@ public class ServerSetImpl implements ServerSet {
       }
     }
   }
-
-  private static final Function<InetSocketAddress, Endpoint> TO_ENDPOINT =
-      new Function<InetSocketAddress, Endpoint>() {
-        @Override public Endpoint apply(InetSocketAddress address) {
-          return ServerSets.toEndpoint(address);
-        }
-      };
 
   private static class ServiceInstanceFetchException extends RuntimeException {
     ServiceInstanceFetchException(String message, Throwable cause) {

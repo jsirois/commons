@@ -27,6 +27,7 @@ LARGE = [
   'GroupTest.java',
   'ServerSetsTest.java',
   'ServerSetImplTest.java',
+  'StaticServerSetTest.java',
   'ZooKeeperMapTest.java',
   'ZooKeeperNodeTest.java',
 ]
