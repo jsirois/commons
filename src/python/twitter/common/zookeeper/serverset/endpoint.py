@@ -125,7 +125,7 @@ class ServiceInstance(object):
     return cls(
       service_endpoint=Endpoint.unpack_thrift(blob.serviceEndpoint),
       additional_endpoints=additional_endpoints,
-      status=Status.unpack_thrift(blob.status))
+      status=Status.from_thrift(blob.status))
 
   @classmethod
   def to_dict(cls, service_instance):

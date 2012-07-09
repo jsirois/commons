@@ -26,8 +26,13 @@ python_library(
 )
 
 python_library(
+  name = 'pyyaml',
+  dependencies = [python_requirement('PyYAML')])
+
+
+python_library(
   name = 'coverage',
-  dependencies = [egg('coverage-*.egg')])
+  dependencies = [python_requirement('coverage')])
 
 python_library(
   name = 'git-python',
