@@ -17,6 +17,7 @@
 package com.twitter.common.net.http;
 
 import java.io.IOException;
+import java.util.EventListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -25,6 +26,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
+import javax.servlet.Filter;
+import javax.servlet.ServletContextAttributeListener;
+import javax.servlet.ServletContextListener;
+import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletRequestListener;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
@@ -34,11 +40,13 @@ import com.google.common.collect.Sets;
 
 import org.mortbay.jetty.AbstractConnector;
 import org.mortbay.jetty.Connector;
+import org.mortbay.jetty.Handler;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
 
+import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.net.http.handlers.TextResponseHandler;
 
 /**
@@ -170,15 +178,42 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
     if (initParams != null) {
       servletHolder.setInitParameters(initParams);
     }
-    context.addServlet(servletHolder, path.replaceFirst("/?$", "/*"));
+    getRootContext().addServlet(servletHolder, path.replaceFirst("/?$", "/*"));
   }
 
-  /**
-   * Returns the root servlet context which can be used to register new filters
-   * and servlets, etc.
-   * @return
-   */
-  public Context getRootContext() {
+  @Override
+  public synchronized void registerFilter(Class<? extends Filter> filterClass, String pathSpec) {
+    MorePreconditions.checkNotBlank(pathSpec);
+    Preconditions.checkNotNull(filterClass);
+    getRootContext().addFilter(filterClass, pathSpec, Handler.REQUEST);
+  }
+
+  @Override
+  public void registerListener(ServletContextListener servletContextListener) {
+    registerListener(servletContextListener);
+  }
+
+  @Override
+  public void registerListener(ServletContextAttributeListener servletContextAttributeListener) {
+    registerListener(servletContextAttributeListener);
+  }
+
+  @Override
+  public void registerListener(ServletRequestListener servletRequestListener) {
+    registerListener(servletRequestListener);
+  }
+
+  @Override
+  public void registerListener(ServletRequestAttributeListener servletRequestAttributeListener) {
+    registerEventListener(servletRequestAttributeListener);
+  }
+
+  private synchronized void registerEventListener(EventListener eventListener) {
+    Preconditions.checkNotNull(eventListener);
+    getRootContext().addEventListener(eventListener);
+  }
+
+  private synchronized Context getRootContext() {
     Preconditions.checkState(context != null, "Context is not yet available. " +
         "Ensure that listen(...) is called prior to calling this method.");
     return context;
@@ -187,7 +222,7 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
   /**
    * The root handler, which will display the paths at which all handlers are registered.
    */
-  protected class RootHandler extends TextResponseHandler {
+  private class RootHandler extends TextResponseHandler {
     public RootHandler() {
       super("text/html");
     }

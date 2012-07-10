@@ -33,6 +33,7 @@ import com.twitter.common.application.ShutdownRegistry;
 import com.twitter.common.application.http.DefaultQuitHandler;
 import com.twitter.common.application.http.GraphViewer;
 import com.twitter.common.application.http.HttpAssetConfig;
+import com.twitter.common.application.http.HttpFilterConfig;
 import com.twitter.common.application.http.HttpServletConfig;
 import com.twitter.common.application.http.Registration;
 import com.twitter.common.application.modules.LifecycleModule.ServiceRunner;
@@ -154,22 +155,28 @@ public class HttpModule extends AbstractModule {
     GraphViewer.registerResources(binder());
 
     LifecycleModule.bindServiceRunner(binder(), HttpServerLauncher.class);
+
+    // Ensure at least an empty filter set is bound.
+    Registration.getFilterBinder(binder());
   }
 
   public static final class HttpServerLauncher implements ServiceRunner {
     private final HttpServerDispatch httpServer;
     private final Set<HttpServletConfig> httpServlets;
     private final Set<HttpAssetConfig> httpAssets;
+    private final Set<HttpFilterConfig> httpFilters;
     private final Injector injector;
 
     @Inject HttpServerLauncher(
         HttpServerDispatch httpServer,
         Set<HttpServletConfig> httpServlets,
         Set<HttpAssetConfig> httpAssets,
+        Set<HttpFilterConfig> httpFilters,
         Injector injector) {
       this.httpServer = checkNotNull(httpServer);
       this.httpServlets = checkNotNull(httpServlets);
       this.httpAssets = checkNotNull(httpAssets);
+      this.httpFilters = checkNotNull(httpFilters);
       this.injector = checkNotNull(injector);
     }
 
@@ -185,6 +192,10 @@ public class HttpModule extends AbstractModule {
 
       for (HttpAssetConfig config : httpAssets) {
         httpServer.registerHandler(config.path, config.handler, null, config.silent);
+      }
+
+      for (HttpFilterConfig filter : httpFilters) {
+        httpServer.registerFilter(filter.filterClass, filter.pathSpec);
       }
 
       Command shutdown = new Command() {

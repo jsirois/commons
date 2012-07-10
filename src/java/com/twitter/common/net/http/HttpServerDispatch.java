@@ -16,9 +16,15 @@
 
 package com.twitter.common.net.http;
 
-import javax.annotation.Nullable;
-import javax.servlet.http.HttpServlet;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+import javax.servlet.Filter;
+import javax.servlet.ServletContextAttributeListener;
+import javax.servlet.ServletContextListener;
+import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.http.HttpServlet;
 
 /**
  * A HTTP server dispatcher. Supports registering handlers for different
@@ -72,4 +78,40 @@ public interface HttpServerDispatch {
    */
   void registerHandler(String path, HttpServlet handler,
                        @Nullable Map<String, String> initParams, boolean silent);
+
+  /**
+   * Registers a servlet filter.
+   *
+   * @param filterClass Filter class to register.
+   * @param pathSpec Path spec that the filter should be activated on.
+   */
+  void registerFilter(Class<? extends Filter> filterClass, String pathSpec);
+
+  /**
+   * Registers a context listener.
+   *
+   * @param servletContextListener Listener to register.
+   */
+  void registerListener(ServletContextListener servletContextListener);
+
+  /**
+   * Registers a context attribute listener.
+   *
+   * @param servletContextAttributeListener Listener to register.
+   */
+  void registerListener(ServletContextAttributeListener servletContextAttributeListener);
+
+  /**
+   * Registers a request listener.
+   *
+   * @param servletRequestListener Listener to register.
+   */
+  void registerListener(ServletRequestListener servletRequestListener);
+
+  /**
+   * Registers a request attribute listener.
+   *
+   * @param servletRequestAttributeListener Listener to register.
+   */
+  void registerListener(ServletRequestAttributeListener servletRequestAttributeListener);
 }
