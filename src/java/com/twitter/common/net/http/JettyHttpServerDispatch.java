@@ -190,17 +190,17 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
 
   @Override
   public void registerListener(ServletContextListener servletContextListener) {
-    registerListener(servletContextListener);
+    registerEventListener(servletContextListener);
   }
 
   @Override
   public void registerListener(ServletContextAttributeListener servletContextAttributeListener) {
-    registerListener(servletContextAttributeListener);
+    registerEventListener(servletContextAttributeListener);
   }
 
   @Override
   public void registerListener(ServletRequestListener servletRequestListener) {
-    registerListener(servletRequestListener);
+    registerEventListener(servletRequestListener);
   }
 
   @Override
