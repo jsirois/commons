@@ -190,7 +190,7 @@ jar_library(name = 'gson',
 jar_library(name = 'guava',
             dependencies = [
               jar(
-                org = 'com.google.guava', name = 'guava', rev = '12.0',
+                org = 'com.google.guava', name = 'guava', rev = '12.0.1',
                 apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v12.0/javadoc/'
               ).with_sources(),
 
