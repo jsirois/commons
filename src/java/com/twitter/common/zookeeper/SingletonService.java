@@ -23,7 +23,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import org.apache.zookeeper.ZooDefs;
@@ -74,8 +73,14 @@ public class SingletonService {
         new CandidateImpl(new Group(zkClient, acl, servicePath, LEADER_ELECT_NODE_PREFIX)));
   }
 
-  @VisibleForTesting
-  SingletonService(ServerSet serverSet, Candidate candidate) {
+  /**
+   * Creates a new singleton service that uses the supplied candidate to vie for leadership and then
+   * advertises itself in the given server set once elected.
+   *
+   * @param serverSet The server set to advertise in on election.
+   * @param candidate The candidacy to use to vie for election.
+   */
+  public SingletonService(ServerSet serverSet, Candidate candidate) {
     this.serverSet = Preconditions.checkNotNull(serverSet);
     this.candidate = Preconditions.checkNotNull(candidate);
   }
