@@ -29,6 +29,7 @@ java_library(name = 'http',
     pants('3rdparty:jetty'),
     pants('3rdparty:jsr305'),
     pants('3rdparty:servlet-api'),
+    pants('src/java/com/twitter/common/base'),
     pants('src/java/com/twitter/common/net/http/handlers:text'),
   ],
   sources = globs('*.java')
