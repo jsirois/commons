@@ -161,7 +161,7 @@ jar_library(name = 'commons-dbcp',
            )
 
 # common rev for all com.twitter%finagle* artifacts
-FINAGLE_REV = '4.0.5'
+FINAGLE_REV = '5.3.0'
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV),
@@ -295,13 +295,13 @@ jar_library(name = 'protobuf-java',
 
 jar_library(name = 'scala-compiler',
             dependencies = [
-              jar(org='org.scala-lang', name='scala-compiler', rev='2.8.1').with_sources()
+              jar(org='org.scala-lang', name='scala-compiler', rev='2.9.2').with_sources()
             ]
            )
 
 jar_library(name = 'scala-library',
             dependencies = [
-              jar(org='org.scala-lang', name='scala-library', rev='2.8.1').with_sources()
+              jar(org='org.scala-lang', name='scala-library', rev='2.9.2').with_sources()
             ]
            )
 
@@ -401,7 +401,7 @@ jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
 # common rev for all com.twitter%util* artifacts
-UTIL_REV = '4.0.0'
+UTIL_REV = '5.3.0'
 jar_library(name = 'util',
             dependencies = [
               jar(org = 'com.twitter', name = 'util', rev = UTIL_REV)
@@ -451,7 +451,7 @@ jar_library(name = 'easymock',
             dependencies = [ jar(org = 'org.easymock', name = 'easymock', rev = '3.0') ])
 
 jar_library(name = 'mockito',
-            dependencies = [ jar(org = 'org.mockito', name = 'mockito-all', rev = '1.8.4') ])
+            dependencies = [ jar(org = 'org.mockito', name = 'mockito-all', rev = '1.9.0') ])
 
 jar_library(name = 'hamcrest-core',
             dependencies = [ jar(org = 'org.hamcrest', name = 'hamcrest-core', rev = '1.2') ])
@@ -465,22 +465,16 @@ jar_library(name = 'junit',
 
 jar_library(name = 'scalap',
             dependencies = [
-              jar(org = 'org.scala-lang', name = 'scalap', rev = '2.8.1')
+              jar(org = 'org.scala-lang', name = 'scalap', rev = '2.9.2')
             ])
 
-jar_library(name = 'specs_2.8',
-            dependencies = [
-              jar(org = 'org.scala-tools.testing', name = 'specs_2.8.0', rev = '1.6.5')
-                .with_sources()
-            ]
-           )
 jar_library(name = 'specs_2.9',
             dependencies = [
-              jar(org = 'org.scala-tools.testing', name = 'specs_2.9.1', rev = '1.6.9')
+              jar(org = 'org.scala-tools.testing', name = 'specs_2.9.2', rev = '1.6.9')
             ]
            )
 
-jar_library(name = 'specs', dependencies = [ pants(':specs_2.8') ])
+jar_library(name = 'specs', dependencies = [ pants(':specs_2.9') ])
 
 jar_library(name = 'tl4j',
             dependencies = [
