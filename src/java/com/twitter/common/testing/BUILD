@@ -17,12 +17,16 @@ from twitter.pants import artifact, globs, pants, java_library, jvm_binary
 
 java_library(name = 'testing',
   dependencies = [
-    '3rdparty:easymock',
-    '3rdparty:guava',
-    '3rdparty:junit',
-    '3rdparty:tl4j',
+    pants('3rdparty:easymock'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:junit'),
+    pants('3rdparty:mockito'),
+    pants('3rdparty:tl4j'),
   ],
-  sources = [ 'EasyMockTest.java' ]
+  sources = [
+    'EasyMockTest.java',
+    'MockitoTest.java'
+  ]
 )
 
 java_library(name = 'action',
