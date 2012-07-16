@@ -61,7 +61,7 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
-CASCADING2_REV = '2.0.0-wip-291'
+CASCADING2_REV = '2.0.2'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
@@ -76,7 +76,7 @@ jar_library(name = 'cascading-kryo',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.1.9')
+              jar(org = 'com.twitter', name = 'maple', rev = '0.2.1')
             ])
 
 jar_library(name = 'cascading2-local',
