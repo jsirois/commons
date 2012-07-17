@@ -269,8 +269,10 @@ jar_library(name = 'lucene-core',
            )
 
 jar_library(name = 'meat-locker',
-  dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ]
-  )
+            dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ])
+
+jar_library(name = 'mimepull',
+            dependencies = [ jar(org='org.jvnet.mimepull', name='mimepull', rev='1.8').with_sources() ])
 
 jar_library(name = 'mustache',
             dependencies = [
