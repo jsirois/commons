@@ -411,6 +411,9 @@ jar_library(name = 'util',
 jar_library(name = 'util-core',
             dependencies = [ jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV) ])
 
+jar_library(name = 'util-jvm',
+            dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
+
 jar_library(name = 'vertica',
             dependencies = [ jar(org = 'com.vertica', name = 'vertica', rev = '4.1.2') ])
 

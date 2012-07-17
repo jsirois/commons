@@ -57,6 +57,7 @@ import com.twitter.common.net.http.handlers.ThreadStackPrinter;
 import com.twitter.common.net.http.handlers.TimeSeriesDataSource;
 import com.twitter.common.net.http.handlers.VarsHandler;
 import com.twitter.common.net.http.handlers.VarsJsonHandler;
+import com.twitter.common.net.http.handlers.pprof.CpuProfileHandler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -90,8 +91,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *            .annotatedWith(Names.named(HealthHandler.HEALTH_CHECKER_KEY))}.
  *   <li>
  * </ul>
- *
- * @author William Farner
  */
 public class HttpModule extends AbstractModule {
 
@@ -147,6 +146,7 @@ public class HttpModule extends AbstractModule {
     Registration.registerServlet(binder(), "/healthz", HealthHandler.class, true);
     Registration.registerServlet(binder(), "/logconfig", LogConfig.class, false);
     Registration.registerServlet(binder(), "/logs", LogPrinter.class, false);
+    Registration.registerServlet(binder(), "/pprof/profile", CpuProfileHandler.class, false);
     Registration.registerServlet(binder(), "/quitquitquit", QuitHandler.class, true);
     Registration.registerServlet(binder(), "/threads", ThreadStackPrinter.class, false);
     Registration.registerServlet(binder(), "/vars", VarsHandler.class, false);
