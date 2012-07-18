@@ -44,7 +44,7 @@ class TFinagleProtocol(TBinaryProtocol.TBinaryProtocolAccelerated):
   def __init__(self, *args, **kw):
     self._locals = threading.local()
     self._finagle_upgraded = False
-    self._client_id = kw.pop('client_id')
+    self._client_id = kw.pop('client_id', None)
     self._client_id = ClientId(name=self._client_id) if self._client_id else None
     TBinaryProtocol.TBinaryProtocolAccelerated.__init__(self, *args, **kw)
     try:
