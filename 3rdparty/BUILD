@@ -285,7 +285,7 @@ jar_library(name = 'mustache',
 jar_library(name = 'ostrich',
             dependencies = [
               jar(org = 'com.twitter', name = 'ostrich', rev = '2.3.6')
-                  .exclude(org = 'com.twitter', name = 'xrayspecs_2.8.1')
+                  .exclude(org = 'org.scala-tools.testing', name = 'specs_2.8.1')
             ])
 
 jar_library(name = 'protobuf-2.4.1',
