@@ -282,16 +282,21 @@ jar_library(name = 'mustache',
               ]
             )
 
-jar_library(name = 'ostrich',
+jar_library(name = 'ostrich-deprecated-older-version',
             dependencies = [
               jar(org = 'com.twitter', name = 'ostrich', rev = '2.3.6')
+                  .with_sources()
                   .exclude(org = 'org.scala-tools.testing', name = 'specs_2.8.1')
+            ])
+
+jar_library(name = 'ostrich',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'ostrich', rev = '8.0.1').with_sources()
             ])
 
 jar_library(name = 'protobuf-2.4.1',
             dependencies = [
-              jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.4.1')
-	        .with_sources()
+              jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.4.1').with_sources()
             ]
            )
 
