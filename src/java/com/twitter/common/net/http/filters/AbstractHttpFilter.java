@@ -23,7 +23,7 @@ public abstract class AbstractHttpFilter implements Filter {
   }
 
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+  public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
   }
