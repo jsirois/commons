@@ -76,7 +76,7 @@ jar_library(name = 'cascading-kryo',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.2.1')
+              jar(org = 'com.twitter', name = 'maple', rev = '0.2.2')
             ])
 
 jar_library(name = 'cascading2-local',
