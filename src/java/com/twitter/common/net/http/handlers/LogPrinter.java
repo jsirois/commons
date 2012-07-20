@@ -1,19 +1,3 @@
-// =================================================================================================
-// Copyright 2011 Twitter, Inc.
-// -------------------------------------------------------------------------------------------------
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this work except in compliance with the License.
-// You may obtain a copy of the License in the LICENSE file, or at:
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// =================================================================================================
-
 package com.twitter.common.net.http.handlers;
 
 import java.io.File;
@@ -51,6 +35,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.twitter.common.base.ExceptionalClosure;
+import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Data;
 
@@ -89,6 +74,10 @@ public class LogPrinter extends StringTemplateServlet {
   /**
    * A POST request is made from javascript, to request the contents of a log file.  In order to
    * fulfill the request, the 'file' parameter must be set in the request.
+   *
+   * If file starts with a '/' then the file parameter will be treated as an absolute file path.
+   * If file does not start with a '/' then the path will be assumed to be
+   * relative to the log directory.
    *
    * @param req Servlet request.
    * @param resp Servlet response.
@@ -282,7 +271,8 @@ public class LogPrinter extends StringTemplateServlet {
   /**
    * Class to wrap a log file and offer functions to StringTemplate via reflection.
    */
-  private class LogFile {
+   @VisibleForTesting
+   class LogFile {
     private final File file;
 
     public LogFile(File file) {
@@ -290,7 +280,8 @@ public class LogPrinter extends StringTemplateServlet {
     }
 
     public LogFile(String filePath) {
-      this(new File(filePath));
+      MorePreconditions.checkNotBlank(filePath, "filePath must not be null or empty");
+      this.file = filePath.startsWith("/") ? new File(filePath) : new File(logDir, filePath);
     }
 
     public File getFile() {
