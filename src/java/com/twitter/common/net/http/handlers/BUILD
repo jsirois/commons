@@ -41,11 +41,12 @@ java_library(name = 'string-template',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:guava',
-    '3rdparty:guice',
-    '3rdparty:servlet-api',
-    '3rdparty:stringtemplate',
-    'src/java/com/twitter/common/base',
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:servlet-api'),
+    pants('3rdparty:stringtemplate'),
+    pants('src/java/com/twitter/common/base'),
+    pants('src/java/com/twitter/common/util/templating'),
   ],
   sources = STRING_TEMPLATE_SOURCES
 )

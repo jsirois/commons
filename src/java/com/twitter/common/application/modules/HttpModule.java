@@ -1,19 +1,3 @@
-// =================================================================================================
-// Copyright 2011 Twitter, Inc.
-// -------------------------------------------------------------------------------------------------
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this work except in compliance with the License.
-// You may obtain a copy of the License in the LICENSE file, or at:
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// =================================================================================================
-
 package com.twitter.common.application.modules;
 
 import java.util.Set;
@@ -36,6 +20,7 @@ import com.twitter.common.application.http.HttpAssetConfig;
 import com.twitter.common.application.http.HttpFilterConfig;
 import com.twitter.common.application.http.HttpServletConfig;
 import com.twitter.common.application.http.Registration;
+import com.twitter.common.application.http.Registration.IndexLink;
 import com.twitter.common.application.modules.LifecycleModule.ServiceRunner;
 import com.twitter.common.application.modules.LocalServiceRegistry.LocalService;
 import com.twitter.common.args.Arg;
@@ -158,6 +143,9 @@ public class HttpModule extends AbstractModule {
 
     // Ensure at least an empty filter set is bound.
     Registration.getFilterBinder(binder());
+
+    // Ensure at least an empty set of additional links is bound.
+    Registration.getEndpointBinder(binder());
   }
 
   public static final class HttpServerLauncher implements ServiceRunner {
@@ -166,17 +154,21 @@ public class HttpModule extends AbstractModule {
     private final Set<HttpAssetConfig> httpAssets;
     private final Set<HttpFilterConfig> httpFilters;
     private final Injector injector;
+    private final Set<String> additionalIndexLinks;
 
     @Inject HttpServerLauncher(
         HttpServerDispatch httpServer,
         Set<HttpServletConfig> httpServlets,
         Set<HttpAssetConfig> httpAssets,
         Set<HttpFilterConfig> httpFilters,
+        @IndexLink Set<String> additionalIndexLinks,
         Injector injector) {
+
       this.httpServer = checkNotNull(httpServer);
       this.httpServlets = checkNotNull(httpServlets);
       this.httpAssets = checkNotNull(httpAssets);
       this.httpFilters = checkNotNull(httpFilters);
+      this.additionalIndexLinks = checkNotNull(additionalIndexLinks);
       this.injector = checkNotNull(injector);
     }
 
@@ -196,6 +188,10 @@ public class HttpModule extends AbstractModule {
 
       for (HttpFilterConfig filter : httpFilters) {
         httpServer.registerFilter(filter.filterClass, filter.pathSpec);
+      }
+
+      for (String indexLink : additionalIndexLinks) {
+        httpServer.registerIndexLink(indexLink);
       }
 
       Command shutdown = new Command() {
