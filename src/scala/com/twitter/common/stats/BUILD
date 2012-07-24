@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-
-
 scala_library(name = 'stats',
   provides = artifact(
     org = 'com.twitter.common',
@@ -24,7 +22,7 @@ scala_library(name = 'stats',
   ),
   dependencies = [
     pants('3rdparty:guava'),
-    pants('3rdparty:ostrich-deprecated-older-version'),
+    pants('3rdparty:ostrich'),
     pants('src/java/com/twitter/common/stats:stats-provider'),
   ],
   sources = globs('*.scala'),

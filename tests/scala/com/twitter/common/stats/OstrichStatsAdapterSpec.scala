@@ -16,23 +16,23 @@
 
 package com.twitter.common.stats
 
-import com.google.common.base.Supplier
-import com.twitter.ostrich.{Stats => OstrichStats}
-import com.twitter.ostrich.TimingStat
 import java.lang.{Integer => JInt}
-import org.specs.mock.EasyMock
-import org.specs.Specification
 import java.util.concurrent.TimeUnit
 
-/**
- * @author jsirois
- */
+import com.google.common.base.Supplier
+
+import org.specs.mock.EasyMock
+import org.specs.Specification
+
+import com.twitter.ostrich.stats.{Stats => OstrichStats, Distribution}
+
 class OstrichStatsAdapterSpec extends Specification with EasyMock {
   "An OstrichStatsAdapter" should {
 
-    def getOstrichCounter(name: String): Long = OstrichStats.getCounterStats()(name)
-    def getOstrichGuage(name: String): Double = OstrichStats.getGaugeStats(false)(name)
-    def getOstrichTiming(name: String): TimingStat = OstrichStats.getTimingStats(false)(name)
+    val stats = OstrichStats.get("")
+    def getOstrichCounter(name: String): Long = stats.getCounters().get(name).get
+    def getOstrichGuage(name: String): Double = stats.getGauges().get(name).get
+    def getOstrichTiming(name: String): Distribution = stats.getMetrics().get(name).get
 
     "create an ostrich counter" in {
       getOstrichCounter("fred") must throwA[NoSuchElementException]
@@ -71,8 +71,13 @@ class OstrichStatsAdapterSpec extends Specification with EasyMock {
 
       val timing = getOstrichTiming("joe_requests_ms")
       timing.count mustEqual 2
-      timing.minimum mustEqual 42L
-      timing.maximum mustEqual 1137L
+
+      // Ostrich only guarantees min and max within 5% per docs
+      def beAbout(value: Long) = beCloseTo(value, value * 0.05)
+
+      timing.minimum must beAbout(42L)
+      timing.maximum must beAbout(1137L)
+
       timing.average mustEqual 589
 
       getOstrichCounter("joe_total_requests") mustEqual 2L
@@ -80,19 +85,19 @@ class OstrichStatsAdapterSpec extends Specification with EasyMock {
       getOstrichCounter("joe_reconnects") mustEqual 0L
       getOstrichCounter("joe_timeouts") mustEqual 0L
 
-      requestTimer.incErrors
+      requestTimer.incErrors()
       getOstrichCounter("joe_total_requests") mustEqual 3L
       getOstrichCounter("joe_errors") mustEqual 1L
       getOstrichCounter("joe_reconnects") mustEqual 0L
       getOstrichCounter("joe_timeouts") mustEqual 0L
 
-      requestTimer.incReconnects
+      requestTimer.incReconnects()
       getOstrichCounter("joe_total_requests") mustEqual 3L
       getOstrichCounter("joe_errors") mustEqual 1L
       getOstrichCounter("joe_reconnects") mustEqual 1L
       getOstrichCounter("joe_timeouts") mustEqual 0L
 
-      requestTimer.incTimeouts
+      requestTimer.incTimeouts()
       getOstrichCounter("joe_total_requests") mustEqual 3L
       getOstrichCounter("joe_errors") mustEqual 1L
       getOstrichCounter("joe_reconnects") mustEqual 1L
