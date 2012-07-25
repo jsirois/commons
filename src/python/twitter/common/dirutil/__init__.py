@@ -55,13 +55,71 @@ def safe_open(filename, *args, **kwargs):
 
 def safe_delete(filename):
   """
-  Delete a file safely. If its not present, its a no-op.
+    Delete a file safely. If its not present, its a no-op.
   """
   try:
     os.unlink(filename)
   except OSError as e:
     if e.errno != errno.ENOENT:
       raise
+
+
+def _calculate_bsize(stat):
+  return stat.st_blocks * stat.st_blksize
+
+
+def _calculate_size(stat):
+  return min(_calculate_bsize(stat), stat.st_size)
+
+
+def _size_base(path, on_error=None, calculate_usage=_calculate_size):
+  assert on_error is None or callable(on_error), 'on_error must be a callable!'
+  assert callable(calculate_usage)
+  try:
+    stat_result = os.lstat(path)
+    stat_mode = stat_result.st_mode
+    if stat.S_ISREG(stat_mode):
+      return calculate_usage(stat_result)
+    elif stat.S_ISDIR(stat_mode):
+      return stat_result.st_size
+    elif stat.S_ISLNK(stat_mode):
+      return len(os.readlink(path))
+    else:
+      return 0
+  except OSError as e:
+    if on_error:
+      on_error(path, e)
+    return 0
+
+
+def safe_size(path, on_error=None):
+  """
+    Safely get the size of a file:
+      - the size of symlinks are treated as the length of the symlink
+      - the size of regular files / directories are treated as such
+      - the size of all other files are zero (sockets, dev, etc.)
+      - the size of sparse files are estimated based upon st_blocks * st_blksize
+
+    A callable on_error may be supplied that will be called with
+    on_error(path, exception) if an OSError is raised by the stat (e.g.
+    permission denied or file does not exist.)  In this case, safe_size will
+    return with zero.
+  """
+  return _size_base(path, on_error=on_error, calculate_usage=_calculate_size)
+
+
+def safe_bsize(path):
+  """
+    Safely return the space a file consumes on disk.  Returns 0 if file does not exist.
+  """
+  return _size_base(path, calculate_usage=_calculate_bsize)
+
+
+def du(directory):
+  size = 0
+  for root, _, files in os.walk(directory):
+    size += sum(safe_bsize(os.path.join(root, filename)) for filename in files)
+  return size
 
 
 def chmod_plus_x(path):
@@ -144,18 +202,19 @@ def unlock_file(fp, close=False):
   return True
 
 
-from twitter.common.dirutil.du import du
 from twitter.common.dirutil.lock import Lock
 from twitter.common.dirutil.tail import tail_f
 
-__all__ = [
+__all__ = (
   'chmod_plus_x',
   'du',
   'lock_file',
+  'safe_bsize',
+  'safe_delete',
   'safe_mkdir',
   'safe_open',
-  'safe_delete',
+  'safe_size',
   'tail_f',
   'unlock_file',
   'Lock'
-]
+)
