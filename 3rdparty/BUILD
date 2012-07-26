@@ -311,6 +311,13 @@ jar_library(name = 'scala-library',
             ]
            )
 
+# NOTE(rschonberger): Note that this library needs to be updated every scal compiler update.
+jar_library(name = 'scalatest',
+            dependencies = [
+              jar(org='org.scalatest', name='scalatest_2.9.2', rev='1.8').with_sources()
+            ]
+           )
+
 jar_library(name = 'servlet-api',
             dependencies = [
               jar(org = 'javax.servlet', name = 'servlet-api', rev = '2.5').with_sources()
