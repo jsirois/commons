@@ -68,6 +68,15 @@ public interface HttpServerDispatch {
   void stop();
 
   /**
+   * Adds an arbitrary endpoint to the root servlet.
+   * This can be used to include convenience links, or references to endpoints served by
+   * a different servlet container under this HTTP server.
+   *
+   * @param path The URI path of the endpoint.
+   */
+  void registerIndexLink(String path);
+
+  /**
    * Registers a URI handler, replacing the existing handler if it exists.
    *
    * @param path       The URI path that the handler should be called for.

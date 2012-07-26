@@ -13,6 +13,8 @@ import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 
+import org.mortbay.jetty.RequestLog;
+
 import com.twitter.common.application.ShutdownRegistry;
 import com.twitter.common.application.http.DefaultQuitHandler;
 import com.twitter.common.application.http.GraphViewer;
@@ -31,6 +33,7 @@ import com.twitter.common.base.ExceptionalSupplier;
 import com.twitter.common.base.Supplier;
 import com.twitter.common.net.http.HttpServerDispatch;
 import com.twitter.common.net.http.JettyHttpServerDispatch;
+import com.twitter.common.net.http.RequestLogger;
 import com.twitter.common.net.http.handlers.AbortHandler;
 import com.twitter.common.net.http.handlers.ContentionPrinter;
 import com.twitter.common.net.http.handlers.HealthHandler;
@@ -124,6 +127,7 @@ public class HttpModule extends AbstractModule {
 
     bind(HttpServerDispatch.class).to(JettyHttpServerDispatch.class)
         .in(Singleton.class);
+    bind(RequestLog.class).to(RequestLogger.class);
     Registration.registerServlet(binder(), "/abortabortabort", AbortHandler.class, true);
     Registration.registerServlet(binder(), "/contention", ContentionPrinter.class, false);
     Registration.registerServlet(binder(), "/graphdata", TimeSeriesDataSource.class, true);

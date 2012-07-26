@@ -34,14 +34,19 @@ import javax.servlet.ServletRequestListener;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.inject.Inject;
 
 import org.mortbay.jetty.AbstractConnector;
 import org.mortbay.jetty.Connector;
 import org.mortbay.jetty.Handler;
+import org.mortbay.jetty.RequestLog;
 import org.mortbay.jetty.Server;
+import org.mortbay.jetty.handler.RequestLogHandler;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
@@ -58,14 +63,37 @@ import com.twitter.common.net.http.handlers.TextResponseHandler;
 public class JettyHttpServerDispatch implements HttpServerDispatch {
   private static final Logger LOG = Logger.getLogger(JettyHttpServerDispatch.class.getName());
 
-  // Registered handlers. Used only for display.
-  protected final Set<String> registeredHandlers = Sets.newHashSet();
+  // Registered endpoints. Used only for display.
+  private final Set<String> registeredEndpoints = Sets.newHashSet();
 
-  protected Server server;
-  protected Context context;
-  protected int port;
+  private final Optional<RequestLog> requestLog;
+  private Server server;
+  private Context context;
+  private int port;
 
-  @Override
+  /**
+   * Creates an HTTP server.
+   */
+  public JettyHttpServerDispatch() {
+    this.requestLog = Optional.absent();
+  }
+
+  /**
+   * Creates an HTTP server which will be configured to log requests to the provided request log.
+   *
+   * @param requestLog HTTP request log.
+   */
+  @Inject
+  public JettyHttpServerDispatch(RequestLog requestLog) {
+    this.requestLog = Optional.of(requestLog);
+  }
+
+  /**
+   * Opens the HTTP server on the given port.
+   *
+   * @param port The port to listen on.
+   * @return {@code true} if the server started successfully on the port, {@code false} otherwise.
+   */
   public boolean listen(int port) {
     return listen(port, port);
   }
@@ -83,6 +111,12 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
     server = new Server();
     server.addConnector(connector);
     context = new Context(server, "/", Context.NO_SESSIONS);
+    if (requestLog.isPresent()) {
+      RequestLogHandler logHandler = new RequestLogHandler();
+      logHandler.setRequestLog(requestLog.get());
+      context.addHandler(logHandler);
+    }
+
     context.addServlet(new ServletHolder(new RootHandler()), "/");
 
     try {
@@ -135,6 +169,7 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
       LOG.info("Attempting to listen on port " + port);
 
       try {
+        // TODO(John Sirois): consider making Connector impl parametrizable
         AbstractConnector connector = new SelectChannelConnector();
         connector.setPort(port);
         // Create the server with a maximum TCP backlog of 50, meaning that when the request queue
@@ -161,17 +196,21 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
   }
 
   @Override
-  public synchronized void registerHandler(String path, HttpServlet handler,
-                                           @Nullable Map<String, String> initParams, boolean silent) {
+  public synchronized void registerHandler(
+      String path,
+      HttpServlet handler,
+      @Nullable Map<String, String> initParams,
+      boolean silent) {
+
     Preconditions.checkNotNull(path);
     Preconditions.checkNotNull(handler);
     Preconditions.checkState(path.length() > 0);
     Preconditions.checkState(path.charAt(0) == '/');
 
     if (silent) {
-      registeredHandlers.remove(path);
+      registeredEndpoints.remove(path);
     } else {
-      registeredHandlers.add(path);
+      registeredEndpoints.add(path);
     }
 
     ServletHolder servletHolder = new ServletHolder(handler);
@@ -186,6 +225,12 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
     MorePreconditions.checkNotBlank(pathSpec);
     Preconditions.checkNotNull(filterClass);
     getRootContext().addFilter(filterClass, pathSpec, Handler.REQUEST);
+  }
+
+  @Override
+  public synchronized void registerIndexLink(String path) {
+    MorePreconditions.checkNotBlank(path);
+    registeredEndpoints.add(path);
   }
 
   @Override
@@ -231,7 +276,7 @@ public class JettyHttpServerDispatch implements HttpServerDispatch {
     public Iterable<String> getLines(HttpServletRequest request) {
       List<String> lines = Lists.newArrayList();
       lines.add("<html>");
-      for (String handler : registeredHandlers) {
+      for (String handler : Ordering.natural().sortedCopy(registeredEndpoints)) {
         lines.add(String.format("<a href='%s'>%s</a><br />", handler, handler));
       }
       lines.add("</html>");
