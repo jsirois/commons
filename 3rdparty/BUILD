@@ -106,6 +106,13 @@ jar_library(name = 'cascading.jdbc',
             dependencies = [ jar(org = 'r0man', name = 'cascading.jdbc', rev = '1.2') ]
            )
 
+
+jar_library(name = 'cglib',
+            dependencies = [
+              jar(org = 'cglib', name = 'cglib', rev = '2.2.2').with_sources()
+            ]
+           )
+
 jar_library(name = 'checkstyle',
             dependencies = [
               jar(org = 'com.puppycrawl.tools', name = 'checkstyle', rev = '5.5')
@@ -508,8 +515,8 @@ jar_library(name = 'tl4j',
 jar_library(name = 'easymockclassextension',
             dependencies = [
               pants(':easymock'),
+              pants(':cglib'),
               jar(org = 'org.easymock', name = 'easymockclassextension', rev = '3.0'),
-              jar(org = 'cglib', name = 'cglib', rev = '2.2'),
               jar(org = 'org.objenesis', name = 'objenesis', rev = '1.2'),
             ]
            )
