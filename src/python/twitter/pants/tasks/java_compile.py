@@ -19,6 +19,7 @@ __author__ = 'John Sirois'
 from collections import defaultdict
 
 import os
+import shlex
 
 from twitter.common import log
 from twitter.common.dirutil import safe_open, safe_mkdir
@@ -81,6 +82,9 @@ class JavaCompile(NailgunTask):
       help="Roughly how many source files to attempt to compile together. Set to a large number to compile "\
            "all sources together. Set this to 0 to compile target-by-target. Default is set in pants.ini.")
 
+    option_group.add_option(mkflag("args"), dest="java_compile_args", action="append",
+                            help = "Pass these extra args to javac.")
+
   def __init__(self, context):
     NailgunTask.__init__(self, context, workdir=context.config.get('java-compile', 'nailgun_dir'))
 
@@ -100,6 +104,11 @@ class JavaCompile(NailgunTask):
 
     self._args = context.config.getlist('java-compile', 'args')
     self._jvm_args = context.config.getlist('java-compile', 'jvm_args')
+
+    self._javac_args = []
+    if context.options.java_compile_args:
+      for arg in context.options.java_compile_args:
+        self._javac_args.extend(shlex.split(arg))
 
     if context.options.java_compile_warnings:
       self._args.extend(context.config.getlist('java-compile', 'warning_args'))
@@ -242,6 +251,7 @@ class JavaCompile(NailgunTask):
       '-jcmainclass', 'com.twitter.common.tools.Compiler',
       '-C-Tdependencyfile', '-C%s' % depfile,
     ])
+    args.extend(map(lambda arg: '-C%s' % arg, self._javac_args))
 
     args.extend(self._args)
     args.extend(sources)
