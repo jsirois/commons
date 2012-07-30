@@ -18,7 +18,9 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Franco Callari
@@ -255,14 +257,13 @@ public class RootLogConfigTest {
     output = output.replaceAll("\n", "");
 
     // Verify that it is on glog format.
-    assertTrue(output.matches(
-                                 new StringBuilder()
-                                     .append("S\\d+ ")  // Level, month, day.
-                                     .append("\\d\\d:\\d\\d:\\d\\d\\.\\d+ ")  // Timestamp.
-                                     .append("THREAD\\d\\d ") // Thread id.
-                                     .append(RootLogConfigTest.class.getName() + "\\.testUseGLogFormatter: ") // Class name.
-                                     .append("Severe Log Message")  // Message.
-                                     .toString()));
+    assertTrue("Unexpected output: " + output,
+        output.matches("S\\d+ " // Level, month, day.
+            + "\\d\\d:\\d\\d:\\d\\d\\.\\d+ " // Timestamp.
+            + "THREAD\\d+ " // Thread id.
+            + RootLogConfigTest.class.getName() + "\\.testUseGLogFormatter: " // Class name.
+            + "Severe Log Message" // Message.
+        ));
   }
 
   @Test
