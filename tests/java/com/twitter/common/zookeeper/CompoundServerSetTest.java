@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.After;
 import org.junit.Before;
@@ -22,8 +23,6 @@ import com.twitter.thrift.ServiceInstance;
 import com.twitter.thrift.Status;
 
 import static com.twitter.common.testing.EasyMockTest.createCapture;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -41,7 +40,7 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
   private ServerSet.EndpointStatus mockStatus1;
   private ServerSet.EndpointStatus mockStatus2;
   private ServerSet.EndpointStatus mockStatus3;
-  private HostChangeMonitor mockMonitor;
+  private HostChangeMonitor<ServiceInstance> mockMonitor;
 
   private ServerSet serverSet1;
   private ServerSet serverSet2;
@@ -59,15 +58,22 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
     mockMonitor.onChange(ImmutableSet.copyOf(hostChanges));
   }
 
-  private void triggerChange(Capture<HostChangeMonitor> capture, ServiceInstance... hostChanges) {
+  private void triggerChange(
+      Capture<HostChangeMonitor<ServiceInstance>> capture,
+      ServiceInstance... hostChanges) {
+
     capture.getValue().onChange(ImmutableSet.copyOf(hostChanges));
+  }
+
+  @SuppressWarnings("unchecked")
+  private HostChangeMonitor<ServiceInstance> createMonitorMock() {
+    return (HostChangeMonitor<ServiceInstance>) control.createMock(HostChangeMonitor.class);
   }
 
   @Before
   public void setUpMocks() throws Exception {
     control = createControl();
-
-    mockMonitor = control.createMock(HostChangeMonitor.class);
+    mockMonitor = createMonitorMock();
 
     mockStatus1 = control.createMock(ServerSet.EndpointStatus.class);
     mockStatus2 = control.createMock(ServerSet.EndpointStatus.class);
@@ -135,13 +141,13 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
 
   @Test
   public void testMonitor() throws Exception {
-    Capture<HostChangeMonitor> set1Capture = createCapture();
-    Capture<HostChangeMonitor> set2Capture = createCapture();
-    Capture<HostChangeMonitor> set3Capture = createCapture();
+    Capture<HostChangeMonitor<ServiceInstance>> set1Capture = createCapture();
+    Capture<HostChangeMonitor<ServiceInstance>> set2Capture = createCapture();
+    Capture<HostChangeMonitor<ServiceInstance>> set3Capture = createCapture();
 
-    serverSet1.monitor(capture(set1Capture));
-    serverSet2.monitor(capture(set2Capture));
-    serverSet3.monitor(capture(set3Capture));
+    serverSet1.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>capture(set1Capture));
+    serverSet2.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>capture(set2Capture));
+    serverSet3.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>capture(set3Capture));
 
     triggerChange(instance1);
     triggerChange(instance1, instance2);
@@ -174,7 +180,7 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
 
   @Test(expected = MonitorException.class)
   public void testMonitorFailure() throws Exception {
-    serverSet1.monitor((HostChangeMonitor<ServiceInstance>) anyObject());
+    serverSet1.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>anyObject());
     expectLastCall().andThrow(new MonitorException("Monitor exception", null));
 
     control.replay();
