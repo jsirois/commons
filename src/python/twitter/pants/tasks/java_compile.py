@@ -109,6 +109,8 @@ class JavaCompile(NailgunTask):
     if context.options.java_compile_args:
       for arg in context.options.java_compile_args:
         self._javac_args.extend(shlex.split(arg))
+    else:
+      self._javac_args.extend(context.config.getlist('java-compile', 'javac_args', default=[]))
 
     if context.options.java_compile_warnings:
       self._args.extend(context.config.getlist('java-compile', 'warning_args'))
