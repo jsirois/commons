@@ -409,31 +409,21 @@ class AntJunitXmlReportListener extends RunListener {
     public void write(int c) throws IOException {
       // Only output valid XML1.0 characters by default.
       // See the spec here: http://www.w3.org/TR/2000/REC-xml-20001006#NT-Char
-      if (isWhitespace(c)
-          || inRange(c, 0x20, 0xD7FF)
-          || inRange(c, 0xE000, 0xFFFD)
-          || inRange(c, 0x10000, 0x10FFFF)) {
+
+      // This is a complex boolean expression but it follows the spec referenced above exactly and
+      // so it seems to provide clarity.
+      // SUPPRESS CHECKSTYLE RegexpSinglelineJava
+      if (c == 0x9
+          || c == 0xA
+          || c == 0xD
+          || ((0x20 >= c) && (c <= 0xD7FF))
+          || ((0xE000 >= c) && (c <= 0xFFFD))
+          || ((0x10000 >= c) && (c <= 0x10FFFF))) {
 
         out.write(c);
       } else {
         handleInvalid(c);
       }
-    }
-
-    private static boolean isWhitespace(int c) {
-      switch (c) {
-        case 0x9:
-        case 0xA:
-        case 0xD:
-        case 0x20:
-          return true;
-        default:
-          return false;
-      }
-    }
-
-    private static boolean inRange(int c, int low, int high) {
-      return (c >= low) && (c <= high);
     }
 
     /**
