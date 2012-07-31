@@ -36,3 +36,22 @@ python_binary(
     ':python',
   ]
 )
+
+python_binary(
+  name = 'pex',
+  entry_point = 'twitter.common.python.pex_builder:main',
+  dependencies = [
+    pants(':python')
+  ]
+)
+
+page(name = 'pexreadme',
+  source = 'README.md',
+  dependencies = [
+    pants(':pexinstall')
+  ]
+)
+
+page(name = 'pexinstall',
+  source = 'INSTALL.md',
+)
