@@ -651,7 +651,7 @@ class JarPublish(Task):
                      '-m', 'pants build committing publish data for push of '
                            '%(coordinate)s' % args])
 
-    self.check_call(['git', 'push' , 'origin', 'master', '--tags'])
+    self.check_call(['git', 'push' , 'origin', 'master', 'refs/tags/%(org)s-%(name)s-%(rev)s' % args])
 
   def check_call(self, cmd, failuremsg=None):
     self.log_call(cmd)
