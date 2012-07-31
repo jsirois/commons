@@ -1,6 +1,10 @@
 package com.twitter.common.testing.runner;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.FilterWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
@@ -370,9 +374,76 @@ class AntJunitXmlReportListener extends RunListener {
         suite.setOut(new String(streamSource.readOut(testClass), Charsets.UTF_8));
         suite.setErr(new String(streamSource.readErr(testClass), Charsets.UTF_8));
 
-        JAXB.marshal(suite, new File(outdir, String.format("TEST-%s.xml", suite.name)));
+        Writer xmlOut = new FileWriter(new File(outdir, String.format("TEST-%s.xml", suite.name)));
+
+        // Only output valid XML1.0 characters - JAXB does not handle this.
+        JAXB.marshal(suite, new XmlWriter(xmlOut) {
+          @Override protected void handleInvalid(int c) throws IOException {
+            out.write(' ');
+          }
+        });
       }
     }
+  }
+
+  private abstract static class XmlWriter extends FilterWriter {
+    protected XmlWriter(Writer out) {
+      super(out);
+    }
+
+    @Override
+    public void write(char[] cbuf, int off, int len) throws IOException {
+      for (int i = off; i < len; i++) {
+        write(cbuf[i]);
+      }
+    }
+
+    @Override
+    public void write(String str, int off, int len) throws IOException {
+      for (int i = off; i < len; i++) {
+        write(str.charAt(i));
+      }
+    }
+
+    @Override
+    public void write(int c) throws IOException {
+      // Only output valid XML1.0 characters by default.
+      // See the spec here: http://www.w3.org/TR/2000/REC-xml-20001006#NT-Char
+      if (isWhitespace(c)
+          || inRange(c, 0x20, 0xD7FF)
+          || inRange(c, 0xE000, 0xFFFD)
+          || inRange(c, 0x10000, 0x10FFFF)) {
+
+        out.write(c);
+      } else {
+        handleInvalid(c);
+      }
+    }
+
+    private static boolean isWhitespace(int c) {
+      switch (c) {
+        case 0x9:
+        case 0xA:
+        case 0xD:
+        case 0x20:
+          return true;
+        default:
+          return false;
+      }
+    }
+
+    private static boolean inRange(int c, int low, int high) {
+      return (c >= low) && (c <= high);
+    }
+
+    /**
+     * Subclasses can handle invalid XML 1.0 characters as appropriate.
+     *
+     * @param c The invalid character.
+     * @throws IOException If there is a problem using this stream while handling the invalid
+     *     character.
+     */
+    protected abstract void handleInvalid(int c) throws IOException;
   }
 
   private static String convertTimeSpanNs(long timespanNs) {
