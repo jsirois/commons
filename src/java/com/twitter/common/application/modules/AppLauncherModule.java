@@ -17,7 +17,6 @@
 package com.twitter.common.application.modules;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
