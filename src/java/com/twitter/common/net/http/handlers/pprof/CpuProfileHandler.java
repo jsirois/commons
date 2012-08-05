@@ -11,10 +11,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.google.common.io.Closeables;
 
-import com.twitter.common.quantity.Amount;
-import com.twitter.common.quantity.Time;
+import java.util.concurrent.TimeUnit;
 import com.twitter.jvm.CpuProfile;
 import com.twitter.util.Duration;
+import com.twitter.util.Duration$;
 
 /**
  * A handler that collects CPU profile information for the running application and replies
@@ -44,8 +44,7 @@ public class CpuProfileHandler extends HttpServlet {
     int profilePollRate = getParam(req, "hz", 100);
     LOG.info("Collecting CPU profile for " + profileDurationSecs + " seconds at "
         + profilePollRate + " Hz");
-    Duration sampleDuration =
-        new Duration(Amount.of(profileDurationSecs, Time.SECONDS).as(Time.NANOSECONDS));
+    Duration sampleDuration = Duration$.MODULE$.fromTimeUnit(profileDurationSecs, TimeUnit.SECONDS);
     CpuProfile profile =
         CpuProfile.recordInThread(sampleDuration, profilePollRate, Thread.State.RUNNABLE).get();
     resp.setHeader("Content-Type", "pprof/raw");
