@@ -474,7 +474,10 @@ jar_library(name = 'easymock',
             dependencies = [ jar(org = 'org.easymock', name = 'easymock', rev = '3.0') ])
 
 jar_library(name = 'mockito',
-            dependencies = [ jar(org = 'org.mockito', name = 'mockito-all', rev = '1.9.0') ])
+            dependencies = [
+              jar(org = 'org.mockito', name = 'mockito-all', rev = '1.9.0').with_sources()
+            ]
+	   )
 
 jar_library(name = 'hamcrest-core',
             dependencies = [ jar(org = 'org.hamcrest', name = 'hamcrest-core', rev = '1.2') ])
