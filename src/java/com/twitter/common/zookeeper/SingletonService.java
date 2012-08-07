@@ -37,13 +37,28 @@ import com.twitter.thrift.Status;
 /**
  * A service that uses master election to only allow a single instance of the server to join
  * the {@link ServerSet} at a time.
- *
- * @author William Farner
  */
 public class SingletonService {
 
   private static final Logger LOG = Logger.getLogger(SingletonService.class.getName());
   private static final String LEADER_ELECT_NODE_PREFIX = "singleton_candidate_";
+
+  /**
+   * Creates a candidate that can be combined with an existing server set to form a singleton
+   * service using {@link #SingletonService(ServerSet, Candidate)}.
+   *
+   * @param zkClient The ZooKeeper client to use.
+   * @param servicePath The path where service nodes live.
+   * @param acl The acl to apply to newly created candidate nodes and serverset nodes.
+   * @return A candidate that can be housed with a standard server set under a single zk path.
+   */
+  public static Candidate createSingletonCandidate(
+      ZooKeeperClient zkClient,
+      String servicePath,
+      Iterable<ACL> acl) {
+
+    return new CandidateImpl(new Group(zkClient, acl, servicePath, LEADER_ELECT_NODE_PREFIX));
+  }
 
   private final ServerSet serverSet;
   private final Candidate candidate;
@@ -69,8 +84,9 @@ public class SingletonService {
    * @param acl The acl to apply to newly created candidate nodes and serverset nodes.
    */
   public SingletonService(ZooKeeperClient zkClient, String servicePath, Iterable<ACL> acl) {
-    this(new ServerSetImpl(zkClient, new Group(zkClient, acl, servicePath)),
-        new CandidateImpl(new Group(zkClient, acl, servicePath, LEADER_ELECT_NODE_PREFIX)));
+    this(
+        new ServerSetImpl(zkClient, new Group(zkClient, acl, servicePath)),
+        createSingletonCandidate(zkClient, servicePath, acl));
   }
 
   /**
