@@ -239,6 +239,7 @@ public final class Compiler {
       return 1;
     }
 
+    diagnosticListener.setIncludeSourceInfo(getJavaVersion() >= 7);
     diagnosticListener.prepareConsole(argParser.isColor());
     try {
       JavaFileManager fileManager = standardFileManager;
@@ -265,6 +266,12 @@ public final class Compiler {
     } finally {
       diagnosticListener.releaseConsole();
     }
+  }
+
+  private static int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    String[] components = version.split("\\.", 3);
+    return Integer.parseInt(components[1]);
   }
 
   /**
