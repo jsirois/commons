@@ -197,8 +197,8 @@ jar_library(name = 'gson',
 jar_library(name = 'guava',
             dependencies = [
               jar(
-                org = 'com.google.guava', name = 'guava', rev = '12.0.1',
-                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v12.0/javadoc/'
+                org = 'com.google.guava', name = 'guava', rev = '13.0',
+                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v13.0/javadoc/'
               ).with_sources(),
 
               # This dependency should not need to be explicit but its currently required to work
