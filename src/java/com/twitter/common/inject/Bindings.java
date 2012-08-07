@@ -16,10 +16,14 @@
 
 package com.twitter.common.inject;
 
+import java.lang.annotation.Annotation;
+
 import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
+import com.google.inject.BindingAnnotation;
 import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import com.google.inject.binder.LinkedBindingBuilder;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
@@ -55,8 +59,8 @@ public final class Bindings {
    * Registers {@code required} as non-optional dependency in the {@link com.google.inject.Injector}
    * associated with {@code binder}.
    *
-   * @param binder a guice binder to require bindings against
-   * @param required the dependency that is required
+   * @param binder A binder to require bindings against.
+   * @param required The dependency that is required.
    */
   public static void requireBinding(Binder binder, final Key<?> required) {
     Preconditions.checkNotNull(binder);
@@ -74,15 +78,15 @@ public final class Bindings {
    * without forcing guiced implementation to provide all the overloaded binding methods they would
    * otherwise have to.
    *
-   * @param <T> the type this helper can be used to bind implementations for
+   * @param <T> The type this helper can be used to bind implementations for.
    */
   public interface BindHelper<T> {
 
     /**
      * Associates this BindHelper with an Injector instance.
      *
-     * @param binder the binder for the injector implementations will be bound in
-     * @return a binding builder that can be used to bind an implementation with
+     * @param binder The binder for the injector implementations will be bound in.
+     * @return A binding builder that can be used to bind an implementation with.
      */
     LinkedBindingBuilder<T> with(Binder binder);
   }
@@ -90,9 +94,9 @@ public final class Bindings {
   /**
    * Creates a BindHelper for the given binding key that can be used to bind a single instance.
    *
-   * @param key the binding key the returned BindHelper can be use to bind implementations for
-   * @param <T> the type the returned BindHelper can be used to bind implementations for
-   * @return a BindHelper that can be used to bind an implementation with
+   * @param key The binding key the returned BindHelper can be use to bind implementations for.
+   * @param <T> The type the returned BindHelper can be used to bind implementations for.
+   * @return A BindHelper that can be used to bind an implementation with.
    */
   public static <T> BindHelper<T> binderFor(final Key<T> key) {
     return new BindHelper<T>() {
@@ -105,9 +109,9 @@ public final class Bindings {
   /**
    * Creates a BindHelper for the given type that can be used to add a binding of to a set.
    *
-   * @param type the type the returned BindHelper can be use to bind implementations for
-   * @param <T> the type the returned BindHelper can be used to bind implementations for
-   * @return a BindHelper that can be used to bind an implementation with
+   * @param type The type the returned BindHelper can be use to bind implementations for.
+   * @param <T> The type the returned BindHelper can be used to bind implementations for.
+   * @return A BindHelper that can be used to bind an implementation with.
    */
   public static <T> BindHelper<T> multiBinderFor(final Class<T> type) {
     return new BindHelper<T>() {
@@ -115,5 +119,164 @@ public final class Bindings {
         return Multibinder.newSetBinder(binder, type).addBinding();
       }
     };
+  }
+
+  /**
+   * Checks that the given annotation instance is a {@link BindingAnnotation @BindingAnnotation}.
+   *
+   * @param annotation The annotation instance to check.
+   * @param <T> The type of the binding annotation.
+   * @return The checked binding annotation.
+   * @throws NullPointerException If the given {@code annotation} is null.
+   * @throws IllegalArgumentException If the given {@code annotation} is not a
+   *     {@literal @BindingAnnotation}.
+   */
+  public static <T extends Annotation> T checkBindingAnnotation(T annotation) {
+    Preconditions.checkNotNull(annotation);
+    checkBindingAnnotation(annotation.annotationType());
+    return annotation;
+  }
+
+  /**
+   * Checks that the given annotation type is a {@link BindingAnnotation @BindingAnnotation}.
+   *
+   * @param annotationType The annotation type to check.
+   * @param <T> The type of the binding annotation.
+   * @return The checked binding annotation type.
+   * @throws NullPointerException If the given {@code annotationType} is null.
+   * @throws IllegalArgumentException If the given {@code annotationType} is not a
+   *     {@literal @BindingAnnotation}.
+   */
+  public static <T extends Annotation> Class<T> checkBindingAnnotation(Class<T> annotationType) {
+    Preconditions.checkNotNull(annotationType);
+    Preconditions.checkArgument(annotationType.isAnnotationPresent(BindingAnnotation.class),
+        "%s is not a @BindingAnnotation", annotationType);
+    return annotationType;
+  }
+
+  /**
+   * A factory for binding {@link Key keys}.
+   */
+  public interface KeyFactory {
+    /**
+     * Creates a key for the given type.
+     *
+     * @param type The type to create a key for.
+     * @param <T> The keyed type.
+     * @return A key.
+     */
+    <T> Key<T> create(Class<T> type);
+
+    /**
+     * Creates a key for the given type.
+     *
+     * @param type The type to create a key for.
+     * @param <T> The keyed type.
+     * @return A key.
+     */
+    <T> Key<T> create(TypeLiteral<T> type);
+  }
+
+  /**
+   * Creates a key factory that produces keys for a given annotation instance.
+   *
+   * @param annotation The annotation instance to apply to all keys.
+   * @return A key factory that creates annotated keys.
+   */
+  public static KeyFactory annotatedKeyFactory(final Annotation annotation) {
+    checkBindingAnnotation(annotation);
+    return new KeyFactory() {
+      @Override public <T> Key<T> create(Class<T> type) {
+        return Key.get(type, annotation);
+      }
+      @Override public <T> Key<T> create(TypeLiteral<T> type) {
+        return Key.get(type, annotation);
+      }
+    };
+  }
+
+  /**
+   * Creates a key factory that produces keys for a given annotation type.
+   *
+   * @param annotationType The annotation type to apply to all keys.
+   * @return A key factory that creates annotated keys.
+   */
+  public static KeyFactory annotatedKeyFactory(final Class<? extends Annotation> annotationType) {
+    checkBindingAnnotation(annotationType);
+    return new KeyFactory() {
+      @Override public <T> Key<T> create(Class<T> type) {
+        return Key.get(type, annotationType);
+      }
+      @Override public <T> Key<T> create(TypeLiteral<T> type) {
+        return Key.get(type, annotationType);
+      }
+    };
+  }
+
+  /**
+   * Rebinds the given key to another, linking bindings.
+   *
+   * @param binder A binder to rebind the given {@code key} in.
+   * @param key The key to rebind.
+   * @param bindToFactory A factory for the rebinding key.
+   * @param <T> The keyed type.
+   * @return The key that {@code key} was rebound to.
+   */
+  public static <T> Key<T> rebind(Binder binder, Key<T> key, KeyFactory bindToFactory) {
+    Key<T> bindTo = bindToFactory.create(key.getTypeLiteral());
+    binder.bind(bindTo).to(key);
+    requireBinding(binder, key);
+    return bindTo;
+  }
+
+  /**
+   * A utility that helps rebind keys.
+   */
+  public static final class Rebinder {
+    private final Binder binder;
+    private final KeyFactory bindToFactory;
+
+    /**
+     * Creates a Rebinder that links bindings to keys from the given {@code bindToFactory}.
+     *
+     * @param binder A binder to rebind keys in.
+     * @param bindToFactory A factory for the rebinding key.
+     */
+    public Rebinder(Binder binder, KeyFactory bindToFactory) {
+      this.binder = Preconditions.checkNotNull(binder);
+      this.bindToFactory = Preconditions.checkNotNull(bindToFactory);
+    }
+
+    /**
+     * Rebinds the given key to another, linking bindings.
+     *
+     * @param key The source key to rebind.
+     * @return The key that {@code key} was rebound to.
+     */
+    public <T> Key<T> rebind(Key<T> key) {
+      return Bindings.rebind(binder, key, bindToFactory);
+    }
+  }
+
+  /**
+   * Creates a Rebinder that rebinds keys to the given annotation instance.
+   *
+   * @param binder A binder to rebind keys in.
+   * @param annotation The annotation instance to rebind keys to.
+   * @return A Rebinder targeting the given {@code annotationType}.
+   */
+  public static Rebinder rebinder(Binder binder, Annotation annotation) {
+    return new Rebinder(binder, annotatedKeyFactory(annotation));
+  }
+
+  /**
+   * Creates a Rebinder that rebinds keys to the given annotation type.
+   *
+   * @param binder A binder to rebind keys in.
+   * @param annotationType The annotation type to rebind keys to.
+   * @return A Rebinder targeting the given {@code annotationType}.
+   */
+  public static Rebinder rebinder(Binder binder, Class<? extends Annotation> annotationType) {
+    return new Rebinder(binder, annotatedKeyFactory(annotationType));
   }
 }
