@@ -53,6 +53,11 @@ class JavadocGen(Task):
                             help="[%%default] Attempt to open the generated javadoc in a browser "
                                  "(implies %s)." % combined_flag)
 
+    option_group.add_option(mkflag("ignore-failure"), mkflag("ignore-failure", negate=True),
+                            dest = "javadoc_gen_ignore_failure", default=False,
+                            action="callback", callback=mkflag.set_bool,
+                            help="Specifies that javadoc errors should not cause build errors")
+
   def __init__(self, context, output_dir=None, confs=None):
     Task.__init__(self, context)
 
@@ -65,6 +70,7 @@ class JavadocGen(Task):
     self.confs = confs or context.config.getlist('javadoc-gen', 'confs')
     self.open = context.options.javadoc_gen_open
     self.combined = self.open or context.options.javadoc_gen_combined
+    self.ignore_failure = context.options.javadoc_gen_ignore_failure
 
   def invalidate_for(self):
     return self.combined
@@ -139,7 +145,11 @@ class JavadocGen(Task):
         result, gendir = future.get()
         target, command = jobs[gendir]
         if result != 0:
-          raise TaskError('Failed to process javadoc for %s [%d]: %s' % (target, result, command))
+          message = 'Failed to process javadoc for %s [%d]: %s' % (target, result, command)
+          if self.ignore_failure:
+            self.context.log.warn(message)
+          else:
+            raise TaskError(message)
 
     finally:
       pool.close()
