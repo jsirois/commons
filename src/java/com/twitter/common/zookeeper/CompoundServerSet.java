@@ -113,6 +113,7 @@ public class CompoundServerSet implements ServerSet {
       throws MonitorException {
     if (!monitoring) {
       monitoring = true;
+      monitors.add(monitor);
       for (final ServerSet serverSet : serverSets) {
         serverSet.monitor(new HostChangeMonitor<ServiceInstance>() {
           @Override public void onChange(ImmutableSet<ServiceInstance> hostSet) {
@@ -120,7 +121,6 @@ public class CompoundServerSet implements ServerSet {
           }
         });
       }
-      monitors.add(monitor);
     }
   }
 }

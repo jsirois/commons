@@ -1,61 +1,54 @@
 package com.twitter.common.zookeeper;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.easymock.Capture;
 import org.easymock.EasyMock;
-import org.easymock.IMocksControl;
-import org.junit.After;
+import org.easymock.IAnswer;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.twitter.common.base.Command;
 import com.twitter.common.net.pool.DynamicHostSet.HostChangeMonitor;
 import com.twitter.common.net.pool.DynamicHostSet.MonitorException;
-import com.twitter.common.zookeeper.testing.BaseZooKeeperTest;
+import com.twitter.common.testing.EasyMockTest;
 import com.twitter.thrift.ServiceInstance;
 import com.twitter.thrift.Status;
 
-import static com.twitter.common.testing.EasyMockTest.createCapture;
 import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.getCurrentArguments;
 
 /**
  * Tests CompoundServerSet (Tests the composite logic). ServerSetImplTest takes care of testing
  * the actual serverset logic.
  */
-public class CompoundServerSetTest extends BaseZooKeeperTest {
+public class CompoundServerSetTest extends EasyMockTest {
   private static final Map<String, InetSocketAddress> AUX_PORTS = ImmutableMap.of();
-  private static final ImmutableSet<ServiceInstance> EMPTY_HOSTS = ImmutableSet.of();
   private static final InetSocketAddress END_POINT =
       InetSocketAddress.createUnresolved("foo", 12345);
 
   private ServerSet.EndpointStatus mockStatus1;
   private ServerSet.EndpointStatus mockStatus2;
   private ServerSet.EndpointStatus mockStatus3;
-  private HostChangeMonitor<ServiceInstance> mockMonitor;
+  private HostChangeMonitor<ServiceInstance> compoundMonitor;
 
   private ServerSet serverSet1;
   private ServerSet serverSet2;
   private ServerSet serverSet3;
-  private List<ServerSet> serverSets;
   private CompoundServerSet compoundServerSet;
 
   private ServiceInstance instance1;
   private ServiceInstance instance2;
   private ServiceInstance instance3;
 
-  private IMocksControl control;
-
   private void triggerChange(ServiceInstance... hostChanges) {
-    mockMonitor.onChange(ImmutableSet.copyOf(hostChanges));
+    compoundMonitor.onChange(ImmutableSet.copyOf(hostChanges));
   }
 
   private void triggerChange(
@@ -65,35 +58,24 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
     capture.getValue().onChange(ImmutableSet.copyOf(hostChanges));
   }
 
-  @SuppressWarnings("unchecked")
-  private HostChangeMonitor<ServiceInstance> createMonitorMock() {
-    return (HostChangeMonitor<ServiceInstance>) control.createMock(HostChangeMonitor.class);
-  }
-
   @Before
   public void setUpMocks() throws Exception {
     control = createControl();
-    mockMonitor = createMonitorMock();
+    compoundMonitor = createMock(new Clazz<HostChangeMonitor<ServiceInstance>>() { });
 
-    mockStatus1 = control.createMock(ServerSet.EndpointStatus.class);
-    mockStatus2 = control.createMock(ServerSet.EndpointStatus.class);
-    mockStatus3 = control.createMock(ServerSet.EndpointStatus.class);
+    mockStatus1 = createMock(ServerSet.EndpointStatus.class);
+    mockStatus2 = createMock(ServerSet.EndpointStatus.class);
+    mockStatus3 = createMock(ServerSet.EndpointStatus.class);
 
-    serverSet1 = control.createMock(ServerSet.class);
-    serverSet2 = control.createMock(ServerSet.class);
-    serverSet3 = control.createMock(ServerSet.class);
-    serverSets = Lists.newArrayList(serverSet1, serverSet2, serverSet3);
+    serverSet1 = createMock(ServerSet.class);
+    serverSet2 = createMock(ServerSet.class);
+    serverSet3 = createMock(ServerSet.class);
 
-    instance1 = control.createMock(ServiceInstance.class);
-    instance2 = control.createMock(ServiceInstance.class);
-    instance3 = control.createMock(ServiceInstance.class);
+    instance1 = createMock(ServiceInstance.class);
+    instance2 = createMock(ServiceInstance.class);
+    instance3 = createMock(ServiceInstance.class);
 
-    compoundServerSet = new CompoundServerSet(serverSets);
-  }
-
-  @After
-  public void verify() {
-    control.verify();
+    compoundServerSet = new CompoundServerSet(ImmutableList.of(serverSet1, serverSet2, serverSet3));
   }
 
   @Test
@@ -158,7 +140,7 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
     triggerChange();
 
     control.replay();
-    compoundServerSet.monitor(mockMonitor);
+    compoundServerSet.monitor(compoundMonitor);
 
     // No new instances.
     triggerChange(set1Capture);
@@ -176,7 +158,7 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
     triggerChange(set1Capture);
     triggerChange(set2Capture);
     triggerChange(set3Capture);
-}
+  }
 
   @Test(expected = MonitorException.class)
   public void testMonitorFailure() throws Exception {
@@ -184,6 +166,29 @@ public class CompoundServerSetTest extends BaseZooKeeperTest {
     expectLastCall().andThrow(new MonitorException("Monitor exception", null));
 
     control.replay();
-    compoundServerSet.monitor(mockMonitor);
+    compoundServerSet.monitor(compoundMonitor);
+  }
+
+  @Test
+  public void testInitialChange() throws Exception {
+    // Ensures that a synchronous change notification during the call to monitor() is properly
+    // reported.
+    serverSet1.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>anyObject());
+    expectLastCall().andAnswer(new IAnswer<Void>() {
+      @Override public Void answer() {
+        @SuppressWarnings("unchecked")
+        HostChangeMonitor<ServiceInstance> monitor =
+            (HostChangeMonitor<ServiceInstance>) getCurrentArguments()[0];
+        monitor.onChange(ImmutableSet.of(instance1, instance2));
+        return null;
+      }
+    });
+    compoundMonitor.onChange(ImmutableSet.of(instance1, instance2));
+    serverSet2.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>anyObject());
+    serverSet3.monitor(EasyMock.<HostChangeMonitor<ServiceInstance>>anyObject());
+
+    control.replay();
+
+    compoundServerSet.monitor(compoundMonitor);
   }
 }
