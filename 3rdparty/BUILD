@@ -353,7 +353,7 @@ jar_library(name = 'spy-memcached',
 
 jar_library(name = 'storm',
             dependencies = [
-              jar(org = 'storm', name = 'storm', rev = '0.7.4'),
+              jar(org = 'storm', name = 'storm', rev = '0.8.0'),
             ])
 
 jar_library(name = 'storm-kafka',
