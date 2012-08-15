@@ -35,7 +35,7 @@ import com.twitter.common.text.token.attribute.TokenTypeAttribute;
  * Keeps the original text as well as its tokenized tokens.
  */
 public class TokenizedCharSequence implements CharSequence {
-  public static final class Token {
+  public static final class Token implements CharSequence {
     public static final int DEFAULT_PART_OF_SPEECH = -1;
 
     private final CharBuffer term;
@@ -52,9 +52,38 @@ public class TokenizedCharSequence implements CharSequence {
       this.pos = pos;
     }
 
+    /**
+     * Returns a new Token object which represents a term starting with {@code offset} and with
+     * {@length}.
+     *
+     * @param offset offset of the sub-token
+     * @param length length of the sub-token
+     * @return a new Token object representing a sub-token
+     */
+    public Token tokenize(int offset, int length) {
+      Preconditions.checkArgument(offset >= 0 && offset < getLength());
+      Preconditions.checkArgument(length > 0 && length <= getLength());
+      return new Token(CharBuffer.wrap(term, offset, offset + length), type, pos);
+    }
+
     @Override
     public String toString() {
       return term.toString();
+    }
+
+    @Override
+    public int length() {
+      return term.limit() - term.position();
+    }
+
+    @Override
+    public char charAt(int index) {
+      return term.charAt(index);
+    }
+
+    @Override
+    public CharSequence subSequence(int start, int end) {
+      return term.subSequence(start, end);
     }
 
     public CharSequence getTerm() {
@@ -63,6 +92,10 @@ public class TokenizedCharSequence implements CharSequence {
 
     public int getOffset() {
       return term.position();
+    }
+
+    public int getEndOffset() {
+      return term.limit();
     }
 
     public int getLength() {
