@@ -158,6 +158,19 @@ public final class Bindings {
    * A factory for binding {@link Key keys}.
    */
   public interface KeyFactory {
+
+    /**
+     * Creates plain un-annotated keys.
+     */
+    KeyFactory PLAIN = new KeyFactory() {
+      @Override public <T> Key<T> create(Class<T> type) {
+        return Key.get(type);
+      }
+      @Override public <T> Key<T> create(TypeLiteral<T> type) {
+        return Key.get(type);
+      }
+    };
+
     /**
      * Creates a key for the given type.
      *
@@ -214,22 +227,6 @@ public final class Bindings {
   }
 
   /**
-   * Rebinds the given key to another, linking bindings.
-   *
-   * @param binder A binder to rebind the given {@code key} in.
-   * @param key The key to rebind.
-   * @param bindToFactory A factory for the rebinding key.
-   * @param <T> The keyed type.
-   * @return The key that {@code key} was rebound to.
-   */
-  public static <T> Key<T> rebind(Binder binder, Key<T> key, KeyFactory bindToFactory) {
-    Key<T> bindTo = bindToFactory.create(key.getTypeLiteral());
-    binder.bind(bindTo).to(key);
-    requireBinding(binder, key);
-    return bindTo;
-  }
-
-  /**
    * A utility that helps rebind keys.
    */
   public static final class Rebinder {
@@ -250,11 +247,14 @@ public final class Bindings {
     /**
      * Rebinds the given key to another, linking bindings.
      *
-     * @param key The source key to rebind.
+     * @param fromKey The source key to rebind.
      * @return The key that {@code key} was rebound to.
      */
-    public <T> Key<T> rebind(Key<T> key) {
-      return Bindings.rebind(binder, key, bindToFactory);
+    public <T> Key<T> rebind(Key<T> fromKey) {
+      Key<T> toKey = bindToFactory.create(fromKey.getTypeLiteral());
+      binder.bind(toKey).to(fromKey);
+      requireBinding(binder, fromKey);
+      return toKey;
     }
   }
 

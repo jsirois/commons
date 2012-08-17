@@ -9,7 +9,6 @@ import com.google.inject.BindingAnnotation;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
-import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
@@ -64,6 +63,12 @@ public class BindingsTest {
   }
 
   @Test
+  public void testPlainKeyFactory() {
+    assertEquals(Key.get(String.class), KeyFactory.PLAIN.create(String.class));
+    assertEquals(Key.get(STRING_LIST), KeyFactory.PLAIN.create(STRING_LIST));
+  }
+
+  @Test
   public void testAnnotationKeyFactory() {
     KeyFactory factory = Bindings.annotatedKeyFactory(NAME_KEY);
     assertEquals(Key.get(String.class, NAME_KEY), factory.create(String.class));
@@ -77,33 +82,15 @@ public class BindingsTest {
     assertEquals(Key.get(STRING_LIST, BindKey.class), factory.create(STRING_LIST));
   }
 
-  private static final Key<Integer> NAMED_INT_KEY = Key.get(Integer.class, NAME_KEY);
-
-  private void assertRebind(Module rebindingModule) {
-    Injector injector = Guice.createInjector(rebindingModule, new AbstractModule() {
+  @Test
+  public void testRebinder() {
+    Injector injector = Guice.createInjector(new AbstractModule() {
       @Override protected void configure() {
-        bind(NAMED_INT_KEY).toInstance(42);
+        Key<Integer> fromKey = Key.get(Integer.class, NAME_KEY);
+        bind(fromKey).toInstance(42);
+        Bindings.rebinder(binder(), BindKey.class).rebind(fromKey);
       }
     });
     assertEquals(42, injector.getInstance(Key.get(Integer.class, BindKey.class)).intValue());
-  }
-
-  @Test
-  public void testRebind() {
-    assertRebind(new AbstractModule() {
-      @Override
-      protected void configure() {
-        Bindings.rebind(binder(), NAMED_INT_KEY, Bindings.annotatedKeyFactory(BindKey.class));
-      }
-    });
-  }
-
-  @Test
-  public void testRebinder() {
-    assertRebind(new AbstractModule() {
-      @Override protected void configure() {
-        Bindings.rebinder(binder(), BindKey.class).rebind(NAMED_INT_KEY);
-      }
-    });
   }
 }
