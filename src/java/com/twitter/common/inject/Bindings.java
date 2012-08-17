@@ -19,10 +19,13 @@ package com.twitter.common.inject;
 import java.lang.annotation.Annotation;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.BindingAnnotation;
 import com.google.inject.Key;
+import com.google.inject.Module;
+import com.google.inject.PrivateModule;
 import com.google.inject.TypeLiteral;
 import com.google.inject.binder.LinkedBindingBuilder;
 import com.google.inject.multibindings.Multibinder;
@@ -71,6 +74,36 @@ public final class Bindings {
         requireBinding(required);
       }
     });
+  }
+
+  /**
+   * A convenient version of {@link #exposing(Iterable, com.google.inject.Module)} when you just
+   * want to expose a single binding.
+   */
+  public static Module exposing(Key<?> key, Module module) {
+    return exposing(ImmutableList.of(key), module);
+  }
+
+  /**
+   * Creates a module that hides all the given module's bindings and only exposes bindings for
+   * the given key.
+   *
+   * @param keys The keys of the bindings to expose.
+   * @param module The module to hide most bindings for.
+   * @return A limited visibility module.
+   */
+  public static Module exposing(final Iterable<? extends Key<?>> keys, final Module module) {
+    Preconditions.checkNotNull(keys);
+    Preconditions.checkNotNull(module);
+
+    return new PrivateModule() {
+      @Override protected void configure() {
+        install(module);
+        for (Key<?> key : keys) {
+          expose(key);
+        }
+      }
+    };
   }
 
   /**

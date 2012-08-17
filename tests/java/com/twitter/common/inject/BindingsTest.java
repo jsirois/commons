@@ -20,6 +20,8 @@ import com.twitter.common.inject.Bindings.KeyFactory;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
 public class BindingsTest {
@@ -92,5 +94,22 @@ public class BindingsTest {
       }
     });
     assertEquals(42, injector.getInstance(Key.get(Integer.class, BindKey.class)).intValue());
+  }
+
+  @Test
+  public void testExposing() {
+    Injector injector =
+        Guice.createInjector(Bindings.exposing(Key.get(String.class),
+            new AbstractModule() {
+              @Override protected void configure() {
+                bind(String.class).toInstance("jake");
+                bind(Integer.class).toInstance(42);
+              }
+            }));
+
+    assertTrue(injector.getBindings().containsKey(Key.get(String.class)));
+    assertEquals("jake", injector.getInstance(String.class));
+
+    assertFalse(injector.getBindings().containsKey(Key.get(Integer.class)));
   }
 }
