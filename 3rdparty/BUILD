@@ -434,6 +434,12 @@ jar_library(name = 'util-core',
 jar_library(name = 'util-jvm',
             dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
 
+jar_library(name = 'util-zk-common',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV)
+                  .exclude(org='com.twitter.common.zookeeper')
+            ])
+
 jar_library(name = 'vertica',
             dependencies = [ jar(org = 'com.vertica', name = 'vertica', rev = '4.1.2') ])
 
