@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -42,6 +43,18 @@ public class StatsTest {
     assertCounter("test_long", 1);
     var.addAndGet(100);
     assertCounter("test_long", 101);
+  }
+
+  @Test
+  public void testNotSame() {
+    AtomicLong firstExport = Stats.exportLong("somevar");
+    firstExport.incrementAndGet();
+    firstExport.incrementAndGet();
+    assertCounter("somevar", 2L);
+    AtomicLong secondExport = Stats.exportLong("somevar");
+    assertNotSame(firstExport, secondExport);
+    secondExport.incrementAndGet();
+    assertCounter("somevar", 2L); // We keep the first one!
   }
 
   @Test
