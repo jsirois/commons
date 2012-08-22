@@ -240,7 +240,11 @@ jar_library(name = 'jetty',
            )
 
 jar_library(name = 'joda-time',
-            dependencies = [ jar(org = 'joda-time', name = 'joda-time', rev = '1.6') ])
+            dependencies = [
+              jar(org = 'joda-time', name = 'joda-time', rev = '2.1'),
+              jar(org = 'org.joda', name = 'joda-convert', rev = '1.2')
+            ]
+           )
 
 jar_library(name = 'json-simple',
             dependencies = [
