@@ -21,15 +21,12 @@ import javax.servlet.http.HttpServlet;
 import com.google.common.collect.ImmutableMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
 import static com.twitter.common.base.MorePreconditions.checkNotBlank;
 
 /**
  * An {@link javax.servlet.http.HttpServlet} configuration used to mount HTTP handlers via
- * {@link Registration#registerServlet(com.google.inject.Binder, HttpServletConfig)}.
- *
- * TODO(William Farner): Move this to a more appropriate package after initial AppLauncher check-in.
- *
+ * {@link
+ * Registration#registerServlet(com.google.inject.Binder, HttpServletConfig, HttpServletConfig...)}.
  */
 public class HttpServletConfig {
   public final String path;
