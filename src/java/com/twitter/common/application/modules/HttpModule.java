@@ -66,21 +66,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <ul>
  *   <li>{@code @CacheTemplates boolean} - True if parsed stringtemplates for servlets are cached.
  * </ul>
- *
- * Bindings that may be overridden with an override module:
- * <ul>
- *   <li>Abort handler: called when an HTTP GET request is issued to the /abortabortabort HTTP
- *       servlet.  May be overridden by binding to:
- *       {@code bind(Runnable.class).annotatedWith(Names.named(AbortHandler.ABORT_HANDLER_KEY))}.
- *   <li>Quit handler: called when an HTTP GET request is issued to the /quitquitquit HTTP
- *       servlet.  May be overridden by binding to:
- *       {@code bind(Runnable.class).annotatedWith(Names.named(QuitHandler.QUIT_HANDLER_KEY))}.
- *   <li>Health checker: called to determine whether the application is healthy to serve an
- *       HTTP GET request to /health.  May be overridden by binding to:
- *       {@code bind(new TypeLiteral<ExceptionalSupplier<Boolean, ?>>() {})
- *            .annotatedWith(Names.named(HealthHandler.HEALTH_CHECKER_KEY))}.
- *   <li>
- * </ul>
  */
 public class HttpModule extends AbstractModule {
 
@@ -97,32 +82,110 @@ public class HttpModule extends AbstractModule {
   // TODO(William Farner): Consider making this configurable if needed.
   private static final boolean CACHE_TEMPLATES = true;
 
-  private static final Runnable DEFAULT_ABORT_HANDLER = new Runnable() {
-      @Override public void run() {
-        LOG.info("ABORTING PROCESS IMMEDIATELY!");
-        System.exit(0);
-      }
-    };
-  private static final Supplier<Boolean> DEFAULT_HEALTH_CHECKER = new Supplier<Boolean>() {
-      @Override public Boolean get() {
-        return Boolean.TRUE;
-      }
-    };
+  private static class DefaultAbortHandler implements Runnable {
+    @Override public void run() {
+      LOG.info("ABORTING PROCESS IMMEDIATELY!");
+      System.exit(0);
+    }
+  }
+
+  private static class DefaultHealthChecker implements Supplier<Boolean> {
+    @Override public Boolean get() {
+      return Boolean.TRUE;
+    }
+  }
+
+  private final Key<? extends Runnable> abortHandler;
+  private final Key<? extends Runnable> quitHandlerKey;
+  private final Key<? extends ExceptionalSupplier<Boolean, ?>> healthCheckerKey;
+
+  public HttpModule() {
+    this(builder());
+  }
+
+  private HttpModule(Builder builder) {
+    this.abortHandler = checkNotNull(builder.abortHandlerKey);
+    this.quitHandlerKey = checkNotNull(builder.quitHandlerKey);
+    this.healthCheckerKey = checkNotNull(builder.healthCheckerKey);
+  }
+
+  /**
+   * Creates a builder to override default bindings.
+   *
+   * @return A new builder.
+   */
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /**
+   * Builder to customize bindings.
+   */
+  public static class Builder {
+    private Key<? extends Runnable> abortHandlerKey = Key.get(DefaultAbortHandler.class);
+    private Key<? extends Runnable> quitHandlerKey = Key.get(DefaultQuitHandler.class);
+    private Key<? extends ExceptionalSupplier<Boolean, ?>> healthCheckerKey =
+        Key.get(DefaultHealthChecker.class);
+
+    /**
+     * Specifies a custom abort handler to be invoked when an HTTP abort signal is received.
+     *
+     * @param key Abort callback handler binding key.
+     * @return A reference to this builder.
+     */
+    public Builder abortHandler(Key<? extends Runnable> key) {
+      this.abortHandlerKey = key;
+      return this;
+    }
+
+    /**
+     * Specifies a custom quit handler to be invoked when an HTTP quit signal is received.
+     *
+     * @param key Quit callback handler binding key.
+     * @return A reference to this builder.
+     */
+    public Builder quitHandler(Key<? extends Runnable> key) {
+      this.quitHandlerKey = key;
+      return this;
+    }
+
+    /**
+     * Specifies a custom health checker to control responses to HTTP health checks.
+     *
+     * @param key Health check callback binding key.
+     * @return A reference to this builder.
+     */
+    public Builder healthChecker(Key<? extends ExceptionalSupplier<Boolean, ?>> key) {
+      this.healthCheckerKey = key;
+      return this;
+    }
+
+    /**
+     * Constructs an http module.
+     *
+     * @return An http module constructed from this builder.
+     */
+    public HttpModule build() {
+      return new HttpModule(this);
+    }
+  }
 
   @Override
   protected void configure() {
     requireBinding(Injector.class);
     requireBinding(ShutdownRegistry.class);
 
-    // Bind the default abort, quit, and health check handlers.
-    bind(Key.get(Runnable.class, Names.named(AbortHandler.ABORT_HANDLER_KEY)))
-        .toInstance(DEFAULT_ABORT_HANDLER);
+    bind(Runnable.class)
+        .annotatedWith(Names.named(AbortHandler.ABORT_HANDLER_KEY))
+        .to(abortHandler);
+    bind(abortHandler).in(Singleton.class);
     bind(Runnable.class).annotatedWith(Names.named(QuitHandler.QUIT_HANDLER_KEY))
-        .to(DefaultQuitHandler.class);
-    bind(DefaultQuitHandler.class).in(Singleton.class);
+        .to(quitHandlerKey);
+    bind(quitHandlerKey).in(Singleton.class);
     bind(new TypeLiteral<ExceptionalSupplier<Boolean, ?>>() { })
         .annotatedWith(Names.named(HealthHandler.HEALTH_CHECKER_KEY))
-        .toInstance(DEFAULT_HEALTH_CHECKER);
+        .to(healthCheckerKey);
+    bind(healthCheckerKey).in(Singleton.class);
 
     // Allow template reloading in interactive mode for easy debugging of string templates.
     bindConstant().annotatedWith(CacheTemplates.class).to(CACHE_TEMPLATES);
