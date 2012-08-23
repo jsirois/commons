@@ -3,20 +3,14 @@ package com.twitter.common.application.http;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.net.URL;
-import java.util.Set;
 
+import javax.servlet.Filter;
 import javax.servlet.http.HttpServlet;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import com.google.inject.Binder;
 import com.google.inject.BindingAnnotation;
-import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
-import com.google.inject.servlet.ServletModule;
-
-import com.twitter.common.net.http.handlers.AssetHandler;
-import com.twitter.common.net.http.handlers.AssetHandler.StaticAsset;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
@@ -47,26 +41,9 @@ public final class Registration {
    *
    * @param binder a guice binder to register the handler with
    * @param config a servlet mounting specification
-   * @param additional additional servlets to mount
    */
-  public static void registerServlet(
-      final Binder binder,
-      HttpServletConfig config,
-      HttpServletConfig... additional) {
-
-    final Set<HttpServletConfig> servletConfigs =
-        ImmutableSet.<HttpServletConfig>builder().add(config).add(additional).build();
-    binder.install(new ServletModule() {
-      @Override protected void configureServlets() {
-        for (HttpServletConfig servletConfig : servletConfigs) {
-          bind(servletConfig.handlerClass).in(Singleton.class);
-          serve(servletConfig.path).with(servletConfig.handlerClass);
-          if (!servletConfig.silent) {
-            registerEndpoint(binder, servletConfig.path);
-          }
-        }
-      }
-    });
+  public static void registerServlet(Binder binder, HttpServletConfig config) {
+    Multibinder.newSetBinder(binder, HttpServletConfig.class).addBinding().toInstance(config);
   }
 
   /**
@@ -94,13 +71,9 @@ public final class Registration {
    *
    * @param binder a guice binder to register the link with.
    * @param endpoint Endpoint URI to include.
-   * @param additional additional endpoints to include.
    */
-  public static void registerEndpoint(Binder binder, String endpoint, String... additional) {
-    Multibinder<String> linkBinder = getEndpointBinder(binder);
-    for (String link : ImmutableSet.<String>builder().add(endpoint).add(additional).build()) {
-      linkBinder.addBinding().toInstance(link);
-    }
+  public static void registerEndpoint(Binder binder, String endpoint) {
+    getEndpointBinder(binder).addBinding().toInstance(endpoint);
   }
 
   /**
@@ -113,22 +86,10 @@ public final class Registration {
    * @param assetType MIME-type for the asset.
    * @param silent Whether the server should hide this asset on the index page.
    */
-  public static void registerHttpAsset(
-      final Binder binder,
-      final String servedPath,
-      final URL asset,
-      final String assetType,
-      final boolean silent) {
-
-    binder.install(new ServletModule() {
-      @Override protected void configureServlets() {
-        serve(servedPath).with(new AssetHandler(
-            new StaticAsset(Resources.newInputStreamSupplier(asset), assetType, true)));
-        if (!silent) {
-          registerEndpoint(binder, servedPath);
-        }
-      }
-    });
+  public static void registerHttpAsset(Binder binder, String servedPath, URL asset,
+      String assetType, boolean silent) {
+    Multibinder.newSetBinder(binder, HttpAssetConfig.class).addBinding().toInstance(
+        new HttpAssetConfig(servedPath, asset, assetType, silent));
   }
 
   /**
@@ -152,5 +113,30 @@ public final class Registration {
 
     registerHttpAsset(binder, servedPath, Resources.getResource(contextClass, assetRelativePath),
         assetType, silent);
+  }
+
+  /**
+   * Gets the multibinder used to bind HTTP filters.
+   *
+   * @param binder a guice binder to associate the multibinder with.
+   * @return The multibinder to bind HTTP filter configurations against.
+   */
+  public static Multibinder<HttpFilterConfig> getFilterBinder(Binder binder) {
+    return Multibinder.newSetBinder(binder, HttpFilterConfig.class);
+  }
+
+  /**
+   * Registers an HTTP servlet filter.
+   *
+   * @param binder a guice binder to register the filter with.
+   * @param filterClass Filter class to register.
+   * @param pathSpec Path spec that the filte should be activated on.
+   */
+  public static void registerServletFilter(
+      Binder binder,
+      Class<? extends Filter> filterClass,
+      String pathSpec) {
+
+    getFilterBinder(binder).addBinding().toInstance(new HttpFilterConfig(filterClass, pathSpec));
   }
 }

@@ -3,6 +3,8 @@ package com.twitter.common.application.modules;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServlet;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -57,8 +59,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * The default HTTP server includes several generic servlets that are useful for debugging.
  *
- * There are convenience methods in {@link Registration} to bind servlets and index links, but
- * {@link com.google.inject.servlet.ServletModule} may also be used for this purpose.
+ * This class also offers several convenience methods for other modules to register HTTP servlets
+ * which will be included in the HTTP server configuration.
  *
  * Bindings provided by this module:
  * <ul>
@@ -128,22 +130,25 @@ public class HttpModule extends AbstractModule {
     bind(HttpServerDispatch.class).to(JettyHttpServerDispatch.class)
         .in(Singleton.class);
     bind(RequestLog.class).to(RequestLogger.class);
-    Registration.registerServlet(binder(),
-        new HttpServletConfig("/abortabortabort", AbortHandler.class, true),
-        new HttpServletConfig("/contention", ContentionPrinter.class, false),
-        new HttpServletConfig("/graphdata", TimeSeriesDataSource.class, true),
-        new HttpServletConfig("/health", HealthHandler.class, true),
-        new HttpServletConfig("/logconfig", LogConfig.class, false),
-        new HttpServletConfig("/logs", LogPrinter.class, false),
-        new HttpServletConfig("/pprof/profile", CpuProfileHandler.class, false),
-        new HttpServletConfig("/quitquitquit", QuitHandler.class, true),
-        new HttpServletConfig("/threads", ThreadStackPrinter.class, false),
-        new HttpServletConfig("/vars", VarsHandler.class, false),
-        new HttpServletConfig("/vars.json", VarsJsonHandler.class, false));
+    Registration.registerServlet(binder(), "/abortabortabort", AbortHandler.class, true);
+    Registration.registerServlet(binder(), "/contention", ContentionPrinter.class, false);
+    Registration.registerServlet(binder(), "/graphdata", TimeSeriesDataSource.class, true);
+    Registration.registerServlet(binder(), "/health", HealthHandler.class, true);
+    Registration.registerServlet(binder(), "/healthz", HealthHandler.class, true);
+    Registration.registerServlet(binder(), "/logconfig", LogConfig.class, false);
+    Registration.registerServlet(binder(), "/logs", LogPrinter.class, false);
+    Registration.registerServlet(binder(), "/pprof/profile", CpuProfileHandler.class, false);
+    Registration.registerServlet(binder(), "/quitquitquit", QuitHandler.class, true);
+    Registration.registerServlet(binder(), "/threads", ThreadStackPrinter.class, false);
+    Registration.registerServlet(binder(), "/vars", VarsHandler.class, false);
+    Registration.registerServlet(binder(), "/vars.json", VarsJsonHandler.class, false);
 
     GraphViewer.registerResources(binder());
 
     LifecycleModule.bindServiceRunner(binder(), HttpServerLauncher.class);
+
+    // Ensure at least an empty filter set is bound.
+    Registration.getFilterBinder(binder());
 
     // Ensure at least an empty set of additional links is bound.
     Registration.getEndpointBinder(binder());
@@ -151,6 +156,7 @@ public class HttpModule extends AbstractModule {
 
   public static final class HttpServerLauncher implements ServiceRunner {
     private final HttpServerDispatch httpServer;
+    private final Set<HttpServletConfig> httpServlets;
     private final Set<HttpAssetConfig> httpAssets;
     private final Set<HttpFilterConfig> httpFilters;
     private final Injector injector;
@@ -158,12 +164,14 @@ public class HttpModule extends AbstractModule {
 
     @Inject HttpServerLauncher(
         HttpServerDispatch httpServer,
+        Set<HttpServletConfig> httpServlets,
         Set<HttpAssetConfig> httpAssets,
         Set<HttpFilterConfig> httpFilters,
         @IndexLink Set<String> additionalIndexLinks,
         Injector injector) {
 
       this.httpServer = checkNotNull(httpServer);
+      this.httpServlets = checkNotNull(httpServlets);
       this.httpAssets = checkNotNull(httpAssets);
       this.httpFilters = checkNotNull(httpFilters);
       this.additionalIndexLinks = checkNotNull(additionalIndexLinks);
@@ -181,6 +189,11 @@ public class HttpModule extends AbstractModule {
         }
       });
       httpServer.registerFilter(GuiceFilter.class, "/*");
+
+      for (HttpServletConfig config : httpServlets) {
+        HttpServlet handler = injector.getInstance(config.handlerClass);
+        httpServer.registerHandler(config.path, handler, config.params, config.silent);
+      }
 
       for (HttpAssetConfig config : httpAssets) {
         httpServer.registerHandler(config.path, config.handler, null, config.silent);
