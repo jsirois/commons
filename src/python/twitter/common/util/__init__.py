@@ -20,6 +20,7 @@ import sys
 import copy
 from collections import defaultdict
 from functools import reduce
+from .command_util import CommandUtil
 
 class DependencyCycle(Exception):
   pass

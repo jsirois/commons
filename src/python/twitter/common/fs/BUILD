@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2011 Twitter, Inc.
+# Copyright 2012 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -15,8 +15,11 @@
 # ==================================================================================================
 
 python_library(
-  name = 'util',
+  name = 'fs',
   sources = globs('*.py'),
-  dependencies = [pants('src/python/twitter/common'),
-                  pants('src/python/twitter/common/contextutil')]
+  dependencies = [
+        pants('src/python/twitter/common'),
+        pants("src/python/twitter/common/string"),
+        pants('src/python/twitter/common/util')
+        ]
 )
