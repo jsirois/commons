@@ -109,6 +109,7 @@ class PEX(object):
       if entry_point and not force_interpreter:
         self.execute_entry(entry_point, args)
       else:
+        os.unsetenv('PEX_INTERPRETER')
         self.debug('%s, dropping into interpreter' % ('PEX_INTERPRETER specified' if force_interpreter
            else 'No entry point specified.'))
         if sys.argv[1:]:
