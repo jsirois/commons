@@ -13,21 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==================================================================================================
+
 __author__ = 'Tejal Desai'
 
 import logging
 import os
 import re
 import subprocess
-from twitter.common.contextutil import temporary_file
-from twitter.common.util import CommandUtil
+import tempfile
 import unittest
+
+from twitter.common.util.command_util import CommandUtil
+
 
 class CommandUtilTest(unittest.TestCase):
   def test_execute_internal(self):
-    with temporary_file() as temp_file:
-      temp_filename = temp_file.name
-      temp_file.close()
+    temp_filename = tempfile.mktemp()
     handler = logging.FileHandler(temp_filename)
     logging.getLogger().addHandler(handler)
     logging.getLogger().setLevel(logging.INFO)
@@ -40,8 +41,7 @@ class CommandUtilTest(unittest.TestCase):
     self.assertTrue(bool(re.search(".*illegal option.*", str1))) #Error logged
 
   def test_execute(self):
-    with temporary_file() as temp_file:
-      temp_filename = temp_file.name
+    temp_filename = tempfile.mktemp()
     ret = CommandUtil.execute(['echo' , 'test'], True, temp_filename)
     self.assertEqual(ret, 0)
     with open(temp_filename, "r") as file1:
@@ -50,8 +50,7 @@ class CommandUtilTest(unittest.TestCase):
     os.remove(temp_filename)
 
   def test_execute_suppress_stdout(self):
-    with temporary_file() as temp_file:
-      temp_filename = temp_file.name
+    temp_filename = tempfile.mktemp()
     handler = logging.FileHandler(temp_filename)
     logging.getLogger().addHandler(handler)
     logging.getLogger().setLevel(logging.INFO)
@@ -63,8 +62,7 @@ class CommandUtilTest(unittest.TestCase):
     self.assertFalse(bool(re.search("\ntest", str1)))   #Output not logged
 
   def test_execute_suppress_out_err(self):
-    with temporary_file() as temp_file:
-      temp_filename = temp_file.name
+    temp_filename = tempfile.mktemp()
     handler = logging.FileHandler(temp_filename)
     logging.getLogger().addHandler(handler)
     logging.getLogger().setLevel(logging.INFO)

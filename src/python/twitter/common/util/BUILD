@@ -17,6 +17,7 @@
 python_library(
   name = 'util',
   sources = globs('*.py'),
-  dependencies = [pants('src/python/twitter/common'),
-                  pants('src/python/twitter/common/contextutil')]
+  dependencies = [
+    pants('src/python/twitter/common/contextutil')
+  ]
 )

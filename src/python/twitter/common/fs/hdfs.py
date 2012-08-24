@@ -18,9 +18,11 @@ __author__ = 'tdesai'
 
 import os
 import sys
-from twitter.common.util import CommandUtil
+import tempfile
 from twitter.common.contextutil import temporary_file
 from twitter.common.string import ScanfParser
+from twitter.common.util.command_util import CommandUtil
+
 
 class HDFSHelper(object):
   """
@@ -145,7 +147,7 @@ class HDFSHelper(object):
       Read will return the contents of the file in a
       variable
     """
-    tmp_file = CommandUtil.get_temp_filename()
+    tmp_file = tempfile.mktemp()
     if self._call("-copyToLocal", filename, tmp_file) == 0:
       with open(tmp_file, "r") as f:
         text = f.read()

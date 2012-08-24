@@ -14,28 +14,30 @@
 # limitations under the License.
 # ==================================================================================================
 
+from __future__ import print_function
+
 __author__ = 'Tejal Desai'
 
 import os
 import subprocess
-from twitter.common import log
+import sys
+import tempfile
+
 from twitter.common.contextutil import temporary_file
 
+try:
+  from twitter.common import log
+except ImportError:
+  import logging as log
 
-class CommandUtil:
+
+class CommandUtil(object):
   """
   This Class provides an wrapper to system command as a string and
   return the output.
   """
   @staticmethod
-  def get_temp_filename():
-    with temporary_file() as temp_file:
-      tmp_filename = temp_file.name
-      temp_file.close()
-    return tmp_filename
-
-  @staticmethod
-  def _execute_internal(cmd, log_std_out, log_std_err, log_cmd, also_output_to_file=None, 
+  def _execute_internal(cmd, log_std_out, log_std_err, log_cmd, also_output_to_file=None,
                         return_output=False):
     """
     Executes the command and returns 0 if successful
@@ -43,7 +45,7 @@ class CommandUtil:
     """
     tmp_filename = None
     if log_std_out or log_std_err:
-      tmp_filename = CommandUtil.get_temp_filename()
+      tmp_filename = tempfile.mktemp()
       tmp_file = open(tmp_filename, "w")
 
     if (not log_std_err) or (not log_std_out):
