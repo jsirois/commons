@@ -329,6 +329,12 @@ jar_library(name = 'scalatest',
             ]
            )
 
+jar_library(name = 'jerkson',
+            dependencies = [
+              jar(org='com.codahale', name='jerkson_2.9.1', rev='0.5.0').with_sources()
+            ]
+           )
+
 jar_library(name = 'servlet-api',
             dependencies = [
               jar(org = 'javax.servlet', name = 'servlet-api', rev = '2.5').with_sources()
