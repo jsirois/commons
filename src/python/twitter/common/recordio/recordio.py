@@ -22,13 +22,14 @@ from twitter.common import log
 from twitter.common.lang import Compatibility
 
 class RecordIO(object):
-  class PrematureEndOfStream(Exception): pass
-  class RecordSizeExceeded(Exception): pass
-  class InvalidTypeException(Exception): pass
-  class InvalidFileHandle(Exception): pass
-  class InvalidArgument(Exception): pass
-  class UnimplementedException(Exception): pass
-  class InvalidCodec(Exception): pass
+  class Error(Exception): pass
+  class PrematureEndOfStream(Error): pass
+  class RecordSizeExceeded(Error): pass
+  class InvalidTypeException(Error): pass
+  class InvalidFileHandle(Error): pass
+  class InvalidArgument(Error): pass
+  class UnimplementedException(Error): pass
+  class InvalidCodec(Error): pass
 
   # Maximum record size
   SANITY_CHECK_BYTES = 64 * 1024 * 1024
@@ -131,7 +132,8 @@ class RecordIO(object):
             yield blob
           else:
             break
-      finally:
+      except RecordIO.Error as e:
+        log.error('Caught exception in __iter__: %s' % e)
         cur_fp.close()
 
     @staticmethod
@@ -214,8 +216,8 @@ class RecordIO(object):
       try:
         fp.flush()
         os.fsync(fp.fileno())
-      except:
-        log.error("Failed to fsync on %s!  Continuing..." % fp.name)
+      except (IOError, OSError) as e:
+        log.error("Failed to fsync on %s! Error: %s" % (fp.name, e))
 
     @staticmethod
     def do_write(fp, input, codec, sync=False):
@@ -232,7 +234,7 @@ class RecordIO(object):
       try:
         fp.write(struct.pack(">L", blob_len))
         fp.write(blob)
-      except Exception as e:
+      except (IOError, OSError) as e:
         log.debug("Got exception in write(%s): %s" % (fp.name, e))
         return False
       if sync:
@@ -255,11 +257,11 @@ class RecordIO(object):
       try:
         with open(filename, "a+") as fp:
           rv = RecordIO.Writer.do_write(fp, input, codec)
-      except Exception as e:
+      except (IOError, OSError) as e:
         if fp:
           log.debug("Unexpected exception (%s), but continuing" % e)
         else:
-          raise e
+          raise
       return rv
 
     def write(self, blob):
@@ -273,6 +275,7 @@ class RecordIO(object):
       """
       return RecordIO.Writer.do_write(self._fp, blob, self._codec, sync=self._sync)
 
+
 class RecordWriter(RecordIO.Writer):
   """
     Write framed string records to a stream.
@@ -285,6 +288,7 @@ class RecordWriter(RecordIO.Writer):
   @staticmethod
   def append(filename, blob, codec=RecordIO.StringCodec()):
     return RecordIO.Writer.append(filename, blob, codec)
+
 
 class RecordReader(RecordIO.Reader):
   """
