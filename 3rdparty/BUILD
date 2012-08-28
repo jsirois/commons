@@ -168,7 +168,7 @@ jar_library(name = 'commons-dbcp',
            )
 
 # common rev for all com.twitter%finagle* artifacts
-FINAGLE_REV = '5.3.3'
+FINAGLE_REV = '5.3.7'
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV),
@@ -431,7 +431,7 @@ jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
 # common rev for all com.twitter%util* artifacts
-UTIL_REV = '5.3.5'
+UTIL_REV = '5.3.7'
 jar_library(name = 'util',
             dependencies = [
               jar(org = 'com.twitter', name = 'util', rev = UTIL_REV)
