@@ -50,6 +50,11 @@ jar_library(name = 'aopalliance',
 jar_library(name = 'args4j',
             dependencies = [ jar(org = 'args4j', name = 'args4j', rev = '2.0.16').with_sources() ])
 
+jar_library(name = 'asm-commons',
+            dependencies = [
+              jar(org = 'org.ow2.asm', name = 'asm-commons', rev = '4.0'),
+            ]
+           )
 
 jar_library(name = 'cascading-core',
             dependencies = [ jar(org = 'cascading', name = 'cascading-core', rev = '1.2.3',
@@ -105,7 +110,6 @@ jar_library(name = 'cascading2-test',
 jar_library(name = 'cascading.jdbc',
             dependencies = [ jar(org = 'r0man', name = 'cascading.jdbc', rev = '1.2') ]
            )
-
 
 jar_library(name = 'cglib',
             dependencies = [
@@ -360,21 +364,6 @@ jar_library(name = 'spy-memcached',
               jar(org = 'spy', name = 'spymemcached', rev = '2.7.1').with_sources()
             ]
            )
-
-jar_library(name = 'storm',
-            dependencies = [
-              jar(org = 'storm', name = 'storm', rev = '0.8.0'),
-            ])
-
-jar_library(name = 'storm-kafka',
-            dependencies = [
-              jar(org = 'storm', name = 'storm-kafka', rev = '0.7.2-snaptmp8')
-            ])
-
-jar_library(name = 'storm-kestrel',
-            dependencies = [
-              jar(org = 'storm', name = 'storm-kestrel', rev = '0.7.2-snap2')
-            ])
 
 jar_library(name = 'stringtemplate',
             dependencies = [
