@@ -28,6 +28,6 @@ python_library(
   sources = ['thrift_recordio.py'],
   dependencies = [
     pants(':recordio'),
-    pants('3rdparty/python:thrift-0.7')
+    python_requirement('thrift')
   ]
 )

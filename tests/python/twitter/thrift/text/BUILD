@@ -16,7 +16,6 @@
 
 python_tests(name = 'text',
   dependencies = [
-    pants('3rdparty/python:thrift-0.7'),
     pants('src/python/twitter/thrift/text'),
     pants('src/thrift/com/twitter/thrift/text/testing:testing-py'),
   ],

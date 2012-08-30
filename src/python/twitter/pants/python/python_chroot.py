@@ -189,8 +189,19 @@ class PythonChroot(object):
         ignore_errors=self._builder.info().ignore_errors):
       self._dump_distribution(dist)
 
-    for thr in targets['thrifts']:
-      self._dump_thrift_library(thr)
+    if targets['thrifts']:
+      thrift_versions = set()
+      for thr in targets['thrifts']:
+        self._dump_thrift_library(thr)
+        thrift_versions.add(thr.thrift_version)
+      if len(thrift_versions) > 1:
+        print('WARNING: Target has multiple thrift versions!')
+      for version in thrift_versions:
+        self._builder.add_requirement('thrift==%s' % version)
+        for dist in ReqResolver.resolve(('thrift==%s' % version for version in thrift_versions),
+            self._config, self._platforms, self._pythons,
+            ignore_errors=self._builder.info().ignore_errors):
+          self._dump_distribution(dist)
 
     for antlr in targets['antlrs']:
       self._dump_antlr_library(antlr)

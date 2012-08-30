@@ -44,7 +44,6 @@ if '__file__' in locals() and __file__ is not None:
 elif '__loader__' in locals():
   from zipimport import zipimporter
   from pkgutil import ImpLoader
-  #if isinstance(__loader__, (builtin_zipimport.zipimporter, EggZipImporter)):
   if hasattr(__loader__, 'archive'):
     __entry_point__ = __loader__.archive
   elif isinstance(__loader__, ImpLoader):

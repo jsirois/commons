@@ -100,6 +100,7 @@ java_thriftstore_dml_library = JavaThriftstoreDMLLibrary
 jvm_binary = JvmBinary
 jvm_app = JvmApp
 page = Page
+python_artifact = setup_py = PythonArtifact
 python_binary = PythonBinary
 python_library = PythonLibrary
 python_antlr_library = PythonAntlrLibrary
@@ -263,6 +264,7 @@ __all__ = (
   'pants',
   'phase',
   'python_antlr_library',
+  'python_artifact',
   'python_binary',
   'python_library',
   'python_requirement',
@@ -274,6 +276,7 @@ __all__ = (
   'scala_library',
   'scala_tests',
   'scalac_plugin',
+  'setup_py',
   'source_root',
   'wiki',
   'Config',
