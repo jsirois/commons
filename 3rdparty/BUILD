@@ -293,7 +293,7 @@ jar_library(name = 'mustache',
             dependencies = [
               jar(org = 'com.github.spullara.mustache.java',
                   name = 'compiler',
-                  rev = '0.7.0-SNAPSHOT')
+                  rev = '0.8.4').with_sources()
               ]
             )
 
@@ -335,7 +335,7 @@ jar_library(name = 'scalatest',
 
 jar_library(name = 'jerkson',
             dependencies = [
-              jar(org='com.codahale', name='jerkson_2.9.1', rev='0.5.0').with_sources()
+              jar(org='com.codahale', name='jerkson_2.9.2', rev='0.5.0').with_sources()
             ]
            )
 
