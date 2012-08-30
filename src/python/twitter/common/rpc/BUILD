@@ -2,6 +2,6 @@ python_library(
   name = 'rpc',
   sources = globs('*.py'),
   dependencies = [
-    python_requirement('thrift')
+    pants('3rdparty/python:thrift-0.7'),
   ]
 )

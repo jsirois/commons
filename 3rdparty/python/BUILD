@@ -91,11 +91,16 @@ python_library(
   dependencies = [python_requirement('RBTools==0.4.1')])
 
 python_library(
+  name = 'thrift-0.5',
+  dependencies = [egg("Thrift-0.5-py2.6.egg")])
+
+python_library(
+  name = 'thrift-0.7',
+  dependencies = [python_requirement('thrift>=0.8.0')])
+
+python_library(
   name = 'zookeeper',
-  dependencies = [
-    python_requirement('zc-zookeeper-static')
-  ]
-)
+  dependencies = [egg("ZooKeeper-*.egg")])
 
 python_library(
   name = 'elementtree',

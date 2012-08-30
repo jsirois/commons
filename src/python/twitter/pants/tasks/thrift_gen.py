@@ -27,12 +27,7 @@ from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_jvm, is_python
-from twitter.pants.targets import (
-  JavaLibrary,
-  JavaThriftLibrary,
-  PythonLibrary,
-  PythonRequirement,
-  PythonThriftLibrary)
+from twitter.pants.targets import JavaLibrary, JavaThriftLibrary, PythonLibrary, PythonThriftLibrary
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.binary_utils import select_binary
 from twitter.pants.tasks.code_gen import CodeGen

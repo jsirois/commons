@@ -15,17 +15,17 @@
 # ==================================================================================================
 
 from twitter.common.collections import OrderedSet
-from .python_requirement import PythonRequirement
-from .python_target import PythonTarget
-
+from twitter.pants.targets.python_target import PythonTarget
+from twitter.pants.targets.pants_target import Pants
 
 class PythonThriftLibrary(PythonTarget):
+  _VALID_LIBRARIES = ['0.5', '0.7']
+
   def __init__(self, name,
                sources = None,
                resources = None,
                dependencies = None,
-               thrift_version = '0.8',
-               provides=None):
+               thrift_library = '0.7'):
     """
       name = Name of library
       source = thrift source file
@@ -34,11 +34,15 @@ class PythonThriftLibrary(PythonTarget):
         resources in a .zip-module friendly way.)
       dependencies = other PythonLibraries, Eggs or internal Pants targets
     """
+    assert thrift_library in PythonThriftLibrary._VALID_LIBRARIES, \
+      'Specified thrift library %s, but only %s are valid' % (
+        thrift_library, ' & '.join(PythonThriftLibrary._VALID_LIBRARIES))
+
     def get_all_deps():
       all_deps = OrderedSet()
-      all_deps.add(PythonRequirement('thrift==%s' % thrift_version))
+      all_deps.update(Pants('3rdparty/python:thrift-%s' % thrift_library).resolve())
       if dependencies:
         all_deps.update(dependencies)
       return all_deps
 
-    PythonTarget.__init__(self, name, sources, resources, get_all_deps(), provides)
+    PythonTarget.__init__(self, name, sources, resources, get_all_deps())

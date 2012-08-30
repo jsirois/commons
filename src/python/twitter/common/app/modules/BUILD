@@ -47,6 +47,7 @@ python_library(
     pants(':modules'),
     pants('src/python/twitter/common/exceptions'),
     pants('src/thrift/org/apache/scribe:py-scribe'),
+    pants('3rdparty/python:thrift-0.7')
   ]
 )
 

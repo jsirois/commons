@@ -34,8 +34,7 @@ class PythonBinary(PythonTarget):
                ignore_errors=False,
                allow_pypi=False,
                platforms=(),
-               interpreters=(sys.version[:3],),
-               provides=None):
+               interpreters=(sys.version[:3],)):
     """
       name: target name
 
@@ -88,6 +87,4 @@ class PythonBinary(PythonTarget):
       self._platforms.extend(platforms)
     self._platforms = tuple(self._platforms)
 
-    PythonTarget.__init__(self, name, [] if source is None else [source],
-                          dependencies=dependencies,
-                          provides=provides)
+    PythonTarget.__init__(self, name, [] if source is None else [source], dependencies=dependencies)

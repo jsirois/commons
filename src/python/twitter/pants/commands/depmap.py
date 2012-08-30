@@ -89,22 +89,13 @@ class Depmap(Command):
 
   def _print_python_dependencies(self, target, indent):
     attrs = []
-    print('%s%s%s %s' % (
-        '*' if target.provides else '',
-        ' ' * 4 * indent,
-        target,
-        '[provides: %s]' % target.provides.key if target.provides else ''
-        ), file=sys.stderr, end='')
+    print('%s%s ' % (' ' * 4 * indent, target), file=sys.stderr, end='')
     if hasattr(target, 'sources') and target.sources and len(target.sources) > 0:
       attrs.append('sources: %d files' % len(target.sources))
     if hasattr(target, 'resources') and target.resources and len(target.resources) > 0:
       attrs.append('resources: %d files' % len(target.resources))
     if len(attrs) > 0:
       print('[%s]' % ', '.join(attrs))
-      for src in target.sources:
-        print('%ssrc: %s' % ((' ' * (4 * indent + 2), src)))
-      for dat in target.resources:
-        print('%sdat: %s' % ((' ' * (4 * indent + 2), dat)))
     else:
       print()
     if hasattr(target, 'dependencies'):
