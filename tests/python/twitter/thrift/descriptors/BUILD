@@ -26,10 +26,9 @@ python_library(name = 'test_data',
 
 python_tests(name = 'descriptors',
   dependencies = [
-    '3rdparty/python:thrift-0.7',
-    'src/python/twitter/thrift/descriptors',
-    'src/python/twitter/thrift/text',
-    'src/thrift/com/twitter/thrift/descriptors:descriptors-py',
+    pants('src/python/twitter/thrift/descriptors'),
+    pants('src/python/twitter/thrift/text'),
+    pants('src/thrift/com/twitter/thrift/descriptors:descriptors-py'),
     ':test_data'
   ],
   sources = globs('*.py'),

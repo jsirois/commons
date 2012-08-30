@@ -18,13 +18,21 @@ python_library(
   name = "python",
   sources = globs('*.py'),
   dependencies = [
-    'src/python/twitter/common/collections',
-    'src/python/twitter/common/contextutil',
-    'src/python/twitter/common/dirutil',
-    'src/python/twitter/common/lang',
-    python_requirement('distribute'),
     python_requirement('pip'),
-  ]
+    python_requirement('distribute'),
+    pants('src/python/twitter/common'),
+  ],
+  provides = setup_py(
+    name = 'twitter.common.python',
+    version = '0.0.0',
+    description = "Twitter's Python interoperability libraries.",
+    long_description = """
+Twitter's Python interoperability libraries.  Includes support for package
+fetching, building, installing, "distillation" into eggs, a recursive
+zipimport implementation and Twitter's "PEX" standalone Python packaging
+environment.
+"""
+  )
 )
 
 python_binary(

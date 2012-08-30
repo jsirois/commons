@@ -44,10 +44,9 @@ python_library(
   name = "scribe_exceptions",
   sources = ['scribe_exception_handler.py'],
   dependencies = [
-    '3rdparty/python:thrift-0.7',
-    'src/python/twitter/common/exceptions',
-    'src/thrift/org/apache/scribe:py-scribe',
-    ':modules',
+    pants(':modules'),
+    pants('src/python/twitter/common/exceptions'),
+    pants('src/thrift/org/apache/scribe:py-scribe'),
   ]
 )
 

@@ -20,7 +20,7 @@ from twitter.pants.targets.util import resolve
 from twitter.pants.targets.with_sources import TargetWithSources
 
 class PythonTarget(TargetWithSources):
-  def __init__(self, name, sources, resources=None, dependencies=None):
+  def __init__(self, name, sources, resources=None, dependencies=None, provides=None):
     TargetWithSources.__init__(self, name)
 
     processed_dependencies = resolve(dependencies)
@@ -29,6 +29,9 @@ class PythonTarget(TargetWithSources):
     self.sources = self._resolve_paths(self.target_base, sources)
     self.resources = self._resolve_paths(self.target_base, resources) if resources else OrderedSet()
     self.dependencies = OrderedSet(processed_dependencies) if processed_dependencies else OrderedSet()
+    self.provides = provides
+    if self.provides:
+      self.provides.library = self
 
   def _walk(self, walked, work, predicate = None):
     Target._walk(self, walked, work, predicate)

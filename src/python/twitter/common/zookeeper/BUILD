@@ -4,9 +4,14 @@ python_library(
   name = 'zookeeper',
   sources = globs('*.py') - TEST_SERVER,
   dependencies = [
-    '3rdparty/python:zookeeper',
-    'src/python/twitter/common/lang',
+    python_requirement('zc-zookeeper-static'),
+    pants('src/python/twitter/common')
   ],
+  provides = setup_py(
+    name = 'twitter.common.zookeeper',
+    version = '0.0.0',
+    description = "Twitter's reliable Zookeeper wrapper."
+  )
 )
 
 python_library(
