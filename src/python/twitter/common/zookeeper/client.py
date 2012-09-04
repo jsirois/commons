@@ -14,13 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
+from collections import namedtuple
+from functools import wraps
 import posixpath
 import random
 import socket
 import sys
 import threading
 import zookeeper
-from functools import wraps
 
 try:
   from twitter.common import app
@@ -39,7 +40,8 @@ try:
 except ImportError:
   from queue import Queue, Empty
 
-from .named_value import NamedValue
+from .constants import Acl, Id
+
 
 if WITH_APP:
   app.add_option(
@@ -95,6 +97,34 @@ if WITH_APP:
   app.register_module(ZookeeperLoggingSubsystem())
 
 
+class Perms(object):
+  READ = zookeeper.PERM_READ
+  WRITE = zookeeper.PERM_WRITE
+  CREATE = zookeeper.PERM_CREATE
+  DELETE = zookeeper.PERM_DELETE
+  ADMIN = zookeeper.PERM_ADMIN
+  ALL = zookeeper.PERM_ALL
+
+
+class Ids(object):
+  ANYONE_ID_UNSAFE = Id('world', 'anyone')
+  AUTH_IDS = Id('auth', '')
+
+
+class Acls(object):
+  OPEN_ACL_UNSAFE = [Acl(Perms.ALL, Ids.ANYONE_ID_UNSAFE)]
+  CREATOR_ALL_ACL = [Acl(Perms.ALL, Ids.AUTH_IDS)]
+  READ_ACL_UNSAFE = [Acl(Perms.READ, Ids.ANYONE_ID_UNSAFE)]
+  EVERYONE_READ_CREATOR_ALL = [Acl(Perms.ALL, Ids.AUTH_IDS), Acl(Perms.READ, Ids.ANYONE_ID_UNSAFE)]
+
+
+class ZooDefs(object):
+  Acls = Acls
+  Ids = Ids
+  Perms = Perms
+
+
+del Acls, Ids, Perms
 
 
 class ZooKeeper(object):
@@ -129,72 +159,6 @@ class ZooKeeper(object):
   class ConnectionTimeout(Error): pass
   class Stopped(Error): pass
 
-  class Event(NamedValue):
-    MAP = {
-      0: 'UNKNOWN',
-      zookeeper.CREATED_EVENT: 'CREATED',
-      zookeeper.DELETED_EVENT: 'DELETED',
-      zookeeper.CHANGED_EVENT: 'CHANGED',
-      zookeeper.CHILD_EVENT: 'CHILD',
-      zookeeper.SESSION_EVENT: 'SESSION',
-      zookeeper.NOTWATCHING_EVENT: 'NOTWATCHING'
-    }
-
-    @property
-    def map(self):
-      return self.MAP
-
-  class State(NamedValue):
-    MAP = {
-      0: 'UNKNOWN',
-      zookeeper.CONNECTING_STATE: 'CONNECTING',
-      zookeeper.ASSOCIATING_STATE: 'ASSOCIATING',
-      zookeeper.CONNECTED_STATE: 'CONNECTED',
-      zookeeper.EXPIRED_SESSION_STATE: 'EXPIRED_SESSION',
-      zookeeper.AUTH_FAILED_STATE: 'AUTH_FAILED',
-    }
-
-    @property
-    def map(self):
-      return self.MAP
-
-  class ReturnCode(NamedValue):
-    MAP = {
-      # Normal
-      zookeeper.OK: 'OK',
-
-      # Abnormal
-      zookeeper.NONODE: 'NONODE',
-      zookeeper.NOAUTH: 'NOAUTH',
-      zookeeper.BADVERSION: 'BADVERSION',
-      zookeeper.NOCHILDRENFOREPHEMERALS: 'NOCHILDRENFOREPHEMERALS',
-      zookeeper.NODEEXISTS: 'NODEEXISTS',
-      zookeeper.NOTEMPTY: 'NOTEMPTY',
-      zookeeper.SESSIONEXPIRED: 'SESSIONEXPIRED',
-      zookeeper.INVALIDCALLBACK: 'INVALIDCALLBACK',
-      zookeeper.INVALIDACL: 'INVALIDACL',
-      zookeeper.AUTHFAILED: 'AUTHFAILED',
-      zookeeper.CLOSING: 'CLOSING',
-      zookeeper.NOTHING: 'NOTHING',
-      zookeeper.SESSIONMOVED: 'SESSIONMOVED',
-
-      # Exceptional
-      zookeeper.SYSTEMERROR: 'SYSTEMERROR',
-      zookeeper.RUNTIMEINCONSISTENCY: 'RUNTIMEINCONSISTENCY',
-      zookeeper.DATAINCONSISTENCY: 'DATAINCONSISTENCY',
-      zookeeper.CONNECTIONLOSS: 'CONNECTIONLOSS',
-      zookeeper.MARSHALLINGERROR: 'MARSHALLINGERROR',
-      zookeeper.UNIMPLEMENTED: 'UNIMPLEMENTED',
-      zookeeper.OPERATIONTIMEOUT: 'OPERATIONTIMEOUT',
-      zookeeper.BADARGUMENTS: 'BADARGUMENTS',
-      zookeeper.INVALIDSTATE: 'INVALIDSTATE'
-    }
-
-    @property
-    def map(self):
-      return self.MAP
-
-
   # White-list of methods that accept a ZK handle as their first argument
   _ZK_SYNC_METHODS = frozenset([
       'add_auth', 'close', 'create', 'delete', 'exists', 'get', 'get_acl',
@@ -226,7 +190,7 @@ class ZooKeeper(object):
 
   DEFAULT_TIMEOUT_SECONDS = 30.0
   DEFAULT_ENSEMBLE = 'localhost:2181'
-  DEFAULT_ACL = [{ "perms": zookeeper.PERM_ALL, "scheme": "world", "id": "anyone" }]
+  DEFAULT_ACL = ZooDefs.Acls.OPEN_ACL_UNSAFE
   MAX_RECONNECTS = 1
 
   # (is live?, is stopped?) => human readable status
@@ -312,6 +276,7 @@ class ZooKeeper(object):
                timeout_secs=None,
                watch=None,
                max_reconnects=None,
+               authentication=None,
                logger=log.debug):
     """Create new ZooKeeper object.
 
@@ -322,6 +287,9 @@ class ZooKeeper(object):
     If watch is set to a function, it is called whenever the global
     zookeeper watch is dispatched using the same function signature, with the
     exception that this object is used in place of the zookeeper handle.
+
+    If authentication is set, it should be a tuple of (scheme, credentials),
+    for example, ('digest', 'username:password')
     """
 
     default_ensemble = self.DEFAULT_ENSEMBLE
@@ -335,6 +303,8 @@ class ZooKeeper(object):
     self._servers = servers or default_ensemble
     self._timeout_secs = timeout_secs or default_timeout
     self._init_count = 0
+    self._credentials = authentication
+    self._authenticated = threading.Event()
     self._live = threading.Event()
     self._stopped = threading.Event()
     self._completions = Queue()
@@ -396,13 +366,37 @@ class ZooKeeper(object):
       self._safe_close()
       return
 
+    def safe_close(zh):
+      try:
+        zookeeper.close(zh)
+      except:
+        # TODO(wickman) When the SystemError bug is fixed in zkpython, narrow this except clause.
+        pass
+
+    def activate():
+      self._authenticated.set()
+      self._live.set()
+
+    def on_authentication(zh, rc):
+      if self._zh != zh:
+        safe_close(zh)
+        return
+      if rc == zookeeper.OK:
+        activate()
+
+    def maybe_authenticate():
+      if self._authenticated.is_set() or not self._credentials:
+        activate()
+        return
+      try:
+        scheme, credentials = self._credentials
+        zookeeper.add_auth(self._zh, scheme, credentials, on_authentication)
+      except zookeeper.ZooKeeperException as e:
+        self._logger('Failed to authenticate: %s' % e)
+
     def connection_handler(handle, type, state, path):
       if self._zh != handle:
-        try:
-          # latent handle callback from previous connection
-          zookeeper.close(handle)
-        except:
-          pass
+        safe_close(handle)
         return
       if self._stopped.is_set():
         return
@@ -410,11 +404,12 @@ class ZooKeeper(object):
         self._watch(self, type, state, path)
       if state == zookeeper.CONNECTED_STATE:
         self._logger('Connection started, setting live.')
-        self._live.set()
+        maybe_authenticate()
         self._clear_completions()
       elif state == zookeeper.EXPIRED_SESSION_STATE:
         self._logger('Session lost, clearing live state.')
         self._live.clear()
+        self._authenticated.clear()
         self._zh = None
         self._init_count = 0
         self.reconnect()

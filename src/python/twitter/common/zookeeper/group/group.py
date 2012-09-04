@@ -11,6 +11,7 @@ except ImportError:
   import logging as log
 
 from twitter.common.concurrent import Future
+from twitter.common.zookeeper.constants import ReturnCode
 
 
 class Membership(object):
@@ -170,12 +171,25 @@ class Group(GroupInterface):
 
   def __init__(self, zk, path, acl=None):
     self._zk = zk
-    self._path = path
+    self._path = '/' + '/'.join(filter(None, path.split('/')))  # normalize path
     self._members = {}
     self._member_lock = threading.Lock()
     self._acl = acl or zk.DEFAULT_ACL
-    if not self._zk.safe_create(path, acl=self._acl):
+    if not self._prepare_path():
       raise Group.GroupError('Could not create znode for %s!' % path)
+
+  def _prepare_path(self):
+    child = '/'
+    failures = set()
+    for component in self._path.split('/'):
+      child = posixpath.join(child, component)
+      try:
+        self._zk.create(child, "", self._acl)
+      except zookeeper.NoAuthException:
+        failures.add(child)
+      except zookeeper.NodeExistsException:
+        continue
+    return self._path not in failures
 
   def __iter__(self):
     return iter(self._members)
@@ -312,7 +326,7 @@ class Group(GroupInterface):
         do_monitor()
         return
       if rc != zookeeper.OK:
-        log.warning('Unexpected get_completion return code: %s' % ZooKeeper.ReturnCode(rc))
+        log.warning('Unexpected get_completion return code: %s' % ReturnCode(rc))
         promise.set(set([Membership.error()]))
         return
       self._update_children(children)

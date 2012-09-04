@@ -14,18 +14,29 @@
 # limitations under the License.
 # ==================================================================================================
 
+import os
 import pytest
 import threading
 import time
 import zookeeper
 
-from twitter.common.zookeeper.client import ZooKeeper
+from twitter.common import log
+from twitter.common.log.options import LogOptions
+
+from twitter.common.zookeeper.client import ZooKeeper, ZooDefs
 from twitter.common.zookeeper.test_server import ZookeeperServer
 
 MAX_EVENT_WAIT_SECS = 30.0
 MAX_EXPIRE_WAIT_SECS = 60.0
 CONNECT_TIMEOUT_SECS = 10.0
 CONNECT_RETRIES = 6
+
+
+if os.getenv('ZOOKEEPER_TEST_DEBUG'):
+  LogOptions.set_stderr_log_level('NONE')
+  LogOptions.set_disk_log_level('DEBUG')
+  LogOptions.set_log_dir('/tmp')
+  log.init('client_test')
 
 
 def make_zk(server, **kw):
@@ -39,6 +50,58 @@ def test_client_connect():
   with ZookeeperServer() as server:
     zk = make_zk(server)
     assert zk.get_children('/') == ['zookeeper']
+
+
+def sha_password_digest(username, password):
+  import base64, hashlib
+  return base64.b64encode(hashlib.sha1(username + ':' + password).digest())
+
+
+def test_client_connect_with_auth():
+  with ZookeeperServer() as server:
+    zk = make_zk(server, authentication=('digest', 'username:password'))
+    finish_event = threading.Event()
+
+    def run_create_tests():
+      zk.create('/unprotected_znode', 'unprotected content', ZooDefs.Acls.OPEN_ACL_UNSAFE)
+      _, unprotected_acl = zk.get_acl('/unprotected_znode')
+      zk.create('/protected_znode', 'protected content', ZooDefs.Acls.CREATOR_ALL_ACL)
+      _, protected_acl = zk.get_acl('/protected_znode')
+      assert unprotected_acl == ZooDefs.Acls.OPEN_ACL_UNSAFE
+      assert len(protected_acl) == 1
+      assert protected_acl[0]['perms'] == ZooDefs.Acls.CREATOR_ALL_ACL[0]['perms']
+      assert protected_acl[0]['scheme'] == 'digest'
+      assert protected_acl[0]['id'] == 'username:%s' % sha_password_digest('username', 'password')
+      content, _ = zk.get('/unprotected_znode')
+      assert content == 'unprotected content'
+      content, _ = zk.get('/protected_znode')
+      assert content == 'protected content'
+      zk.delete('/unprotected_znode')
+      zk.delete('/protected_znode')
+      finish_event.set()
+
+    # run normally
+    run_create_tests()
+    finish_event.wait()
+
+    # run after connection loss
+    assert server.shutdown()
+    finish_event.clear()
+    class BackgroundTester(threading.Thread):
+      def run(self):
+        run_create_tests()
+    BackgroundTester().start()
+    server.start()
+    finish_event.wait()
+
+    # run after session loss
+    session_id = zk.session_id()
+    assert server.shutdown()
+    finish_event.clear()
+    BackgroundTester().start()
+    server.expire(session_id)
+    server.start()
+    finish_event.wait()
 
 
 def test_client_connect_times_out():

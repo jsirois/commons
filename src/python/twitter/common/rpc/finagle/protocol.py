@@ -58,8 +58,7 @@ class TFinagleProtocol(TBinaryProtocol.TBinaryProtocolAccelerated):
                          parent_span_id=trace_id.parent_id.value,
                          span_id=trace_id.span_id.value,
                          sampled=trace_id.sampled,
-                         client_id=self._client_id,
-                         debug=False)
+                         client_id=self._client_id)
 
   def writeMessageBegin(self, *args, **kwargs):
     if self._finagle_upgraded:

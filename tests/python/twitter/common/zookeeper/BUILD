@@ -12,8 +12,9 @@ python_tests(
   name = 'client',
   timeout = Amount(10, Time.MINUTES),
   dependencies = [
+    pants('src/python/twitter/common/log'),
     pants('src/python/twitter/common/zookeeper'),
     pants('src/python/twitter/common/zookeeper:testing'),
   ],
-  sources = globs('client_test.py'),
+  sources = ['client_test.py'],
 )
