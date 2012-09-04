@@ -201,6 +201,13 @@ class Phase(PhaseBase):
     PhaseBase.rename(self, name)
     return self
 
+  def copy_to(self, name):
+    """Copies this phase to the new named phase carrying along goal dependencies and description."""
+    copy = Phase(name)
+    copy.goals().extend(self.goals())
+    copy.description = self.description
+    return copy
+
   def remove(self, name):
     """Removes the named goal from this phase's list of goals to attempt."""
     goals = self.goals()
