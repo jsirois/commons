@@ -113,7 +113,7 @@ jar_library(name = 'cascading.jdbc',
 
 jar_library(name = 'cglib',
             dependencies = [
-              jar(org = 'cglib', name = 'cglib', rev = '2.2.2').with_sources()
+              jar(org = 'cglib', name = 'cglib-nodep', rev = '2.2.2').with_sources()
             ]
            )
 
@@ -493,6 +493,10 @@ jar_library(name = 'junit',
               pants(':hamcrest-core')
             ]
            )
+
+jar_library(name = 'jline',
+            dependencies = [ jar(org = 'jline', name = 'jline', rev = '0.9.94') ])
+
 
 jar_library(name = 'scalap',
             dependencies = [
