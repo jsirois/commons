@@ -68,10 +68,9 @@ public class LogModule extends AbstractModule {
            help = "The directory where application logs are written.")
   private static final Arg<File> LOG_DIR = Arg.create(null);
 
-  // TODO(franco): change this flag's default to true, then remove after enough forewarning.
   @CmdLine(name = "use_glog",
            help = "True to use the new glog-based configuration for the root logger.")
-  private static final Arg<Boolean> USE_GLOG = Arg.create(false);
+  private static final Arg<Boolean> USE_GLOG = Arg.create(true);
 
   @Override
   protected void configure() {
