@@ -265,7 +265,7 @@ class Goal(Command):
         ParseContext(address.buildfile).parse()
         target = Target.get(address)
         if target:
-          self.targets.append(target)
+          self.targets.extend(target.resolve())
         else:
           siblings = Target.get_all_addresses(address.buildfile)
           prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'
