@@ -113,7 +113,7 @@ jar_library(name = 'cascading.jdbc',
 
 jar_library(name = 'cglib',
             dependencies = [
-              jar(org = 'cglib', name = 'cglib-nodep', rev = '2.2.2').with_sources()
+              jar(org = 'cglib', name = 'cglib', rev = '2.2.2').with_sources()
             ]
            )
 
