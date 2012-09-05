@@ -28,6 +28,8 @@ import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.AttributeSource;
 
 import com.twitter.common.text.token.TokenGroupStream;
+import com.twitter.common.text.token.TokenizedCharSequence;
+import com.twitter.common.text.token.TokenizedCharSequenceStream;
 
 /**
  * Implementation of {@link TokenGroupAttribute}.
@@ -39,53 +41,98 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
   private static final long serialVersionUID = 0L;
 
   private List<AttributeSource.State> states = Collections.emptyList();
-  private AttributeSource attributeSource;
+  private AttributeSource attributeSource = null;
+  private TokenizedCharSequence seq = null;
 
   @Override
   public void clear() {
     states = Collections.emptyList();
+    seq = null;
   }
 
   @Override
   public void copyTo(AttributeImpl obj) {
     if (obj instanceof TokenGroupAttributeImpl) {
       TokenGroupAttributeImpl attr = (TokenGroupAttributeImpl) obj;
-      attr.setAttributeSource(attributeSource);
-      attr.setStates(Lists.newArrayList(states));
+      attr.attributeSource = this.attributeSource;
+      attr.states = Lists.newArrayList(this.states);
+      attr.seq = this.seq;
     }
   }
 
   @Override
   public boolean equals(Object obj) {
     return (obj instanceof TokenGroupAttributeImpl)
-      && ((TokenGroupAttributeImpl) obj).states.equals(states);
+      && (((TokenGroupAttributeImpl) obj).states.equals(states) &&
+          ((TokenGroupAttributeImpl) obj).seq == null && seq == null) ||
+         (((TokenGroupAttributeImpl) obj).seq != null && seq != null &&
+            ((TokenGroupAttributeImpl) obj).seq.equals(seq));
   }
 
   @Override
   public int hashCode() {
-    return states.hashCode();
+    return (seq == null ? states.hashCode() : seq.hashCode());
   }
 
   @Override
   public boolean isEmpty() {
-    return states.isEmpty();
+    return states.isEmpty() && (seq == null || seq.getTokens().isEmpty());
   }
 
   @Override
   public int size() {
-    return states.size();
+    return (!states.isEmpty() ? states.size() :
+        (seq != null ? seq.getTokens().size() : states.size()));
   }
 
+  /**
+   * Sets the list of states for this group. Invalidates any previously set sequence.
+   */
   public void setStates(List<AttributeSource.State> states) {
     this.states = states;
+    this.seq = null;
   }
 
+  /**
+   * Sets the attribute source for this group. Invalidates any previously set sequence.
+   */
   public void setAttributeSource(AttributeSource source) {
     this.attributeSource = source;
+    this.seq = null;
+  }
+
+  /**
+   * Sets the group token stream as a sequence. Constructs a stream from this sequence lazily.
+   * Invalidates any information set from setStates or setAttributeSource
+   */
+  public void setSequence(TokenizedCharSequence seq) {
+    this.seq = seq;
+    this.states = Collections.emptyList();
+    this.attributeSource = null;
+  }
+
+  /**
+   * Returns the backing TokenizedCharSequence. Will be null if group was set using states
+   */
+  public TokenizedCharSequence getSequence() {
+    return seq;
   }
 
   @Override
   public TokenGroupStream getTokenGroupStream() {
+    //Lazily process the sequence into a set of states, only do it when getTokenGroupStream is called
+    if ((attributeSource == null || states.isEmpty()) && seq != null) {
+      TokenizedCharSequenceStream ret = new TokenizedCharSequenceStream();
+      ret.reset(seq);
+
+      //TODO(alewis) This could probably be lazier. Make a new extension of TokenGroupStream?
+      List<AttributeSource.State> states = Lists.newLinkedList();
+      while (ret.incrementToken()) {
+        states.add(ret.captureState());
+      }
+      setAttributeSource(ret.cloneAttributes());
+      setStates(states);
+    }
     return new TokenGroupStream(attributeSource, states);
   }
 

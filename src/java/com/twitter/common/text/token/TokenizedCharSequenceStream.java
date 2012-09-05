@@ -16,8 +16,14 @@
 
 package com.twitter.common.text.token;
 
+import com.google.common.base.Preconditions;
+
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+
 import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.PartOfSpeechAttribute;
+import com.twitter.common.text.token.attribute.TokenGroupAttribute;
+import com.twitter.common.text.token.attribute.TokenGroupAttributeImpl;
 import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
@@ -31,6 +37,8 @@ public class TokenizedCharSequenceStream extends TokenStream {
   private final CharSequenceTermAttribute termAttr;
   private final TokenTypeAttribute typeAttr;
   private final PartOfSpeechAttribute posAttr;
+  private final PositionIncrementAttribute incAttr;
+  private final TokenGroupAttributeImpl groupAttr;
 
   private TokenizedCharSequence tokenized = null;
   private int currentIndex = 0;
@@ -53,6 +61,16 @@ public class TokenizedCharSequenceStream extends TokenStream {
     } else {
       posAttr = null;
     }
+    if (hasAttribute(PositionIncrementAttribute.class)) {
+      incAttr = getAttribute(PositionIncrementAttribute.class);
+    } else {
+      incAttr = null;
+    }
+    if (hasAttribute(TokenGroupAttribute.class)) {
+      groupAttr = (TokenGroupAttributeImpl) getAttribute(TokenGroupAttribute.class);
+    } else {
+      groupAttr = null;
+    }
   }
 
   /**
@@ -64,6 +82,8 @@ public class TokenizedCharSequenceStream extends TokenStream {
     termAttr = addAttribute(CharSequenceTermAttribute.class);
     typeAttr = addAttribute(TokenTypeAttribute.class);
     posAttr = addAttribute(PartOfSpeechAttribute.class);
+    incAttr = addAttribute(PositionIncrementAttribute.class);
+    groupAttr = (TokenGroupAttributeImpl) addAttribute(TokenGroupAttribute.class);
   }
 
   @Override
@@ -92,6 +112,12 @@ public class TokenizedCharSequenceStream extends TokenStream {
     typeAttr.setType(token.getType());
     if (posAttr != null) {
       posAttr.setPOS(token.getPartOfSpeech());
+    }
+    if (incAttr != null) {
+      incAttr.setPositionIncrement(token.getPositionIncrement());
+    }
+    if (groupAttr != null) {
+      groupAttr.setSequence(token.getGroup());
     }
 
     currentIndex++;
