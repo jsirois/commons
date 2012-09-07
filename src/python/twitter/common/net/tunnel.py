@@ -20,7 +20,9 @@ import os
 import signal
 import socket
 import subprocess
+import time
 
+from twitter.common.quantity import Amount, Time
 
 try:
   from twitter.common import app
@@ -43,9 +45,12 @@ class TunnelHelper(object):
   The ssh binary must be on the PATH.
   """
   TUNNELS = {}
+  MIN_RETRY = Amount(5, Time.MILLISECONDS)
 
-  @staticmethod
-  def _get_random_port():
+  class TunnelError(Exception): pass
+
+  @classmethod
+  def get_random_port(cls):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('localhost', 0))
@@ -53,19 +58,34 @@ class TunnelHelper(object):
     s.close()
     return port
 
-  @staticmethod
-  def create_tunnel(remote_host, remote_port, tunnel_host=None, tunnel_port=None):
+  @classmethod
+  def wait_for_accept(cls, port, timeout=Amount(5, Time.SECONDS)):
+    total_time = Amount(0, Time.SECONDS)
+    timeout = cls.MIN_RETRY
+    while total_time < timeout:
+      try:
+        accepted_socket = socket.create_connection(('localhost', port), timeout=5.0)
+        accepted_socket.close()
+        return True
+      except socket.error:
+        total_time += timeout
+        time.sleep(timeout.as_(Time.SECONDS))
+        timeout *= 2
+    return False
+
+  @classmethod
+  def create_tunnel(cls, remote_host, remote_port, tunnel_host=None, tunnel_port=None):
     """ Create a tunnel from the localport to the remote host & port,
     using sshd_host as the tunneling server.
     """
     tunnel_key = (remote_host, remote_port)
-    if tunnel_key in TunnelHelper.TUNNELS:
-      return 'localhost', TunnelHelper.TUNNELS[tunnel_key][0]
+    if tunnel_key in cls.TUNNELS:
+      return 'localhost', cls.TUNNELS[tunnel_key][0]
 
     if HAS_APP:
       tunnel_host = tunnel_host or app.get_options().tunnel_host
     assert tunnel_host is not None, 'Must specify tunnel host!'
-    tunnel_port = tunnel_port or TunnelHelper._get_random_port()
+    tunnel_port = tunnel_port or cls.get_random_port()
 
     ssh_cmd_args = ('ssh', '-T', '-L',
                     '%d:%s:%s' % (tunnel_port,
@@ -73,8 +93,11 @@ class TunnelHelper(object):
                                   remote_port),
                     tunnel_host)
 
-    TunnelHelper.TUNNELS[tunnel_key] = (tunnel_port,
+    cls.TUNNELS[tunnel_key] = (tunnel_port,
       subprocess.Popen(ssh_cmd_args, stdin=subprocess.PIPE))
+
+    if not cls.wait_for_accept(tunnel_port):
+      raise cls.TunnelError('Could not establish tunnel via %s' % remote_host)
     return 'localhost', tunnel_port
 
 

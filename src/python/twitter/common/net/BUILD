@@ -17,4 +17,7 @@
 python_library(
   name = "ssh",
   sources = ("tunnel.py"),
+  dependencies = [
+    pants('src/python/twitter/common/quantity')
+  ]
 )
