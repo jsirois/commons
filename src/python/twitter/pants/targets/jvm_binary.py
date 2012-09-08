@@ -54,38 +54,19 @@ class JvmBinary(JvmTarget):
     self.basename = basename or name
     self.deploy_excludes = deploy_excludes or []
 
-
 class RelativeToMapper(object):
   """A mapper that maps files specified relative to a base directory."""
 
   def __init__(self, base):
     """The base directory files should be mapped from."""
-    if not os.path.isdir(base):
-      raise ValueError('Could not find a directory to bundle relative to at %s' % base)
-    self.base = os.path.abspath(base)
+
+    self.base = base
 
   def __call__(self, file):
     return os.path.relpath(file, self.base)
 
   def __repr__(self):
     return 'IdentityMapper(%s)' % self.base
-
-
-class DirectoryReMapper(object):
-  """A mapper that maps files relative to a base directory into a destination directory."""
-
-  def __init__(self, base, dest):
-    """The base directory files should be mapped from, and the dest they should be mapped to."""
-    if not os.path.isdir(self.base):
-      raise ValueError('Could not find a directory to bundle relative to at %s' % self.base)
-    self.base = os.path.abspath(base)
-    self.dest = dest
-
-  def __call__(self, file):
-    return os.path.join(self.dest, os.path.relpath(file, self.base))
-
-  def __repr__(self):
-    return 'DirectoryReMapper(%s, %s)' % (self.base, self.dest)
 
 
 class Bundle(object):
@@ -97,37 +78,32 @@ class Bundle(object):
       is used to map files into the bundle relative to the cwd.
     """
 
-    # Filesets are evaluated lazily relative to the current dir at time of construction.
-    self.root = os.path.abspath(os.curdir)
-
     if mapper and relative_to:
       raise ValueError("Must specify exactly one of 'mapper' or 'relative_to'")
 
     if relative_to:
-      self.mapper = RelativeToMapper(relative_to)
+      base = os.path.abspath(relative_to)
+      if not os.path.exists(base) and os.path.isdir(base):
+        raise ValueError('Could not find a directory to bundle relative to at %s' % base)
+      self.mapper = RelativeToMapper(base)
     else:
       self.mapper = mapper or RelativeToMapper(os.getcwd())
 
-    self.filesets = []
+    self.filemap = {}
 
   def add(self, *filesets):
-    self.filesets.extend(filesets)
-    return self
-
-  def filemap(self):
-    filemap = {}
-    for fileset in self.filesets:
+    for fileset in filesets:
       paths = fileset() if isinstance(fileset, Fileset) \
                         else fileset if hasattr(fileset, '__iter__') \
                         else [fileset]
-      filemap.update(((os.path.join(self.root, path), self.mapper(os.path.join(self.root, path))) for path in paths))
-    return filemap
+      self.filemap.update(((os.path.abspath(path), self.mapper(path)) for path in paths))
+    return self
 
   def resolve(self):
     yield self
 
   def __repr__(self):
-    return 'Bundle(%s, %s)' % (self.mapper, self.filesets)
+    return 'Bundle(%s, %s)' % (self.mapper, self.filemap)
 
 
 class JvmApp(Target):

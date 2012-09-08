@@ -176,8 +176,7 @@ class BundleCreate(JvmBinaryTask):
               dest.writestr(item, buffer)
 
     for bundle in app.bundles:
-      filemap = bundle.filemap()
-      for path, relpath in filemap.items():
+      for path, relpath in bundle.filemap.items():
         bundlepath = os.path.join(bundledir, relpath)
         safe_mkdir(os.path.dirname(bundlepath))
         os.symlink(path, bundlepath)

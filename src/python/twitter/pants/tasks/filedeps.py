@@ -30,5 +30,5 @@ class FileDeps(ConsoleTask):
       if isinstance(target, TargetWithSources):
         files.update(target.expand_files(recursive=False))
       if isinstance(target, JvmApp):
-        files.update(itertools.chain(*[bundle.filemap().keys() for bundle in target.bundles]))
+        files.update(itertools.chain(*[bundle.filemap.keys() for bundle in target.bundles]))
     return files

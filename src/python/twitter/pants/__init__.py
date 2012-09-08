@@ -53,26 +53,18 @@ from twitter.pants.base import Fileset
 
 
 def globs(*globspecs):
-  """Returns a Fileset that combines the lists of files returned by glob.glob for each globspec.
-  All globbing is done by applying globspecs relative to the current dir at time of construction,
-  and all return values are relative to this directory."""
-
-  root = os.path.abspath(os.curdir)
+  """Returns a Fileset that combines the lists of files returned by glob.glob for each globspec."""
 
   def combine(files, globspec):
-    matches = glob.glob(os.path.join(root, globspec))
-    return files ^ set(map(lambda match: os.path.relpath(match, root), matches))
-
+    return files ^ set(glob.glob(globspec))
   return Fileset(lambda: reduce(combine, globspecs, set()))
 
 
 def rglobs(*globspecs):
   """Returns a Fileset that does a recursive scan under the current directory combining the lists of
-  files returned that would be returned by glob.glob for each globspec.  Return values are relative
-  to the current directory at time of construction."""
+  files returned that would be returned by glob.glob for each globspec."""
 
-  root = os.path.abspath(os.curdir)
-
+  root = os.curdir
   def recursive_globs():
     for base, _, files in os.walk(root):
       for filename in files:
