@@ -217,8 +217,7 @@ def profile_classpath(profile, java_runner=None, config=None, ivy_jar=None, ivy_
 
 
 def _mac_open(files):
-  # TODO(John Sirois): convert to subprocess.call after confirming this works as expected.
-  subprocess.Popen(['open'] + files)
+  subprocess.call(['open'] + list(files))
 
 
 def _linux_open(files):
