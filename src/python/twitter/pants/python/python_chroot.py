@@ -42,6 +42,13 @@ from twitter.common.python.pex_builder import PEXBuilder
 from twitter.pants.python.resolver import PythonResolver, SilentResolver
 
 
+
+def get_platforms(config):
+  def translate(platform):
+    return Platform.current() if platform == 'current' else platform
+  return map(translate, config.getlist('python-setup', 'platforms', ['current']))
+
+
 class ReqResolver(object):
   @staticmethod
   def fetcher(config):
@@ -87,7 +94,7 @@ class PythonChroot(object):
     self._extra_targets = list(extra_targets) if extra_targets is not None else []
     self._resolver = PythonResolver([self._target] + self._extra_targets)
     self._builder = builder or PEXBuilder(tempfile.mkdtemp())
-    self._platforms = (Platform.current(),)
+    self._platforms = tuple(get_platforms(self._config))
     self._pythons = (sys.version[:3],)
 
     artifact_cache_root = \
@@ -97,7 +104,7 @@ class PythonChroot(object):
 
     # TODO(wickman) Should this be in the binary builder?
     if isinstance(self._target, PythonBinary):
-      self._platforms = self._target._platforms
+      self._platforms = self._target._platforms or self._platforms
       self._pythons = self._target._interpreters
 
   def __del__(self):

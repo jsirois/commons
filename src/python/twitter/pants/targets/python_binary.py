@@ -17,8 +17,8 @@
 import sys
 from twitter.common.lang import Compatibility
 from twitter.common.python.platforms import Platform
-from twitter.pants.targets.python_target import PythonTarget
 from twitter.pants.base import TargetDefinitionException
+from twitter.pants.targets.python_target import PythonTarget
 
 
 class PythonBinary(PythonTarget):
@@ -81,11 +81,10 @@ class PythonBinary(PythonTarget):
     self._allow_pypi = bool(allow_pypi)
     self._ignore_errors = bool(ignore_errors)
 
-    self._platforms = [Platform.current()]
     if isinstance(platforms, Compatibility.string):
-      self._platforms.append(platforms)
+      self._platforms = [platforms]
     else:
-      self._platforms.extend(platforms)
+      self._platforms = platforms
     self._platforms = tuple(self._platforms)
 
     PythonTarget.__init__(self, name, [] if source is None else [source],
