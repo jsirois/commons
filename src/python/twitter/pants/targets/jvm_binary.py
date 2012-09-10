@@ -83,7 +83,7 @@ class Bundle(object):
 
     if relative_to:
       base = os.path.abspath(relative_to)
-      if not os.path.exists(base) and os.path.isdir(base):
+      if not os.path.isdir(base):
         raise ValueError('Could not find a directory to bundle relative to at %s' % base)
       self.mapper = RelativeToMapper(base)
     else:
