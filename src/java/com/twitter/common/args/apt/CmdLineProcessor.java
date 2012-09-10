@@ -215,8 +215,10 @@ public class CmdLineProcessor extends AbstractProcessor {
 
   private void checkPositionalArgsAreLists(RoundEnvironment roundEnv) {
     for (Element positionalArg : getAnnotatedElements(roundEnv, Positional.class)) {
-      TypeMirror typeArgument = getTypeArgument(positionalArg.asType(), typeElement(Arg.class));
-      if (!typeUtils.isSubtype(typeElement(List.class).asType(), typeArgument)) {
+      @Nullable TypeMirror typeArgument =
+          getTypeArgument(positionalArg.asType(), typeElement(Arg.class));
+      if ((typeArgument == null)
+          || !typeUtils.isSubtype(typeElement(List.class).asType(), typeArgument)) {
         error("Found @Positional %s %s.%s that is not a List",
             positionalArg.asType(), positionalArg.getEnclosingElement(), positionalArg);
       }
@@ -231,18 +233,18 @@ public class CmdLineProcessor extends AbstractProcessor {
       return null;
     }
 
-    Iterable<String> parsersFor = Iterables.transform(parsers,
-        new Function<Element, String>() {
-          @Override public String apply(Element parser) {
+    Iterable<String> parsersFor = Optional.presentInstances(Iterables.transform(parsers,
+        new Function<Element, Optional<String>>() {
+          @Override public Optional<String> apply(Element parser) {
             TypeMirror parsedType = getTypeArgument(parser.asType(), typeElement(Parser.class));
             if (parsedType == null) {
               error("failed to find a type argument for Parser: %s", parser);
-              return null;
+              return Optional.absent();
             }
             // Equals on TypeMirrors doesn't work - so we compare string representations :/
-            return typeUtils.erasure(parsedType).toString();
+            return Optional.of(typeUtils.erasure(parsedType).toString());
           }
-        });
+        }));
     if (configuration != null) {
       parsersFor = Iterables.concat(parsersFor, Iterables.filter(
           Iterables.transform(configuration.parserInfo(),
@@ -250,7 +252,7 @@ public class CmdLineProcessor extends AbstractProcessor {
                 @Override @Nullable public String apply(ParserInfo parserInfo) {
                   TypeElement typeElement = elementUtils.getTypeElement(parserInfo.parsedType);
                   // We may not have a type on the classpath for a previous round - this is fine as
-                  // long as the no Args in this round are of the type.
+                  // long as the no Args in this round that are of the type.
                   return (typeElement == null)
                       ? null : typeUtils.erasure(typeElement.asType()).toString();
                 }
