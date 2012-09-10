@@ -243,6 +243,12 @@ jar_library(name = 'jetty',
             ]
            )
 
+jar_library(name = 'joda-money',
+            dependencies = [
+              jar(org = 'org.joda', name = 'joda-money', rev = '0.6').with_sources()
+            ]
+           )
+
 jar_library(name = 'joda-time',
             dependencies = [
               jar(org = 'joda-time', name = 'joda-time', rev = '2.1'),
