@@ -216,14 +216,30 @@ def profile_classpath(profile, java_runner=None, config=None, ivy_jar=None, ivy_
   return [os.path.join(profile_libdir, jar) for jar in os.listdir(profile_libdir)]
 
 
-# TODO: In this module this will collide with the global open(), which seems like a bad idea.
+def _mac_open(files):
+  # TODO(John Sirois): convert to subprocess.call after confirming this works as expected.
+  subprocess.Popen(['open'] + files)
+
+
+def _linux_open(files):
+  for f in list(files):
+    subprocess.call(['xdg-open', f])
+
+
+_OPENER_BY_OS = {
+  'darwin': _mac_open,
+  'linux': _linux_open
+}
+
+
 def open(*files):
   """Attempts to open the given files using the preferred native viewer or editor."""
   if files:
-    if os.uname()[0].lower() != 'darwin':
-      print('Sorry, open currently only supports OSX')
+    osname = os.uname()[0].lower()
+    if not osname in _OPENER_BY_OS:
+      print('Sorry, open currently not supported for ' + osname)
     else:
-      subprocess.Popen(['open'] + list(files))
+      _OPENER_BY_OS[osname](files)
 
 
 def safe_extract(path, dest_dir):
