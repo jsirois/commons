@@ -527,12 +527,6 @@ jar_library(name = 'tl4j',
             ]
            )
 
-jar_library(name = 'storm',
-            dependencies = [
-              jar(org = 'storm', name = 'storm', rev = '0.8.0'),
-            ]
-           )
-
 # TODO(John Sirois): support an ivy 'runtime' configuration and punch through a way to indicate this
 # via pants
 jar_library(name = 'easymockclassextension',
