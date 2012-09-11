@@ -389,8 +389,8 @@ jar_library(name = 'thrift-0.5.0',
               pants(':libthrift-0.5.0'),
               pants(':slf4j-api'),
 
-	      # TODO(John Sirois): Find a sane way to have thrift dependees who do not themselves
-	      # use slf4j get a concrete binding.
+              # TODO(John Sirois): Find a sane way to have thrift dependees who do not themselves
+              # use slf4j get a concrete binding.
               pants(':slf4j-jdk14'),
             ]
            )
@@ -408,7 +408,7 @@ jar_library(name = 'thrift-0.5.0-finagle',
 
 jar_library(name = 'thrift-0.7.0',
             dependencies = [
-	            jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.7.0'),
+                    jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.7.0'),
             ]
            )
 
@@ -488,7 +488,7 @@ jar_library(name = 'mockito',
             dependencies = [
               jar(org = 'org.mockito', name = 'mockito-all', rev = '1.9.0').with_sources()
             ]
-	   )
+           )
 
 jar_library(name = 'hamcrest-core',
             dependencies = [ jar(org = 'org.hamcrest', name = 'hamcrest-core', rev = '1.2') ])
@@ -527,6 +527,11 @@ jar_library(name = 'tl4j',
             ]
            )
 
+jar_library(name = 'storm',
+            dependencies = [
+              jar(org = 'storm', name = 'storm', rev = '0.8.0'),
+            ]
+           )
 
 # TODO(John Sirois): support an ivy 'runtime' configuration and punch through a way to indicate this
 # via pants
