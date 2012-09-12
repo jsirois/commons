@@ -48,10 +48,10 @@ class IdeGen(JvmBinaryTask):
                             help="[%default] Specifies the name to use for the generated project.")
 
     gen_dir = mkflag("project-dir")
-    option_group.add_option(gen_dir, dest = "ide_gen_project_dir",
+    option_group.add_option(gen_dir, dest="ide_gen_project_dir",
                             help="[%default] Specifies the directory to output the generated "
                                 "project files to.")
-    option_group.add_option(mkflag("project-cwd"), dest = "ide_gen_project_cwd",
+    option_group.add_option(mkflag("project-cwd"), dest="ide_gen_project_cwd",
                             help="[%%default] Specifies the directory the generated project should "
                                  "use as the cwd for processes it launches.  Note that specifying "
                                  "this trumps %s and not all project related files will be stored "
@@ -71,6 +71,18 @@ class IdeGen(JvmBinaryTask):
                             action="callback", callback=mkflag.set_bool, dest='ide_gen_java',
                             help="[%default] Includes java sources in the project; otherwise "
                                  "compiles them and adds them to the project classpath.")
+    java_language_level = mkflag("java-language-level")
+    # TODO(John Sirois): Advance the default to 7 when 8 is released.
+    option_group.add_option(java_language_level, default=6,
+                            dest="ide_gen_java_language_level", type="int",
+                            help="[%default] Sets the java language and jdk used to compile the "
+                                 "project's java sources.")
+    option_group.add_option(mkflag("java-jdk-name"), default=None,
+                            dest="ide_gen_java_jdk",
+                            help="Sets the jdk used to compile the project's java sources. If "
+                                 "unset the default jdk name for the "
+                                 "%s is used." % java_language_level)
+
     option_group.add_option(mkflag("scala"), mkflag("scala", negate=True), default=True,
                             action="callback", callback=mkflag.set_bool, dest='ide_gen_scala',
                             help="[%default] Includes scala sources in the project; otherwise "
@@ -83,6 +95,12 @@ class IdeGen(JvmBinaryTask):
     self.python = context.options.ide_gen_python
     self.skip_java = not context.options.ide_gen_java
     self.skip_scala = not context.options.ide_gen_scala
+
+    self.java_language_level = context.options.ide_gen_java_language_level
+    if context.options.ide_gen_java_jdk:
+      self.java_jdk = context.options.ide_gen_java_jdk
+    else:
+      self.java_jdk = '1.%d' % self.java_language_level
 
     self.work_dir = (
       context.options.ide_gen_project_dir

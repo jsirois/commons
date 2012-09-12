@@ -19,7 +19,7 @@ import pkgutil
 from collections import defaultdict
 
 from twitter.common.collections import OrderedSet
-from twitter.common.dirutil import safe_mkdir, safe_open
+from twitter.common.dirutil import safe_delete, safe_mkdir, safe_open
 
 from twitter.pants import get_buildroot
 from twitter.pants.base.generator import TemplateData, Generator
@@ -41,7 +41,6 @@ _VERSIONS = {
 
 _SETTINGS = (
   'org.eclipse.core.resources.prefs',
-  'org.eclipse.jdt.core.prefs',
   'org.eclipse.jdt.ui.prefs',
 )
 
@@ -52,9 +51,9 @@ class EclipseGen(IdeGen):
     IdeGen.setup_parser(option_group, args, mkflag)
 
     supported_versions = sorted(list(_VERSIONS.keys()))
-    option_group.add_option(mkflag("eclipse-version"), dest = "eclipse_gen_version",
-                            default = '3.6', type = "choice", choices = supported_versions,
-                            help = "[%%default] The Eclipse version the project "
+    option_group.add_option(mkflag("eclipse-version"), dest="eclipse_gen_version",
+                            default='3.6', type="choice", choices=supported_versions,
+                            help="[%%default] The Eclipse version the project "
                                    "configuration should be generated for; can be one of: "
                                    "%s" % supported_versions)
 
@@ -72,6 +71,7 @@ class EclipseGen(IdeGen):
     self.classpath_filename = os.path.join(self.cwd, '.classpath')
     self.apt_filename = os.path.join(self.cwd, '.factorypath')
     self.pydev_filename = os.path.join(self.cwd, '.pydevproject')
+    self.coreprefs_filename = os.path.join(self.cwd, '.settings', 'org.eclipse.jdt.core.prefs')
 
   def generate_project(self, project):
     def linked_folder_id(path):
@@ -123,6 +123,10 @@ class EclipseGen(IdeGen):
     source_bases_list = [{'path': path, 'id': id} for (path, id) in source_bases.items()]
     configured_project = TemplateData(
       name=self.project_name,
+      java=TemplateData(
+        jdk=self.java_jdk,
+        language_level=('1.%d' % self.java_language_level)
+      ),
       has_python=project.has_python,
       has_scala=project.has_scala and not project.skip_scala,
       source_bases=source_bases_list,
@@ -154,22 +158,19 @@ class EclipseGen(IdeGen):
       sourcepaths=sourcepaths,
       has_tests=project.has_tests,
       libs=libs,
-      has_scala = project.has_scala,
+      has_scala=project.has_scala,
       outdir=os.path.relpath(outdir, get_buildroot()),
     )
 
-    with safe_open(self.project_filename, 'w') as output:
-      Generator(pkgutil.get_data(__name__, self.project_template),
-                project=configured_project).write(output)
+    def apply_template(output_path, template_relpath, **template_data):
+      with safe_open(output_path, 'w') as output:
+        Generator(pkgutil.get_data(__name__, template_relpath), **template_data).write(output)
 
-    with safe_open(self.classpath_filename, 'w') as output:
-      Generator(pkgutil.get_data(__name__, self.classpath_template),
-                classpath=configured_classpath).write(output)
-
-    debug_filename = os.path.join(self.work_dir, 'Debug on port %d.launch' % project.debug_port)
-    with safe_open(debug_filename, 'w') as output:
-      Generator(pkgutil.get_data(__name__, self.debug_template),
-                project=configured_project).write(output)
+    apply_template(self.project_filename, self.project_template, project=configured_project)
+    apply_template(self.classpath_filename, self.classpath_template, classpath=configured_classpath)
+    apply_template(os.path.join(self.work_dir, 'Debug on port %d.launch' % project.debug_port),
+                   self.debug_template, project=configured_project)
+    apply_template(self.coreprefs_filename, self.coreprefs_template, project=configured_project)
 
     for resource in _SETTINGS:
       with safe_open(os.path.join(self.cwd, '.settings', resource), 'w') as prefs:
@@ -182,16 +183,11 @@ class EclipseGen(IdeGen):
       # the apt factorypath - this does not seem to hurt eclipse performance in any noticeable way.
       jarpaths=["('%s', %s)" % (lib.jar, "'%s'" % lib.source_jar if lib.source_jar else 'None') for lib in libs]
     )
-    with open(self.apt_filename, 'w') as output:
-      Generator(pkgutil.get_data(__name__, self.apt_template),
-                factorypath =factorypath).write(output)
+    apply_template(self.apt_filename, self.apt_template, factorypath =factorypath)
 
     if project.has_python:
-      with safe_open(self.pydev_filename, 'w') as output:
-        Generator(pkgutil.get_data(__name__, self.pydev_template),
-                  project=configured_project).write(output)
+      apply_template(self.pydev_filename, self.pydev_template, project=configured_project)
     else:
-      if os.path.exists(self.pydev_filename):
-        os.remove(self.pydev_filename)
+      safe_delete(self.pydev_filename)
 
     print('\nGenerated project at %s%s' % (self.work_dir, os.sep))

@@ -333,7 +333,8 @@ public final class Either<L, R> {
     } catch (Exception e) {
       for (Class<? extends X> exceptionType : exceptionTypes) {
         if (exceptionType.isInstance(e)) {
-          return left(exceptionType.cast(e));
+          X exception = exceptionType.cast(e);
+          return left(exception);
         }
       }
       throw new UnguardedException(e);

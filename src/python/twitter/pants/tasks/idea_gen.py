@@ -74,17 +74,6 @@ class IdeaGen(IdeGen):
                             help="[%default] Sets the file encoding for java files in this "
                                    "project.")
 
-    java_language_level = mkflag("java-language-level")
-    # TODO(John Sirois): Advance the default to 7 when 8 is released.
-    option_group.add_option(java_language_level, default=6,
-                            dest="idea_gen_java_language_level", type="int",
-                            help="[%default] Sets the java language and jdk used to compile the "
-                                 "project's java sources.")
-    option_group.add_option(mkflag("java-jdk-name"), default=None,
-                            dest="idea_gen_java_jdk",
-                            help="Sets the jdk name to use.  If unset the default jdk name for "
-                                 "the %s is used." % java_language_level)
-
   def __init__(self, context):
     IdeGen.__init__(self, context)
 
@@ -96,11 +85,6 @@ class IdeaGen(IdeGen):
     self.fsc = context.options.idea_gen_fsc
 
     self.java_encoding = context.options.idea_gen_java_encoding
-    self.java_language_level = context.options.idea_gen_java_language_level
-    if context.options.idea_gen_java_jdk:
-      self.java_jdk = context.options.idea_gen_java_jdk
-    else:
-      self.java_jdk = '1.%d' % self.java_language_level
 
     idea_version = _VERSIONS[context.options.idea_gen_version]
     self.project_template = os.path.join(_TEMPLATE_BASEDIR, 'project-%s.mustache' % idea_version)
