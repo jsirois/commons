@@ -367,7 +367,7 @@ jar_library(name = 'slf4j-jdk14',
 
 jar_library(name = 'spy-memcached',
             dependencies = [
-              jar(org = 'spy', name = 'spymemcached', rev = '2.7.1').with_sources()
+              jar(org = 'spy', name = 'spymemcached', rev = '2.8.1').with_sources()
             ]
            )
 
