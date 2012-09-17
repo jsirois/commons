@@ -34,8 +34,6 @@ import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException
 
 /**
  * Utilities for dealing with zoo keeper.
- *
- * @author John Sirois
  */
 public final class ZooKeeperUtils {
 
