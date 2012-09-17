@@ -52,8 +52,6 @@ import static com.twitter.common.base.MorePreconditions.checkNotBlank;
  * @param <T> THe type of objects that the caller uses to represent states.
  *
  * TODO(William Farner): Consider merging the stats-tracking ala PipelineStats into this.
- *
- * @author William Farner
  */
 public class StateMachine<T> {
   private static final Logger LOG = Logger.getLogger(StateMachine.class.getName());

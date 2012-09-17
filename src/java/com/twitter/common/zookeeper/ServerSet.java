@@ -30,7 +30,6 @@ import java.util.Map;
  *
  * TODO(William Farner): Explore decoupling this from thrift.
  *
- * @author William Farner
  */
 public interface ServerSet extends DynamicHostSet<ServiceInstance> {
 
