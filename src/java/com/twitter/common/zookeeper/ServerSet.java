@@ -29,7 +29,6 @@ import java.util.Map;
  * common service and their clients.
  *
  * TODO(William Farner): Explore decoupling this from thrift.
- *
  */
 public interface ServerSet extends DynamicHostSet<ServiceInstance> {
 
