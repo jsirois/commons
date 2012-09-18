@@ -22,7 +22,7 @@ class ProcessProvider_Procfs(ProcessProvider):
       try:
         with open('/proc/%s/stat' % pid) as fp:
           return fp.read()
-      except:
+      except IOError:
         return None
     return filter_map(try_read_pid, pidset)
 
