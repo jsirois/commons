@@ -38,10 +38,12 @@ class Py(Command):
     parser.set_usage("\n"
                      "  %prog py (options) [spec] args\n")
     parser.disable_interspersed_args()
-    parser.add_option("--pex", dest = "pex", default = False, action='store_true',
-                      help = "dump a .pex of this chroot")
-    parser.add_option("--resolve", dest = "resolve", default = False, action='store_true',
-                      help = "resolve targets instead of building.")
+    parser.add_option("--pex", dest="pex", default=False, action='store_true',
+                      help="dump a .pex of this chroot")
+    parser.add_option("--resolve", dest="resolve", default=False, action='store_true',
+                      help="resolve targets instead of building.")
+    parser.add_option("-v", "--verbose", dest="verbose", default=False, action='store_true',
+                      help="show verbose output.")
     parser.epilog = """Interact with the chroot of the specified target."""
 
   def __init__(self, root_dir, parser, argv):
@@ -81,8 +83,9 @@ class Py(Command):
       self.error('No valid target specified!')
 
   def execute(self):
-    print("Build operating on target: %s %s" % (self.target,
-      'Extra targets: %s' % ' '.join(map(str, self.extra_targets)) if self.extra_targets else ''))
+    if self.options.verbose:
+      print("Build operating on target: %s %s" % (self.target,
+        'Extra targets: %s' % ' '.join(map(str, self.extra_targets)) if self.extra_targets else ''))
 
     if self.options.resolve:
       executor = PythonResolver(self.target, self.root_dir, extra_targets=self.extra_targets)
