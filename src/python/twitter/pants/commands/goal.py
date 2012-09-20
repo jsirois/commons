@@ -456,6 +456,7 @@ from twitter.pants.tasks.javadoc_gen import JavadocGen
 from twitter.pants.tasks.junit_run import JUnitRun
 from twitter.pants.tasks.jvm_run import JvmRun
 from twitter.pants.tasks.markdown_to_html import MarkdownToHtml
+from twitter.pants.tasks.listtargets import ListTargets
 from twitter.pants.tasks.pathdeps import PathDeps
 from twitter.pants.tasks.protobuf_gen import ProtobufGen
 from twitter.pants.tasks.scala_compile import ScalaCompile
@@ -644,6 +645,11 @@ goal(
   action=PathDeps
 ).install('pathdeps').with_description(
   'Print out a list of all paths containing build files the target depends on')
+
+goal(
+  name='list',
+  action=ListTargets
+).install('list').with_description('List available BUILD targets.')
 
 goal(
   name='buildlint',
