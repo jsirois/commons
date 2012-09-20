@@ -258,7 +258,7 @@ public class RootLogConfigTest {
 
     // Verify that it is on glog format.
     assertTrue("Unexpected output: " + output,
-        output.matches("S\\d+ " // Level, month, day.
+        output.matches("E\\d+ " // Level, month, day.
             + "\\d\\d:\\d\\d:\\d\\d\\.\\d+ " // Timestamp.
             + "THREAD\\d+ " // Thread id.
             + RootLogConfigTest.class.getName() + "\\.testUseGLogFormatter: " // Class name.
