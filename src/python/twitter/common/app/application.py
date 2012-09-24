@@ -696,9 +696,9 @@ class Application(object):
       return
 
     try:
-        caller_main = Inspection.find_main_from_caller()
+      caller_main = Inspection.find_main_from_caller()
     except Inspection.InternalError:
-        caller_main = None
+      caller_main = None
     if None in self._commands:
       assert caller_main is None, "Error: Cannot define both main and a default command."
     else:

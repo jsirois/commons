@@ -18,6 +18,8 @@ python_library(
   name = 'concurrent',
   sources = globs('*.py'),
   dependencies = [
-    '3rdparty/python:futures',
+    pants('3rdparty/python:futures'),
+    pants('src/python/twitter/common/lang'),
+    pants('src/python/twitter/common/quantity')
   ]
 )
