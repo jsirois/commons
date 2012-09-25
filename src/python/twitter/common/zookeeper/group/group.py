@@ -36,6 +36,9 @@ class Membership(object):
       return False
     return self._id == other._id
 
+  def __ne__(self, other):
+    return not self == other
+
   def __hash__(self):
     return hash(self._id)
 
@@ -175,21 +178,24 @@ class Group(GroupInterface):
     self._members = {}
     self._member_lock = threading.Lock()
     self._acl = acl or zk.DEFAULT_ACL
-    if not self._prepare_path():
-      raise Group.GroupError('Could not create znode for %s!' % path)
 
-  def _prepare_path(self):
-    child = '/'
-    failures = set()
-    for component in self._path.split('/'):
-      child = posixpath.join(child, component)
-      try:
-        self._zk.create(child, "", self._acl)
-      except zookeeper.NoAuthException:
-        failures.add(child)
-      except zookeeper.NodeExistsException:
-        continue
-    return self._path not in failures
+  def _prepare_path(self, event):
+    class Background(threading.Thread):
+      def run(_):
+        child = '/'
+        failures = set()
+        for component in self._path.split('/'):
+          child = posixpath.join(child, component)
+          try:
+            self._zk.create(child, "", self._acl)
+          except zookeeper.NoAuthException:
+            failures.add(child)
+          except zookeeper.NodeExistsException:
+            continue
+        event.set(self._path not in failures)
+    background = Background()
+    background.daemon = True
+    background.start()
 
   def __iter__(self):
     return iter(self._members)
@@ -240,6 +246,14 @@ class Group(GroupInterface):
     membership_promise = Promise(callback)
     exists_promise = Promise(expire_callback)
 
+    def on_prepared(success):
+      if success:
+        do_join()
+      else:
+        membership_promise.set(Membership.error())
+
+    prepare_promise = Promise(on_prepared)
+
     def do_join():
       self._zk.acreate(posixpath.join(self._path, self.MEMBER_PREFIX),
           blob, self._acl, zookeeper.SEQUENCE | zookeeper.EPHEMERAL, acreate_completion)
@@ -273,7 +287,7 @@ class Group(GroupInterface):
         membership = Membership.error()
       membership_promise.set(membership)
 
-    do_join()
+    self._prepare_path(prepare_promise)
     return membership_promise()
 
   def cancel(self, member, callback=None):
@@ -302,28 +316,49 @@ class Group(GroupInterface):
     do_cancel()
     return promise()
 
-  # TODO(wickman)  On session expiration, we should re-queue the watch
-  # against zookeeper.
   def monitor(self, membership=frozenset(), callback=None):
     promise = Promise(callback)
+
+    def wait_exists():
+      self._zk.aexists(self._path, exists_watch, exists_completion)
+
+    def exists_watch(_, event, state, path):
+      if event == zookeeper.SESSION_EVENT and state == zookeeper.EXPIRED_SESSION_STATE:
+        wait_exists()
+        return
+      if event == zookeeper.CREATED_EVENT:
+        do_monitor()
+      elif event == zookeeper.DELETED_EVENT:
+        wait_exists()
+
+    def exists_completion(_, rc, stat):
+      if rc == zookeeper.OK:
+        do_monitor()
 
     def do_monitor():
       self._zk.aget_children(self._path, get_watch, get_completion)
 
     def get_watch(_, event, state, path):
       if event == zookeeper.SESSION_EVENT and state == zookeeper.EXPIRED_SESSION_STATE:
-        do_monitor()
+        wait_exists()
         return
       if state != zookeeper.CONNECTED_STATE:
+        return
+      if event == zookeeper.DELETED_EVENT:
+        wait_exists()
         return
       if event != zookeeper.CHILD_EVENT:
         return
       if set_different(promise, membership, self._members):
         return
       do_monitor()
+
     def get_completion(_, rc, children):
       if rc in self._zk.COMPLETION_RETRY:
         do_monitor()
+        return
+      if rc == zookeeper.NONODE:
+        wait_exists()
         return
       if rc != zookeeper.OK:
         log.warning('Unexpected get_completion return code: %s' % ReturnCode(rc))
@@ -336,8 +371,11 @@ class Group(GroupInterface):
     return promise()
 
   def list(self):
-    return sorted(map(lambda znode: Membership(self.znode_to_id(znode)),
-        filter(self.znode_owned, self._zk.get_children(self._path))))
+    try:
+      return sorted(map(lambda znode: Membership(self.znode_to_id(znode)),
+          filter(self.znode_owned, self._zk.get_children(self._path))))
+    except zookeeper.NoNodeException:
+      return []
 
   # ---- protected api
 
@@ -381,6 +419,22 @@ class ActiveGroup(Group):
   # ---- private api
 
   def _monitor_members(self):
+    def wait_exists():
+     self._zk.aexists(self._path, exists_watch, exists_completion)
+
+    def exists_watch(_, event, state, path):
+      if event == zookeeper.SESSION_EVENT and state == zookeeper.EXPIRED_SESSION_STATE:
+        wait_exists()
+        return
+      if event == zookeeper.CREATED_EVENT:
+        do_monitor()
+      elif event == zookeeper.DELETED_EVENT:
+        wait_exists()
+
+    def exists_completion(_, rc, stat):
+      if rc == zookeeper.OK:
+        do_monitor()
+
     def do_monitor():
       self._zk.aget_children(self._path, membership_watch, membership_completion)
 
@@ -388,12 +442,18 @@ class ActiveGroup(Group):
       # Connecting state is caused by transient connection loss, ignore
       if state == zookeeper.CONNECTING_STATE:
         return
+      if event == zookeeper.DELETED_EVENT:
+        wait_exists()
+        return
       # Everything else indicates underlying change.
       do_monitor()
 
     def membership_completion(_, rc, children):
       if rc in self._zk.COMPLETION_RETRY:
         do_monitor()
+        return
+      if rc == zookeeper.NONODE:
+        wait_exists()
         return
       if rc != zookeeper.OK:
         return
