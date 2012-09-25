@@ -713,3 +713,11 @@ goal(
   action=ReverseDepmap
 ).install().with_description('Print a reverse dependency mapping for the given targets')
 
+
+from twitter.pants.tasks.depmap import Depmap
+
+goal(
+  name='depmap',
+  action=Depmap
+).install().with_description('Generates either a textual dependency tree or a graphviz'
+                             ' digraph dotfile for the dependency set of a target')

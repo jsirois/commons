@@ -18,7 +18,8 @@ from __future__ import print_function
 
 __author__ = 'John Sirois'
 
-from . import Command
+from twitter.pants.tasks import Task
+from twitter.pants.tasks import TaskError
 
 from twitter.pants import is_jvm, is_python
 from twitter.pants.base import Address, Target
@@ -26,55 +27,71 @@ from twitter.pants.base import Address, Target
 import sys
 import traceback
 
-class Depmap(Command):
+class Depmap(Task):
   """Generates either a textual dependency tree or a graphviz digraph dotfile for the dependency set
   of a target."""
 
-  __command__ = 'depmap'
+  @classmethod
+  def setup_parser(cls, option_group, args, mkflags):
+    cls.internal_only_flag = mkflags("internal-only") # this should go away in a future refactoring
+    cls.external_only_flag = mkflags("external-only") # this should go away in a future refactoring
+    option_group.add_option(cls.internal_only_flag,
+                            action="store_true",
+                            dest="depmap_is_internal_only",
+                            default=False,
+                            help='Specifies that only internal dependencies should'
+                                 ' be included in the graph output (no external jars).')
+    option_group.add_option(cls.external_only_flag,
+                            action="store_true",
+                            dest="depmap_is_external_only",
+                            default=False,
+                            help='Specifies that only external dependencies should'
+                                 ' be included in the graph output (only external jars).')
+    option_group.add_option(mkflags("minimal"),
+                            action="store_true",
+                            dest="depmap_is_minimal",
+                            default=False,
+                            help='For a textual dependency tree, only prints a dependency the 1st'
+                                 ' time it is encountered.  For graph output this does nothing.')
+    option_group.add_option(mkflags("separator"),
+                            dest="depmap_separator",
+                            default="-",
+                            help='Specifies the separator to use between the org/name/rev'
+                                 ' components of a dependency\'s fully qualified name.')
+    option_group.add_option(mkflags("graph"),
+                            action="store_true",
+                            dest="depmap_is_graph",
+                            default=False,
+                            help='Specifies the internal dependency graph should be'
+                                 ' output in the dot digraph format')
 
-  def setup_parser(self, parser, args):
-    parser.set_usage("%prog depmap (options) [spec]")
-    parser.add_option("-i", "--internal-only", action="store_true", dest = "is_internal_only",
-                      default = False, help = """Specifies that only internal dependencies should
-                      be included in the graph output (no external jars).""")
-    parser.add_option("-e", "--external-only", action="store_true", dest = "is_external_only",
-                      default = False, help = """Specifies that only external dependencies should
-                      be included in the graph output (only external jars).""")
-    parser.add_option("-m", "--minimal", action="store_true", dest = "is_minimal",
-                      default = False, help = """For a textual dependency tree, only prints a
-                      dependency the 1st time it is encountered.  For graph output this does
-                      nothing.""")
-    parser.add_option("-s", "--separator", dest = "separator",
-                      default = "-", help = """Specifies the separator to use between the
-                      org/name/rev components of a dependency's fully qualified name.""")
-    parser.add_option("-g", "--graph", action="store_true", dest = "is_graph", default = False,
-                      help = """Specifies the internal dependency graph should be output in the dot
-                      digraph format""")
-    parser.epilog = """Generates either a textual dependency tree or a graphviz digraph dotfile for
-    the dependency set of a java BUILD target."""
+  def __init__(self, context):
+    Task.__init__(self, context)
 
-  def __init__(self, root_dir, parser, argv):
-    Command.__init__(self, root_dir, parser, argv)
+    if (self.context.options.depmap_is_internal_only and
+        self.context.options.depmap_is_external_only):
+      cls = self.__class__
+      error_str = "At most one of %s or %s can be selected." % ( cls.internal_only_flag,
+                                                                 cls.external_only_flag )
+      raise TaskError(error_str)
 
-    if len(self.args) is not 1:
-      self.error("Exactly one BUILD address is required.")
+    self.is_internal_only = self.context.options.depmap_is_internal_only
+    self.is_external_only = self.context.options.depmap_is_external_only
+    self.is_minimal = self.context.options.depmap_is_minimal
+    self.is_graph = self.context.options.depmap_is_graph
+    self.separator = self.context.options.depmap_separator
 
-    if self.options.is_internal_only and self.options.is_external_only:
-      self.error("At most one of external only or internal only can be selected.")
+  def execute(self, _):
+    # note: we do not want to use the targets handed into this function (parameter named _)
+    # we do want to use self.context.targets
 
-    spec = self.args[0]
-    try:
-      self.address = Address.parse(root_dir, spec)
-    except:
-      self.error("Problem parsing spec %s: %s" % (spec, traceback.format_exc()))
+    # TODO(Robert Nielsen): AWESOME-940
+    if len(self.context.target_roots) == 0:
+      raise TaskError("Exactly one BUILD address is required.")
+    if len(self.context.target_roots) > 1:
+      raise TaskError('Multiple targets not currently supported')
 
-    self.is_internal_only = self.options.is_internal_only
-    self.is_external_only = self.options.is_external_only
-    self.is_minimal = self.options.is_minimal
-    self.is_graph = self.options.is_graph
-
-  def execute(self):
-    target = Target.get(self.address)
+    target = self.context.target_roots[0]
 
     if all(is_jvm(t) for t in target.resolve()):
       if self.is_graph:
@@ -120,7 +137,7 @@ class Depmap(Command):
       org = dep.org,
       name = dep.module,
       rev = dep.version,
-      sep = self.options.separator,
+      sep = self.separator,
     )
 
     if dep.version:
@@ -132,7 +149,7 @@ class Depmap(Command):
     def print_dep(dep, indent):
       print("%s%s" % (indent * "  ", dep))
 
-    def print_deps(printed, dep, indent = 0):
+    def print_deps(printed, dep, indent=0):
       dep_id, _ = self._dep_id(dep)
       if dep_id in printed:
         if not self.is_minimal:
