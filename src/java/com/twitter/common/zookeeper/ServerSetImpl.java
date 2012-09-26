@@ -82,7 +82,7 @@ public class ServerSetImpl implements ServerSet {
   @CmdLine(name = "serverset_encode_json",
            help = "If true, use JSON for encoding server set information."
                + " Defaults to false (use Thrift).")
-  private static final Arg<Boolean> ENCODE_JSON = Arg.create(true);
+  private static final Arg<Boolean> ENCODE_JSON = Arg.create(false);
 
   private final ZooKeeperClient zkClient;
   private final Group group;
