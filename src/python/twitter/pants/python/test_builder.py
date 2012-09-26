@@ -177,6 +177,7 @@ class PythonTestBuilder(object):
 
   def _run_tests(self, targets):
     fail_hard = 'PANTS_PYTHON_TEST_FAILSOFT' not in os.environ
+    failed = False
     for target in targets:
       if isinstance(target, PythonTests):
         rv = self._run_python_test(target)
@@ -186,6 +187,7 @@ class PythonTestBuilder(object):
         raise PythonTestBuilder.InvalidDependencyException(
           "Invalid dependency in python test target: %s" % target)
       if not rv.success:
+        failed = True
         if fail_hard:
           return rv
-    return PythonTestResult.rc(0)
+    return PythonTestResult.rc(1 if failed else 0)
