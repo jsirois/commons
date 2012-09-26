@@ -198,7 +198,10 @@ python_library(
 
 python_library(
   name = 'pystachio',
-  dependencies = [egg('pystachio-0.4.3-*.egg')])
+  dependencies = [
+    python_requirement('pystachio==0.5.1')
+  ]
+)
 
 python_library(
   name = 'cherrypy',
