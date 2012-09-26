@@ -15,5 +15,4 @@ python_binary(
     pants('src/python/twitter/common/app'),
     pants(':serverset')
   ],
-  platforms = ['linux-x86_64']
 )
