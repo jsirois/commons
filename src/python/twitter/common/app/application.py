@@ -247,32 +247,37 @@ class Application(object):
     for option_name, option_value in kw.items():
       configure_option(option_name, option_value)
 
+  def _main_parser(self):
+    return (options.parser()
+              .interspersed_arguments(self._interspersed_args)
+              .options(self._main_options)
+              .usage(self._usage))
+
+  def command_parser(self, command):
+    assert command in self._commands
+    values_copy = copy.deepcopy(self._option_values)
+    parser = self._main_parser()
+    command_group = options.new_group(('For %s only' % command) if command else 'Default')
+    for option in getattr(self._commands[command], Application.OPTIONS_ATTR):
+      op = copy.deepcopy(option)
+      if not hasattr(values_copy, op.dest):
+        setattr(values_copy, op.dest, op.default if op.default != optparse.NO_DEFAULT else None)
+      Application.rewrite_help(op)
+      op.default = optparse.NO_DEFAULT
+      command_group.add_option(op)
+    return (parser.usage(self._commands[command].__doc__)
+                  .groups([command_group])
+                  .values(values_copy))
+
   def _construct_partial_parser(self):
     """
       Construct an options parser containing only options added by __main__
       or global help options registered by the application.
     """
-    values_copy = copy.deepcopy(self._option_values)
-    parser = (options.parser()
-              .interspersed_arguments(self._interspersed_args)
-              .options(self._main_options)
-              .usage(self._usage))
-
     if hasattr(self._commands.get(self._command), Application.OPTIONS_ATTR):
-      if self._command is None:
-        command_group = options.new_group('When running with no command')
-      else:
-        command_group = options.new_group('For command %s' % self._command)
-      for option in getattr(self._commands[self._command], Application.OPTIONS_ATTR):
-        op = copy.deepcopy(option)
-        if not hasattr(values_copy, op.dest):
-          setattr(values_copy, op.dest, op.default if op.default != optparse.NO_DEFAULT else None)
-        Application.rewrite_help(op)
-        op.default = optparse.NO_DEFAULT
-        command_group.add_option(op)
-      return parser.groups([command_group]).values(values_copy)
+      return self.command_parser(self._command)
     else:
-      return parser.values(values_copy)
+      return self._main_parser().values(copy.deepcopy(self._option_values))
 
   def _construct_full_parser(self):
     """
