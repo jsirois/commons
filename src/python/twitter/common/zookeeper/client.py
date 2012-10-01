@@ -35,6 +35,8 @@ try:
 except ImportError:
   import logging as log
 
+from twitter.common.metrics import AtomicGauge
+
 try:
   from Queue import Queue, Empty
 except ImportError:
@@ -312,6 +314,7 @@ class ZooKeeper(object):
     self._watch = watch
     self._logger = logger
     self._max_reconnects = max_reconnects if max_reconnects is not None else default_reconnects
+    self._init_stats()
     self.reconnect()
 
   def __del__(self):
@@ -320,9 +323,28 @@ class ZooKeeper(object):
   def _log(self, msg):
     self._logger('[zh:%s] %s' % (self._zh, msg))
 
+  def _init_stats(self):
+    self._gauge_session_expirations = AtomicGauge('session-expirations')
+    self._gauge_connection_losses = AtomicGauge('connection-losses')
+
   def session_id(self):
-    session_id, _ = zookeeper.client_id(self._zh)
-    return session_id
+    try:
+      session_id, _ = zookeeper.client_id(self._zh)
+      return session_id
+    except:
+      return None
+
+  @property
+  def session_expirations(self):
+    return self._gauge_session_expirations.read()
+
+  @property
+  def connection_losses(self):
+    return self._gauge_connection_losses.read()
+
+  @property
+  def live(self):
+    return self._live.is_set()
 
   def stop(self):
     """Gracefully stop this Zookeeper session."""
@@ -408,6 +430,7 @@ class ZooKeeper(object):
         self._clear_completions()
       elif state == zookeeper.EXPIRED_SESSION_STATE:
         self._logger('Session lost, clearing live state.')
+        self._gauge_session_expirations.increment()
         self._live.clear()
         self._authenticated.clear()
         self._zh = None
@@ -415,6 +438,7 @@ class ZooKeeper(object):
         self.reconnect()
       else:
         self._logger('Connection lost, clearing live state.')
+        self._gauge_connection_losses.increment()
         self._live.clear()
 
     # this closure is exposed for testing only -- in order to simulate session events.
