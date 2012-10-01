@@ -199,7 +199,7 @@ python_library(
 python_library(
   name = 'pystachio',
   dependencies = [
-    python_requirement('pystachio==0.5.1')
+    python_requirement('pystachio==0.5.2')
   ]
 )
 
