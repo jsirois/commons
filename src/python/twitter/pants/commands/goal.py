@@ -381,16 +381,14 @@ class Goal(Command):
 
     logger = None
     if self.options.log or self.options.log_level:
-      from twitter.common.log import init
-      from twitter.common.log.options import LogOptions
-      LogOptions.set_stderr_log_level((self.options.log_level or 'info').upper())
+      log.LogOptions.set_stderr_log_level((self.options.log_level or 'info').upper())
       logdir = self.options.logdir or self.config.get('goals', 'logdir', default=None)
       if logdir:
         safe_mkdir(logdir)
-        LogOptions.set_log_dir(logdir)
-        init('goals')
+        log.LogOptions.set_log_dir(logdir)
+        log.init('goals')
       else:
-        init()
+        log.init()
       logger = log
 
     if self.options.recursive_directory:
