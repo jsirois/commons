@@ -719,3 +719,12 @@ goal(
   action=Depmap
 ).install().with_description('Generates either a textual dependency tree or a graphviz'
                              ' digraph dotfile for the dependency set of a target')
+
+
+from twitter.pants.tasks.filemap import Filemap
+
+goal(
+  name='filemap',
+  action=Filemap
+).install().with_description('Outputs a mapping from source file to'
+                             ' the target that owns the source file')

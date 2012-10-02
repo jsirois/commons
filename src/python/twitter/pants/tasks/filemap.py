@@ -18,30 +18,32 @@ from __future__ import print_function
 
 __author__ = 'John Sirois'
 
-from . import Command
+from twitter.pants.tasks import Task
 
 from twitter.pants.base import BuildFile, Target
+from twitter.pants import get_buildroot
 
-class Filemap(Command):
+class Filemap(Task):
   """Outputs a mapping from source file to the target that owns the source file."""
 
   __command__ = 'filemap'
 
-  def setup_parser(self, parser, args):
-    parser.set_usage("%prog filemap")
-    parser.epilog = """Outputs a mapping from source file to the target that owns the source file.
-    The mapping is output in 2 columns."""
+  def __init__(self, context):
+    Task.__init__(self, context)
 
-  def __init__(self, root_dir, parser, argv):
-    Command.__init__(self, root_dir, parser, argv)
+  def execute(self, expanded_target_addresses):
+    if (len(self.context.target_roots) > 0):
+      for target in self.context.target_roots:
+        self._execute_target(target)
+    else:
+      root_dir = get_buildroot()
+      for buildfile in BuildFile.scan_buildfiles(root_dir):
+        target_addresses = Target.get_all_addresses(buildfile)
+        for target_address in target_addresses:
+          target = Target.get(target_address)
+          self._execute_target(target)
 
-    if self.args:
-      self.error("The filemap subcommand accepts no arguments.")
-
-  def execute(self):
-    for buildfile in BuildFile.scan_buildfiles(self.root_dir):
-      for address in Target.get_all_addresses(buildfile):
-        target = Target.get(address)
-        if hasattr(target, 'sources') and target.sources is not None:
-          for sourcefile in target.sources:
-            print(sourcefile, address)
+  def _execute_target(self, target):
+    if hasattr(target, 'sources') and target.sources is not None:
+      for sourcefile in target.sources:
+        print(sourcefile, target.address)
