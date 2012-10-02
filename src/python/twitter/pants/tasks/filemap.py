@@ -23,27 +23,27 @@ from twitter.pants.tasks import Task
 from twitter.pants.base import BuildFile, Target
 from twitter.pants import get_buildroot
 
+import os
+
 class Filemap(Task):
   """Outputs a mapping from source file to the target that owns the source file."""
-
-  __command__ = 'filemap'
 
   def __init__(self, context):
     Task.__init__(self, context)
 
   def execute(self, expanded_target_addresses):
-    if (len(self.context.target_roots) > 0):
+    buildroot = get_buildroot()
+    if len(self.context.target_roots) > 0:
       for target in self.context.target_roots:
-        self._execute_target(target)
+        self._execute_target(target, buildroot)
     else:
-      root_dir = get_buildroot()
-      for buildfile in BuildFile.scan_buildfiles(root_dir):
+      for buildfile in BuildFile.scan_buildfiles(buildroot):
         target_addresses = Target.get_all_addresses(buildfile)
         for target_address in target_addresses:
           target = Target.get(target_address)
-          self._execute_target(target)
+          self._execute_target(target, buildroot)
 
-  def _execute_target(self, target):
+  def _execute_target(self, target, buildroot):
     if hasattr(target, 'sources') and target.sources is not None:
       for sourcefile in target.sources:
-        print(sourcefile, target.address)
+        print(os.path.relpath(sourcefile, buildroot), target.address)
