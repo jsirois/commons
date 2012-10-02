@@ -69,8 +69,10 @@ class PythonBinary(PythonTarget):
     if source and entry_point:
       raise TargetDefinitionException(
           'Can only declare an entry_point if no source binary is specified.')
-    if not isinstance(platforms, (list, tuple)) or not isinstance(interpreters, (list, tuple)):
-      raise TargetDefinitionException('platforms and interpreters must be lists or tuples.')
+    if not isinstance(platforms, (list, tuple)) and not isinstance(platforms, Compatibility.string):
+      raise TargetDefinitionException('platforms must be a list, tuple or string.')
+    if not isinstance(interpreters, (list, tuple)):
+      raise TargetDefinitionException('interpreters must be a list or tuple.')
 
     self._entry_point = entry_point
     self._inherit_path = bool(inherit_path)
