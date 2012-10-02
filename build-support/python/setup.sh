@@ -31,7 +31,7 @@ PYTHON=$BOOTSTRAP_BIN/bootstrap
 
 pushd $CACHE >& /dev/null
   if ! test -f virtualenv-1.7.1.2.tar.gz; then
-    echo Installing virtualenv
+    echo 'Installing virtualenv' 1>&2
     for url in \
       http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.7.1.2.tar.gz \
       https://svn.twitter.biz/science-binaries/home/third_party/python/virtualenv-1.7.1.2.tar.gz; do
