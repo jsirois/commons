@@ -12,7 +12,7 @@ mkdir -p $CACHE
 
 
 if [ ! $PY ]; then
-  echo No python interpreter found on the path.  Python will not work\!
+  echo 'No python interpreter found on the path.  Python will not work!'
   exit 1
 fi
 
