@@ -177,38 +177,45 @@ public class CmdLineProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    @Nullable Configuration classpathConfiguration = configSupplier.get();
+    try {
+      @Nullable Configuration classpathConfiguration = configSupplier.get();
 
-    Set<? extends Element> parsers = getAnnotatedElements(roundEnv, ArgParser.class);
-    @Nullable Set<String> parsedTypes = getParsedTypes(classpathConfiguration, parsers);
+      Set<? extends Element> parsers = getAnnotatedElements(roundEnv, ArgParser.class);
+      @Nullable Set<String> parsedTypes = getParsedTypes(classpathConfiguration, parsers);
 
-    for (ArgInfo cmdLineInfo : processAnnotatedArgs(parsedTypes, roundEnv, CmdLine.class)) {
-      configBuilder.addCmdLineArg(cmdLineInfo);
-    }
+      for (ArgInfo cmdLineInfo : processAnnotatedArgs(parsedTypes, roundEnv, CmdLine.class)) {
+        configBuilder.addCmdLineArg(cmdLineInfo);
+      }
 
-    for (ArgInfo positionalInfo : processAnnotatedArgs(parsedTypes, roundEnv, Positional.class)) {
-      configBuilder.addPositionalInfo(positionalInfo);
-    }
-    checkPositionalArgsAreLists(roundEnv);
+      for (ArgInfo positionalInfo : processAnnotatedArgs(parsedTypes, roundEnv, Positional.class)) {
+        configBuilder.addPositionalInfo(positionalInfo);
+      }
+      checkPositionalArgsAreLists(roundEnv);
 
-    processParsers(parsers);
-    processVerifiers(roundEnv.getElementsAnnotatedWith(typeElement(VerifierFor.class)));
+      processParsers(parsers);
+      processVerifiers(roundEnv.getElementsAnnotatedWith(typeElement(VerifierFor.class)));
 
-    if (roundEnv.processingOver()) {
-      if (classpathConfiguration != null
-          && (!classpathConfiguration.isEmpty() || !configBuilder.isEmpty())) {
+      if (roundEnv.processingOver()) {
+        if (classpathConfiguration != null
+            && (!classpathConfiguration.isEmpty() || !configBuilder.isEmpty())) {
 
-        @Nullable Writer cmdLinePropertiesResource =
-            openCmdLinePropertiesResource(classpathConfiguration);
-        if (cmdLinePropertiesResource != null) {
-          try {
-            configBuilder.build(classpathConfiguration).store(cmdLinePropertiesResource,
-                "Generated via apt by " + getClass().getName());
-          } finally {
-            Closeables.closeQuietly(cmdLinePropertiesResource);
+          @Nullable Writer cmdLinePropertiesResource =
+              openCmdLinePropertiesResource(classpathConfiguration);
+          if (cmdLinePropertiesResource != null) {
+            try {
+              configBuilder.build(classpathConfiguration).store(cmdLinePropertiesResource,
+                  "Generated via apt by " + getClass().getName());
+            } finally {
+              Closeables.closeQuietly(cmdLinePropertiesResource);
+            }
           }
         }
       }
+    } catch (RuntimeException e) {
+      // Catch internal errors - when these bubble more useful queued error messages are lost in
+      // some javac implementations.
+      error("Unexpected error completing annotation processing:\n%s",
+          Throwables.getStackTraceAsString(e));
     }
     return true;
   }
