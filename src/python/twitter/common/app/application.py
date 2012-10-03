@@ -265,9 +265,11 @@ class Application(object):
       Application.rewrite_help(op)
       op.default = optparse.NO_DEFAULT
       command_group.add_option(op)
-    return (parser.usage(self._commands[command].__doc__)
-                  .groups([command_group])
-                  .values(values_copy))
+    parser = parser.groups([command_group]).values(values_copy)
+    usage = self._commands[command].__doc__
+    if usage:
+      parser = parser.usage(usage)
+    return parser
 
   def _construct_partial_parser(self):
     """
