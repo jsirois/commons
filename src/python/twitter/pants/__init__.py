@@ -92,7 +92,7 @@ jar = JarDependency
 java_library = JavaLibrary
 java_antlr_library = JavaAntlrLibrary
 java_protobuf_library = JavaProtobufLibrary
-java_tests = JavaTests
+junit_tests = java_tests = JavaTests
 java_thrift_library = JavaThriftLibrary
 # TODO(Anand) Remove this from pants proper when a code adjoinment mechanism exists
 # or ok if/when thriftstore is open sourced as well
@@ -110,16 +110,28 @@ python_tests = PythonTests
 python_test_suite = PythonTestSuite
 repo = Repository
 scala_library = ScalaLibrary
-scala_tests = ScalaTests
+scala_specs = scala_tests = ScalaTests
 scalac_plugin = ScalacPlugin
 source_root = SourceRoot
 wiki = Wiki
 
 
-def has_sources(target):
-  """Returns True if the target has sources."""
-  return target.has_label('sources')
+def is_codegen(target):
+  """Returns True if the target is synthesized from generated sources or represents a set of idl
+  files that generate sources.
+  """
+  return target.has_label('codegen')
 
+
+def has_sources(target, extension=None):
+  """Returns True if the target has sources.
+
+  If an extension is supplied the target is further checked for at least 1 source with the given
+  extension.
+  """
+  return (target.has_label('sources')
+          and (not extension
+               or any(filter(lambda source: source.endswith(extension), target.sources)))
 
 
 def is_exported(target):
@@ -162,10 +174,6 @@ def extract_jvm_targets(targets):
       if is_jvm(real_target):
         yield real_target
 
-
-def is_codegen(target):
-  """Returns True if the target is a codegen target."""
-  return target.has_label('codegen')
 
 def is_doc(target):
   """Returns True if the target is a documentation target."""
@@ -258,6 +266,7 @@ __all__ = (
   'java_tests',
   'java_thrift_library',
   'java_thriftstore_dml_library',
+  'junit_tests',
   'jvm_app',
   'jvm_binary',
   'page',
@@ -274,6 +283,7 @@ __all__ = (
   'repo',
   'rglobs',
   'scala_library',
+  'scala_specs',
   'scala_tests',
   'scalac_plugin',
   'setup_py',

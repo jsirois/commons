@@ -22,7 +22,7 @@ import sys
 
 from twitter.common.dirutil import safe_mkdir, safe_open
 
-from twitter.pants import is_codegen, is_java, is_scala, is_test
+from twitter.pants import is_java, is_scala, is_test, junit_tests
 from twitter.pants.tasks import binary_utils, Task, TaskError
 from twitter.pants.tasks.binary_utils import profile_classpath, runjava, safe_args
 from twitter.pants.tasks.jvm_task import JvmTask
@@ -218,7 +218,12 @@ class JUnitRun(JvmTask):
               '-in', self.coverage_file,
               '-exit'
             ]
-            source_bases = set(t.target_base for t in self.test_target_candidates(targets))
+            source_bases = set()
+            def collect_source_base(target):
+              if self.is_coverage_target(target):
+                source_bases.add(target.target_base)
+            for target in self.test_target_candidates(targets):
+              target.walk(collect_source_base)
             for source_base in source_bases:
               args.extend(['-sp', source_base])
 
@@ -262,6 +267,9 @@ class JUnitRun(JvmTask):
         else:
           run_tests(junit_classpath, 'com.twitter.common.testing.runner.JUnitConsoleRunner')
 
+  def is_coverage_target(self, tgt):
+    return (is_java(tgt) or is_scala(tgt)) and not is_test(tgt) and not tgt.is_codegen
+
   def get_coverage_patterns(self, targets):
     if self.coverage_filters:
       return self.coverage_filters
@@ -269,7 +277,7 @@ class JUnitRun(JvmTask):
       classes_under_test = set()
       classes_by_source = self.context.products.get('classes')
       def add_sources_under_test(tgt):
-        if is_java(tgt) and not is_test(tgt) and not is_codegen(tgt):
+        if self.is_coverage_target(tgt):
           for source in tgt.sources:
             classes = classes_by_source.get(source)
             if classes:
@@ -289,7 +297,7 @@ class JUnitRun(JvmTask):
 
   def test_target_candidates(self, targets):
     for target in targets:
-      if (is_java(target) or is_scala(target)) and is_test(target):
+      if isinstance(target, junit_tests):
         yield target
 
   def calculate_tests(self, targets):
@@ -328,7 +336,7 @@ class JUnitRun(JvmTask):
     else:
       yield classname + methodname
 
-PACKAGE_PARSER = re.compile(r'^\s*package\s+([\w.]+)\s*;\s*')
+PACKAGE_PARSER = re.compile(r'^\s*package\s+([\w.]+)\s*;?\s*')
 
 def calculate_basedir(file):
   with open(file, 'r') as source:

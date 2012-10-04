@@ -30,7 +30,7 @@ from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir, safe_rmtree
 from twitter.common.lang import Compatibility
-from twitter.pants import get_buildroot, goal, group, is_apt, is_codegen, is_scala
+from twitter.pants import get_buildroot, goal, group, has_sources, is_apt, is_scala
 from twitter.pants.base import Address, BuildFile, Config, ParseContext, Target, Timer
 from twitter.pants.base.rcfile import RcFile
 from twitter.pants.commands import Command
@@ -439,7 +439,13 @@ class Goal(Command):
 
 
 # Install all default pants provided goals
-from twitter.pants.targets import JavaLibrary, JavaTests
+from twitter.pants import junit_tests
+from twitter.pants.targets import (
+  JavaLibrary,
+  JvmBinary,
+  ScalaLibrary,
+  ScalaTests,
+  ScalacPlugin)
 from twitter.pants.tasks.antlr_gen import AntlrGen
 from twitter.pants.tasks.binary_create import BinaryCreate
 from twitter.pants.tasks.build_lint import BuildLint
@@ -461,6 +467,7 @@ from twitter.pants.tasks.scala_compile import ScalaCompile
 from twitter.pants.tasks.scala_repl import ScalaRepl
 from twitter.pants.tasks.specs_run import SpecsRun
 from twitter.pants.tasks.thrift_gen import ThriftGen
+
 
 class Invalidator(Task):
   def execute(self, targets):
@@ -535,10 +542,19 @@ goal(
   dependencies=['gen', 'resolve']
 ).install().with_description('Run checkstyle against java source code.')
 
+# TODO(John Sirois): These group predicates could simplify to simple has_sources checks except for
+# the fact that sometimes 'aggregator' targets with no sources serve as a dependency link in the
+# wild.  Consider stomping this practice out and simplifying these predicates.
 
 def is_java(target):
- return isinstance(target, JavaLibrary) or \
-        isinstance(target, JavaTests)
+  return (isinstance(target, JavaLibrary)
+          or (isinstance(target, (JvmBinary, junit_tests)) and has_sources(target, '.java')))
+
+
+def is_scala(target):
+  return (isinstance(target, (ScalaLibrary, ScalaTests, ScalacPlugin))
+          or (isinstance(target, (JvmBinary, junit_tests)) and has_sources(target, '.scala')))
+
 
 goal(name='scalac',
      action=ScalaCompile,

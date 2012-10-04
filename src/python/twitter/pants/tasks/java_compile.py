@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 from collections import defaultdict
 
 import os
@@ -23,10 +21,10 @@ import shlex
 
 from twitter.common import log
 from twitter.common.dirutil import safe_open, safe_mkdir
-from twitter.pants import is_apt
-from twitter.pants.base.target import Target
-from twitter.pants.targets import JavaLibrary, JavaTests
-from twitter.pants.tasks import TaskError, Task
+
+from twitter.pants import has_sources, is_apt
+from twitter.pants.base import Target
+from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.binary_utils import nailgun_profile_classpath
 from twitter.pants.tasks.jvm_compiler_dependencies import Dependencies
 from twitter.pants.tasks.nailgun_task import NailgunTask
@@ -62,11 +60,11 @@ _JMAKE_ERROR_CODES = {
 _JMAKE_ERROR_CODES.update((256+code, msg) for code, msg in _JMAKE_ERROR_CODES.items())
 
 
-class JavaCompile(NailgunTask):
-  @staticmethod
-  def _has_java_sources(target):
-    return is_apt(target) or isinstance(target, JavaLibrary) or isinstance(target, JavaTests)
+def _is_java(target):
+  return has_sources(target, '.java')
 
+
+class JavaCompile(NailgunTask):
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
     NailgunTask.setup_parser(option_group, args, mkflag)
@@ -130,7 +128,7 @@ class JavaCompile(NailgunTask):
     return True
 
   def execute(self, targets):
-    java_targets = filter(JavaCompile._has_java_sources, targets)
+    java_targets = filter(_is_java, targets)
     if java_targets:
       safe_mkdir(self._classes_dir)
       safe_mkdir(self._depfile_dir)
