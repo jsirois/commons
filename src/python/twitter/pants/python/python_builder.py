@@ -39,7 +39,10 @@ class PythonBuilder(Builder):
       real_args = list(args)
       real_args.remove('pylint')
       for target in targets:
-        PythonLintBuilder([target], real_args, self.root_dir).run()
+        try:
+          PythonLintBuilder([target], real_args, self.root_dir).run()
+        except Exception as e:
+          print('Failed to run lint for %s: %s' % (target, e))
       return 0
 
     # PythonBuilder supports PythonTests and PythonBinaries

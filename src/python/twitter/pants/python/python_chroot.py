@@ -110,6 +110,10 @@ class PythonChroot(object):
     if os.getenv('PANTS_LEAVE_CHROOT') is None:
       safe_rmtree(self.path())
 
+  @property
+  def builder(self):
+    return self._builder
+
   def debug(self, msg, indent=0):
     if os.getenv('PANTS_VERBOSE') is not None:
       print('%s%s' % (' ' * indent, msg))
