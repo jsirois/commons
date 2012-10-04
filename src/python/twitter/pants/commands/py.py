@@ -19,6 +19,7 @@ from __future__ import print_function
 __author__ = 'Brian Wickman'
 
 import os
+import signal
 
 from . import Command
 
@@ -102,4 +103,9 @@ class Py(Command):
     else:
       builder.freeze()
       pex = PEX(builder.path())
-      return pex.run(args=list(self.args))
+      po = pex.run(args=list(self.args), blocking=False)
+      try:
+        po.wait()
+      except KeyboardInterrupt:
+        po.send_signal(signal.SIGINT)
+        raise

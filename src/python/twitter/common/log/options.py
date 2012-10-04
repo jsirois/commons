@@ -101,6 +101,15 @@ class LogOptions(object):
     return (scheme, level)
 
   @staticmethod
+  def loglevel_name(log_level):
+    """
+      Return the log level name of the given log_level (integer), or None if it has no name.
+    """
+    for name, value in LogOptions._LOG_LEVELS.items():
+      if value == log_level:
+        return name
+
+  @staticmethod
   def _valid_loglevel(log_level):
     try:
       LogOptions._parse_loglevel(log_level)

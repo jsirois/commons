@@ -39,6 +39,18 @@ except ImportError:
   HAS_APP=False
 
 
+def safe_kill(po):
+  """
+    Given a Popen object, safely kill it without an unexpected exception.
+  """
+  try:
+    po.kill()
+  except OSError as e:
+    if e.errno != errno.ESRCH:
+      raise
+  po.wait()
+
+
 class TunnelHelper(object):
   """ Class to initiate an ssh tunnel to a remote host through a tunnel host.
 
@@ -100,13 +112,17 @@ class TunnelHelper(object):
       raise cls.TunnelError('Could not establish tunnel via %s' % remote_host)
     return 'localhost', tunnel_port
 
+  @classmethod
+  def cancel_tunnel(cls, remote_host, remote_port):
+    """
+      Cancel the SSH tunnel to (remote_host, remote_port) if it exists.
+    """
+    _, po = cls.TUNNELS.pop((remote_host, remote_port), (None, None))
+    if po:
+      safe_kill(po)
+
 
 @atexit.register
 def _cleanup_tunnels():
   for _, po in TunnelHelper.TUNNELS.values():
-    try:
-      po.kill()
-    except OSError as e:
-      if e.errno != errno.ESRCH:
-        raise
-    po.wait()
+    safe_kill(po)
