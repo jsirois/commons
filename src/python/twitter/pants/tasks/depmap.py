@@ -81,28 +81,24 @@ class Depmap(Task):
     self.is_graph = self.context.options.depmap_is_graph
     self.separator = self.context.options.depmap_separator
 
-  def execute(self, _):
-    # note: we do not want to use the targets handed into this function (parameter named _)
-    # we do want to use self.context.targets
-
-    # TODO(Robert Nielsen): AWESOME-940
+  def execute(self, expanded_target_addresses):
     if len(self.context.target_roots) == 0:
-      raise TaskError("Exactly one BUILD address is required.")
-    if len(self.context.target_roots) > 1:
-      raise TaskError('Multiple targets not currently supported')
+      raise TaskError("One or more target addresses are required.")
 
-    target = self.context.target_roots[0]
-
-    if all(is_jvm(t) for t in target.resolve()):
-      if self.is_graph:
-        self._print_digraph(target)
-      else:
-        self._print_dependency_tree(target)
-    elif is_python(target):
-      if self.is_internal_only or self.is_external_only or self.is_minimal or self.is_graph:
-        print('Unsupported option for Python target', file=sys.stderr)
-        sys.exit(1)
-      self._print_python_dependencies(target, 0)
+    eol = ""
+    for target in self.context.target_roots:
+      print(end=eol)
+      eol = "\n"
+      if all(is_jvm(t) for t in target.resolve()):
+        if self.is_graph:
+          self._print_digraph(target)
+        else:
+          self._print_dependency_tree(target)
+      elif is_python(target):
+        if self.is_internal_only or self.is_external_only or self.is_minimal or self.is_graph:
+          print('Unsupported option for Python target', file=sys.stderr)
+          sys.exit(1)
+          self._print_python_dependencies(target, 0)
 
   def _print_python_dependencies(self, target, indent):
     attrs = []
