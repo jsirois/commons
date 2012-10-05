@@ -80,9 +80,9 @@ public class CompoundServerSetTest extends EasyMockTest {
 
   @Test
   public void testJoin() throws Exception {
-    expect(serverSet1.join(END_POINT, AUX_PORTS, Status.ALIVE)).andReturn(mockStatus1);
-    expect(serverSet2.join(END_POINT, AUX_PORTS, Status.ALIVE)).andReturn(mockStatus2);
-    expect(serverSet3.join(END_POINT, AUX_PORTS, Status.ALIVE)).andReturn(mockStatus3);
+    expect(serverSet1.join(END_POINT, AUX_PORTS, Status.ALIVE, 0)).andReturn(mockStatus1);
+    expect(serverSet2.join(END_POINT, AUX_PORTS, Status.ALIVE, 0)).andReturn(mockStatus2);
+    expect(serverSet3.join(END_POINT, AUX_PORTS, Status.ALIVE, 0)).andReturn(mockStatus3);
 
     mockStatus1.update(Status.DEAD);
     mockStatus2.update(Status.DEAD);
@@ -90,7 +90,7 @@ public class CompoundServerSetTest extends EasyMockTest {
 
     control.replay();
 
-    ServerSet.EndpointStatus status = compoundServerSet.join(END_POINT, AUX_PORTS, Status.ALIVE);
+    ServerSet.EndpointStatus status = compoundServerSet.join(END_POINT, AUX_PORTS, Status.ALIVE, 0);
     status.update(Status.DEAD);
   }
 

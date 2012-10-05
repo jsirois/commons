@@ -40,6 +40,7 @@ import com.twitter.common.application.modules.LifecycleModule;
 import com.twitter.common.application.modules.LocalServiceRegistry;
 import com.twitter.common.args.Arg;
 import com.twitter.common.args.CmdLine;
+import com.twitter.common.args.constraints.NotNegative;
 import com.twitter.common.base.Command;
 import com.twitter.common.base.ExceptionalCommand;
 import com.twitter.common.base.Supplier;
@@ -94,6 +95,10 @@ public class ServerSetModule extends AbstractModule {
           + " This may only be used when no other primary port is specified.")
   private static final Arg<String> AUX_PORT_AS_PRIMARY = Arg.create(null);
 
+  @NotNegative
+  @CmdLine(name = "shard_id", help = "Shard ID for this application.")
+  private static final Arg<Integer> SHARD_ID = Arg.create();
+
   private static final Logger LOG = Logger.getLogger(ServerSetModule.class.getName());
 
   /**
@@ -128,7 +133,7 @@ public class ServerSetModule extends AbstractModule {
     }
 
     /**
-     * Allows joining an auxillary port with the specified {@code name} as the primary port of the
+     * Allows joining an auxiliary port with the specified {@code name} as the primary port of the
      * ServerSet.
      *
      * @param auxPortName The name of the auxillary port to join as the primary ServerSet port.
@@ -262,7 +267,12 @@ public class ServerSetModule extends AbstractModule {
 
       final EndpointStatus endpointStatus;
       try {
-        endpointStatus = serverSet.join(primary, auxSockets, initialStatus);
+        if (SHARD_ID.hasAppliedValue()) {
+          endpointStatus = serverSet.join(primary, auxSockets, initialStatus, SHARD_ID.get());
+        } else {
+          endpointStatus = serverSet.join(primary, auxSockets, initialStatus);
+        }
+
         endpointSupplier.set(endpointStatus);
       } catch (JoinException e) {
         LOG.log(Level.WARNING, "Failed to join ServerSet.", e);

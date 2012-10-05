@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import com.twitter.common.base.MorePreconditions;
+import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.thrift.ServiceInstance;
 import com.twitter.thrift.Status;
 
@@ -38,21 +39,15 @@ public class CompoundServerSet implements ServerSet {
     this.serverSets = ImmutableList.copyOf(serverSets);
   }
 
-  /*
-   * If any one of the serverSet throws an exception during respective join, the exception is
-   * propagated. Join is successful only if all the joins are successful.
-   *
-   * NOTE: If an exception occurs during the join, the serverSets in the composite can be in a
-   * partially joined state.
-   */
-  @Override
-  public EndpointStatus join(InetSocketAddress endpoint,
-      Map<String, InetSocketAddress> additionalEndpoints,
-      Status status) throws Group.JoinException, InterruptedException {
+  private interface JoinOp {
+    EndpointStatus doJoin(ServerSet serverSet) throws JoinException, InterruptedException;
+  }
+
+  private EndpointStatus doJoin(JoinOp joiner) throws JoinException, InterruptedException {
     // Get the list of endpoint status from the serverSets.
     ImmutableList.Builder<EndpointStatus> builder = ImmutableList.builder();
     for (ServerSet serverSet : serverSets) {
-      builder.add(serverSet.join(endpoint, additionalEndpoints, status));
+      builder.add(joiner.doJoin(serverSet));
     }
     final ImmutableList<EndpointStatus> statuses = builder.build();
 
@@ -70,10 +65,50 @@ public class CompoundServerSet implements ServerSet {
         }
         if (errorIdx > 1) {
           throw new UpdateException(
-            "One or more ServerSet update failed: " + STACK_TRACE_JOINER.join(builder.build()));
+              "One or more ServerSet update failed: " + STACK_TRACE_JOINER.join(builder.build()));
         }
       }
     };
+  }
+
+  /**
+   * If any one of the serverSet throws an exception during respective join, the exception is
+   * propagated. Join is successful only if all the joins are successful.
+   * <p>
+   * NOTE: If an exception occurs during the join, the serverSets in the composite can be in a
+   * partially joined state.
+   *
+   * @see ServerSet#join(InetSocketAddress, Map, Status)
+   */
+  @Override
+  public EndpointStatus join(
+      final InetSocketAddress endpoint,
+      final Map<String, InetSocketAddress> additionalEndpoints,
+      final Status status) throws Group.JoinException, InterruptedException {
+
+    return doJoin(new JoinOp() {
+      @Override public EndpointStatus doJoin(ServerSet serverSet)
+          throws JoinException, InterruptedException {
+
+        return serverSet.join(endpoint, additionalEndpoints, status);
+      }
+    });
+  }
+
+  @Override
+  public EndpointStatus join(
+      final InetSocketAddress endpoint,
+      final Map<String, InetSocketAddress> additionalEndpoints,
+      final Status status,
+      final int shardId) throws JoinException, InterruptedException {
+
+    return doJoin(new JoinOp() {
+      @Override public EndpointStatus doJoin(ServerSet serverSet)
+          throws JoinException, InterruptedException {
+
+        return serverSet.join(endpoint, additionalEndpoints, status, shardId);
+      }
+    });
   }
 
   // Handles changes to the union of hosts.

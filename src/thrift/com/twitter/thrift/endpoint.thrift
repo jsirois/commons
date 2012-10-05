@@ -104,4 +104,9 @@ struct ServiceInstance {
    * The status of this service instance.
    */
   3: Status status;
+
+  /*
+   * The shard identifier for this instance.
+   */
+  4: optional i32 shard;
 }

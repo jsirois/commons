@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
@@ -72,6 +72,8 @@ import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException
 import com.twitter.thrift.Endpoint;
 import com.twitter.thrift.ServiceInstance;
 import com.twitter.thrift.Status;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * ZooKeeper-backed implementation of {@link ServerSet}.
@@ -129,9 +131,9 @@ public class ServerSetImpl implements ServerSet {
    *     from a byte array
    */
   public ServerSetImpl(ZooKeeperClient zkClient, Group group, Codec<ServiceInstance> codec) {
-    this.zkClient = Preconditions.checkNotNull(zkClient);
-    this.group = Preconditions.checkNotNull(group);
-    this.codec = Preconditions.checkNotNull(codec);
+    this.zkClient = checkNotNull(zkClient);
+    this.group = checkNotNull(group);
+    this.codec = checkNotNull(codec);
 
     // TODO(John Sirois): Inject the helper so that backoff strategy can be configurable.
     backoffHelper = new BackoffHelper();
@@ -144,13 +146,36 @@ public class ServerSetImpl implements ServerSet {
 
   @Override
   public EndpointStatus join(InetSocketAddress endpoint,
-      Map<String, InetSocketAddress> additionalEndpoints, Status status)
-      throws JoinException, InterruptedException {
-    Preconditions.checkNotNull(endpoint);
-    Preconditions.checkNotNull(additionalEndpoints);
-    Preconditions.checkNotNull(status);
+      Map<String, InetSocketAddress> additionalEndpoints,
+      Status status) throws JoinException, InterruptedException {
 
-    final MemberStatus memberStatus = new MemberStatus(endpoint, additionalEndpoints, status);
+    LOG.log(Level.WARNING,
+        "Joining a ServerSet without a shard ID is deprecated and will soon break.");
+    return join(endpoint, additionalEndpoints, status, Optional.<Integer>absent());
+  }
+
+  @Override
+  public EndpointStatus join(
+      InetSocketAddress endpoint,
+      Map<String, InetSocketAddress> additionalEndpoints,
+      Status status,
+      int shardId) throws JoinException, InterruptedException {
+
+    return join(endpoint, additionalEndpoints, status, Optional.of(shardId));
+  }
+
+  private EndpointStatus join(
+      InetSocketAddress endpoint,
+      Map<String, InetSocketAddress> additionalEndpoints,
+      Status status,
+      Optional<Integer> shardId) throws JoinException, InterruptedException {
+
+    checkNotNull(endpoint);
+    checkNotNull(additionalEndpoints);
+    checkNotNull(status);
+
+    final MemberStatus memberStatus =
+        new MemberStatus(endpoint, additionalEndpoints, status, shardId);
     Supplier<byte[]> serviceInstanceSupplier = new Supplier<byte[]>() {
       @Override public byte[] get() {
         return memberStatus.serializeServiceInstance();
@@ -160,7 +185,7 @@ public class ServerSetImpl implements ServerSet {
 
     return new EndpointStatus() {
       @Override public void update(Status status) throws UpdateException {
-        Preconditions.checkNotNull(status);
+        checkNotNull(status);
         memberStatus.updateStatus(membership, status);
       }
     };
@@ -182,13 +207,18 @@ public class ServerSetImpl implements ServerSet {
     private final InetSocketAddress endpoint;
     private final Map<String, InetSocketAddress> additionalEndpoints;
     private volatile Status status;
+    private final Optional<Integer> shardId;
 
-    private MemberStatus(InetSocketAddress endpoint,
-        Map<String, InetSocketAddress> additionalEndpoints, Status status) {
+    private MemberStatus(
+        InetSocketAddress endpoint,
+        Map<String, InetSocketAddress> additionalEndpoints,
+        Status status,
+        Optional<Integer> shardId) {
 
       this.endpoint = endpoint;
       this.additionalEndpoints = additionalEndpoints;
       this.status = status;
+      this.shardId = shardId;
     }
 
     synchronized void updateStatus(Membership membership, Status status) throws UpdateException {
@@ -216,6 +246,10 @@ public class ServerSetImpl implements ServerSet {
       ServiceInstance serviceInstance =
           new ServiceInstance(ServerSets.toEndpoint(endpoint),
               Maps.transformValues(additionalEndpoints, ServerSets.TO_ENDPOINT), status);
+
+      if (shardId.isPresent()) {
+        serviceInstance.setShard(shardId.get());
+      }
 
       LOG.info("updating endpoint data to:\n\t" + serviceInstance);
       try {

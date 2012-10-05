@@ -91,11 +91,16 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     assertChangeFiredEmpty();
 
     ServerSetImpl server = createServerSet();
-    EndpointStatus status = server.join(InetSocketAddress.createUnresolved("foo", 1234),
-        makePortMap("http-admin", 8080), Status.ALIVE);
+    EndpointStatus status = server.join(
+        InetSocketAddress.createUnresolved("foo", 1234),
+        makePortMap("http-admin", 8080),
+        Status.ALIVE, 0);
 
-    ServiceInstance serviceInstance = new ServiceInstance(new Endpoint("foo", 1234),
-        ImmutableMap.of("http-admin", new Endpoint("foo", 8080)), Status.ALIVE);
+    ServiceInstance serviceInstance = new ServiceInstance(
+        new Endpoint("foo", 1234),
+        ImmutableMap.of("http-admin", new Endpoint("foo", 8080)),
+        Status.ALIVE)
+        .setShard(0);
 
     assertChangeFired(serviceInstance);
 
@@ -171,24 +176,42 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     ServerSetImpl server2 = createServerSet();
     ServerSetImpl server3 = createServerSet();
 
-    ServiceInstance instance1 = new ServiceInstance(new Endpoint("foo", 1000),
-        ImmutableMap.of("http-admin1", new Endpoint("foo", 8080)), Status.ALIVE);
-    ServiceInstance instance2 = new ServiceInstance(new Endpoint("foo", 1001),
-        ImmutableMap.of("http-admin2", new Endpoint("foo", 8081)), Status.ALIVE);
-    ServiceInstance instance3 = new ServiceInstance(new Endpoint("foo", 1002),
-        ImmutableMap.of("http-admin3", new Endpoint("foo", 8082)), Status.ALIVE);
+    ServiceInstance instance1 = new ServiceInstance(
+        new Endpoint("foo", 1000),
+        ImmutableMap.of("http-admin1", new Endpoint("foo", 8080)),
+        Status.ALIVE)
+        .setShard(0);
+    ServiceInstance instance2 = new ServiceInstance(
+        new Endpoint("foo", 1001),
+        ImmutableMap.of("http-admin2", new Endpoint("foo", 8081)),
+        Status.ALIVE)
+        .setShard(1);
+    ServiceInstance instance3 = new ServiceInstance(
+        new Endpoint("foo", 1002),
+        ImmutableMap.of("http-admin3", new Endpoint("foo", 8082)),
+        Status.ALIVE)
+        .setShard(2);
 
-    EndpointStatus status1 = server1.join(InetSocketAddress.createUnresolved("foo", 1000),
-        server1Ports, Status.ALIVE);
+    EndpointStatus status1 = server1.join(
+        InetSocketAddress.createUnresolved("foo", 1000),
+        server1Ports,
+        Status.ALIVE,
+        0);
     assertEquals(ImmutableList.of(instance1), ImmutableList.copyOf(serverSetBuffer.take()));
 
-    EndpointStatus status2 = server2.join(InetSocketAddress.createUnresolved("foo", 1001),
-        server2Ports, Status.ALIVE);
+    EndpointStatus status2 = server2.join(
+        InetSocketAddress.createUnresolved("foo", 1001),
+        server2Ports,
+        Status.ALIVE,
+        1);
     assertEquals(ImmutableList.of(instance1, instance2),
         ImmutableList.copyOf(serverSetBuffer.take()));
 
-    EndpointStatus status3 = server3.join(InetSocketAddress.createUnresolved("foo", 1002),
-        server3Ports, Status.ALIVE);
+    EndpointStatus status3 = server3.join(
+        InetSocketAddress.createUnresolved("foo", 1002),
+        server3Ports,
+        Status.ALIVE,
+        2);
     assertEquals(ImmutableList.of(instance1, instance2, instance3),
         ImmutableList.copyOf(serverSetBuffer.take()));
 
