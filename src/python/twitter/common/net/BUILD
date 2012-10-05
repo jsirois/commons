@@ -15,9 +15,26 @@
 # ==================================================================================================
 
 python_library(
-  name = "ssh",
-  sources = ("tunnel.py"),
+  name = 'tunnel',
+  sources = ('tunnel.py',),
   dependencies = [
     pants('src/python/twitter/common/quantity')
   ]
 )
+
+
+# aliases
+python_library(
+  name = 'net',
+  dependencies = [
+    pants(':tunnel'),
+  ]
+)
+
+python_library(
+  name = 'ssh',
+  dependencies = [
+    pants(':tunnel'),
+  ]
+)
+

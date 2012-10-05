@@ -39,6 +39,11 @@ except ImportError:
   HAS_APP=False
 
 
+__all__ = (
+  'TunnelHelper',
+)
+
+
 def safe_kill(po):
   """
     Given a Popen object, safely kill it without an unexpected exception.
@@ -57,6 +62,7 @@ class TunnelHelper(object):
   The ssh binary must be on the PATH.
   """
   TUNNELS = {}
+  PROXIES = {}
   MIN_RETRY = Amount(5, Time.MILLISECONDS)
 
   class TunnelError(Exception): pass
@@ -69,6 +75,25 @@ class TunnelHelper(object):
     _, port = s.getsockname()
     s.close()
     return port
+
+  @staticmethod
+  def acquire_host_pair(host=None, port=None):
+    if HAS_APP:
+      host = host or app.get_options().tunnel_host
+    assert host is not None, 'Must specify tunnel host!'
+    port = port or TunnelHelper._get_random_port()
+    return host, port
+
+  @staticmethod
+  def create_tunnel(remote_host, remote_port, tunnel_host=None, tunnel_port=None):
+    """
+      Create a tunnel via tunnel_host, tunnel_port to the remote_host, remote_port.
+      If tunnel_port not supplied, a random port will be chosen.
+    """
+    tunnel_key = (remote_host, remote_port)
+    if tunnel_key in TunnelHelper.TUNNELS:
+      return 'localhost', TunnelHelper.TUNNELS[tunnel_key][0]
+    tunnel_host, tunnel_port = TunnelHelper.acquire_host_pair(tunnel_host, tunnel_port)
 
   @classmethod
   def wait_for_accept(cls, port, timeout=Amount(5, Time.SECONDS)):
@@ -104,13 +129,25 @@ class TunnelHelper(object):
                                   remote_host,
                                   remote_port),
                     tunnel_host)
-
     cls.TUNNELS[tunnel_key] = (tunnel_port,
       subprocess.Popen(ssh_cmd_args, stdin=subprocess.PIPE))
 
     if not cls.wait_for_accept(tunnel_port):
       raise cls.TunnelError('Could not establish tunnel via %s' % remote_host)
     return 'localhost', tunnel_port
+
+  @staticmethod
+  def create_proxy(proxy_host=None, proxy_port=None):
+    """
+      Create a SOCKS proxy.
+    """
+    if proxy_host in TunnelHelper.PROXIES:
+      return 'localhost', TunnelHelper.PROXIES[proxy_host][0]
+    proxy_host, proxy_port = TunnelHelper.acquire_host_pair(proxy_host, proxy_port)
+    ssh_cmd_args = ('ssh', '-T', '-D', str(proxy_port), proxy_host)
+    TunnelHelper.PROXIES[proxy_host] = (proxy_port,
+       subprocess.Popen(ssh_cmd_args, stdin=subprocess.PIPE))
+    return 'localhost', proxy_port
 
   @classmethod
   def cancel_tunnel(cls, remote_host, remote_port):
@@ -123,6 +160,8 @@ class TunnelHelper(object):
 
 
 @atexit.register
-def _cleanup_tunnels():
+def _cleanup():
   for _, po in TunnelHelper.TUNNELS.values():
+    safe_kill(po)
+  for _, po in TunnelHelper.PROXIES.values():
     safe_kill(po)
