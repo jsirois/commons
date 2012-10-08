@@ -176,7 +176,7 @@ FINAGLE_REV = '5.3.9'
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV),
-                           ])
+            ])
 jar_library(name = 'finagle-core',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV),
                              pants(':util-core'),
@@ -379,7 +379,7 @@ jar_library(name = 'stringtemplate',
 
 jar_library(name = 'libthrift-0.5.0',
             dependencies = [
-              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0'),
+              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0-1'),
             ]
            )
 
