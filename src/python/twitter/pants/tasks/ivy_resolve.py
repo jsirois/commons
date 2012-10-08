@@ -67,14 +67,14 @@ class IvyResolve(NailgunTask):
                             help="Use this directory as the ivy cache, instead of the " \
                                  "default specified in pants.ini.")
 
-  def __init__(self, context):
+  def __init__(self, context, confs=None):
     classpath = context.config.getlist('ivy', 'classpath')
     nailgun_dir = context.config.get('ivy-resolve', 'nailgun_dir')
     NailgunTask.__init__(self, context, classpath=classpath, workdir=nailgun_dir)
 
     self._ivy_settings = context.config.get('ivy', 'ivy_settings')
     self._cachedir = context.options.ivy_resolve_cache or context.config.get('ivy', 'cache_dir')
-    self._confs = context.config.getlist('ivy-resolve', 'confs')
+    self._confs = confs or context.config.getlist('ivy-resolve', 'confs')
     self._transitive = context.config.getbool('ivy-resolve', 'transitive')
     self._args = context.config.getlist('ivy-resolve', 'args')
 
@@ -178,7 +178,7 @@ class IvyResolve(NailgunTask):
 
     if self._report:
       self._generate_ivy_report()
-      
+
     if self.context.products.isrequired("ivy_jar_products"):
       self._populate_ivy_jar_products()
 
@@ -195,6 +195,7 @@ class IvyResolve(NailgunTask):
       module=name,
       version='latest.integration',
       publications=None,
+      is_idl=False,
       dependencies=[self._generate_jar_template(jar) for jar in jars],
       excludes=[self._generate_exclude_template(exclude) for exclude in excludes]
     )
@@ -287,8 +288,11 @@ class IvyResolve(NailgunTask):
 
   @contextmanager
   def _cachepath(self, file):
-    with safe_open(file, 'r') as cp:
-      yield (path.strip() for path in cp.read().split(os.pathsep) if path.strip())
+    if not os.path.exists(file):
+      yield ()
+    else:
+      with safe_open(file, 'r') as cp:
+        yield (path.strip() for path in cp.read().split(os.pathsep) if path.strip())
 
   def _mapjars(self, genmap, target):
     """

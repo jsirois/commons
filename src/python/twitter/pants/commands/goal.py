@@ -451,7 +451,9 @@ from twitter.pants.tasks.binary_create import BinaryCreate
 from twitter.pants.tasks.build_lint import BuildLint
 from twitter.pants.tasks.bundle_create import BundleCreate
 from twitter.pants.tasks.checkstyle import Checkstyle
+from twitter.pants.tasks.extract import Extract
 from twitter.pants.tasks.filedeps import FileDeps
+from twitter.pants.tasks.idl_resolve import IdlResolve
 from twitter.pants.tasks.ivy_resolve import IvyResolve
 from twitter.pants.tasks.jar_create import JarCreate
 from twitter.pants.tasks.jar_publish import JarPublish
@@ -529,12 +531,24 @@ goal(
   dependencies=['gen']
 ).install('resolve').with_description('Resolves jar dependencies and produces dependency reports.')
 
+goal(
+  name='idl',
+  action=IdlResolve,
+).install('resolve-idl').with_description('Resovles idl jar dependencies.')
+
+goal(
+  name='extract',
+  action=Extract,
+).install('resolve-idl')
 
 # TODO(John Sirois): gen attempted as the sole Goal should gen for all known gen types but
 # recognize flags to narrow the gen set
-goal(name='thrift', action=ThriftGen).install('gen').with_description('Generate code.')
-goal(name='protoc', action=ProtobufGen).install('gen')
-goal(name='antlr', action=AntlrGen).install('gen')
+goal(name='thrift', action=ThriftGen,
+  dependencies=['resolve-idl']).install('gen').with_description('Generate code.')
+goal(name='protoc', action=ProtobufGen,
+  dependencies=['resolve-idl']).install('gen')
+goal(name='antlr', action=AntlrGen,
+  dependencies=['resolve-idl']).install('gen')
 
 goal(
   name='checkstyle',
