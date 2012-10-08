@@ -458,6 +458,7 @@ class ActiveGroup(Group):
       if rc != zookeeper.OK:
         return
 
+      children = [child for child in children if self.znode_owned(child)]
       _, new = self._update_children(children)
       for child in new:
         def devnull(*args, **kw): pass

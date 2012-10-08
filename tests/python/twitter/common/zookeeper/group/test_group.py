@@ -319,6 +319,17 @@ class TestGroup(unittest.TestCase):
     assert membership_event.is_set()
     assert members == set([membership])
 
+  def test_children_filtering(self):
+    zk = self.make_zk(self._server.ensemble)
+    zk.create('/test', '', ZooDefs.Acls.OPEN_ACL_UNSAFE)
+    zk.create('/test/alt_member_', '',  ZooDefs.Acls.OPEN_ACL_UNSAFE,
+        zookeeper.SEQUENCE | zookeeper.EPHEMERAL)
+    zk.create('/test/candidate_', '',  ZooDefs.Acls.OPEN_ACL_UNSAFE,
+        zookeeper.SEQUENCE | zookeeper.EPHEMERAL)
+    zkg = self.GroupImpl(self._zk, '/test')
+    assert list(zkg) == []
+    assert zkg.monitor(membership=set(['frank', 'larry'])) == set()
+
   def test_monitor_then_info(self):
     zkg1 = self.GroupImpl(self._zk, '/test')
     zkg2 = self.GroupImpl(self._zk, '/test')
