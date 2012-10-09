@@ -65,7 +65,19 @@ def safe_delete(filename):
 
 
 def _calculate_bsize(stat):
-  return stat.st_blocks * stat.st_blksize
+  """
+    Calculate the actual disk allocation for a file.  This works at least on OS X and
+    Linux, but may not work on other systems with 1024-byte blocks (apparently HP-UX?)
+
+    From pubs.opengroup.org:
+
+    The unit for the st_blocks member of the stat structure is not defined
+    within IEEE Std 1003.1-2001 / POSIX.1-2008.  In some implementations it
+    is 512 bytes.  It may differ on a file system basis.  There is no
+    correlation between values of the st_blocks and st_blksize, and the
+    f_bsize (from <sys/statvfs.h>) structure members.
+  """
+  return 512 * stat.st_blocks
 
 
 def _calculate_size(stat):
