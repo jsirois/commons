@@ -14,18 +14,16 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import functools
 import os
 
 from contextlib import contextmanager
 from zipfile import ZIP_STORED, ZIP_DEFLATED
 
-from twitter.common.contextutil import open_zip as open_jar
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot, is_apt, JavaLibrary, JavaTests, ScalaLibrary, ScalaTests
+from twitter.pants.java import open_jar
 from twitter.pants.tasks import Task, TaskError
 
 

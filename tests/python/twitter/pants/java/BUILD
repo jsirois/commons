@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2011 Twitter, Inc.
+# Copyright 2012 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -14,22 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-python_tests(name='utils',
-  sources=globs('*.py'),
+python_tests(name = 'java',
+  sources = globs('*.py'),
   dependencies = [
+    pants("src/python/twitter/common/contextutil"),
+    pants("src/python/twitter/common/dirutil"),
     pants("src/python/twitter/pants:pants-lib"),
-    pants("src/python/twitter/pants:pants-deps"),
-  ]
-)
-
-python_test_suite(name = 'all',
-  dependencies = [
-    pants(':utils'),
-    pants('tests/python/twitter/pants/base'),
-    pants('tests/python/twitter/pants/commands'),
-    pants('tests/python/twitter/pants/java'),
-    pants('tests/python/twitter/pants/python:all'),
-    pants('tests/python/twitter/pants/targets'),
-    pants('tests/python/twitter/pants/tasks'),
   ]
 )

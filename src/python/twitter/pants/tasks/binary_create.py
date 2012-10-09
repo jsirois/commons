@@ -14,17 +14,15 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 
 from zipfile import  ZIP_STORED, ZIP_DEFLATED
 
-from twitter.common.contextutil import open_zip as open_jar, temporary_dir
+from twitter.common.contextutil import temporary_dir
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot, get_version, is_internal
-from twitter.pants.java import Manifest
+from twitter.pants.java import open_jar, Manifest
 from twitter.pants.tasks.binary_utils import safe_extract
 from twitter.pants.tasks.jvm_binary_task import JvmBinaryTask
 
