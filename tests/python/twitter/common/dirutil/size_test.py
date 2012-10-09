@@ -38,7 +38,7 @@ def test_size():
     assert safe_size(file1) == 101
 
     f1stat = os.stat(file1)
-    assert safe_bsize(file1) == f1stat.st_blksize * f1stat.st_blocks
+    assert safe_bsize(file1) == 512 * f1stat.st_blocks
     assert du(td) == safe_bsize(file1)
 
     file2 = os.path.join(td, 'file2.txt')
