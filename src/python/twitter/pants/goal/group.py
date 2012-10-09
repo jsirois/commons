@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from twitter.common.collections import OrderedDict, OrderedSet
 from twitter.pants import is_internal
 from twitter.pants.targets import InternalTarget
@@ -12,7 +14,12 @@ class Group(object):
       """Execute and time a single goal that has had all of its dependencies satisfied."""
       start = context.timer.now() if context.timer else None
       try:
-        task.execute(targets)
+        # TODO (Senthil Kumaran):
+        # Possible refactoring of the Task Execution Logic (AWESOME-1019)
+        if context.options.explain:
+          context.log.debug("Skipping execution of %s in explain mode" % name)
+        else:
+          task.execute(targets)
       finally:
         elapsed = context.timer.now() - start if context.timer else None
         if phase not in executed:
@@ -22,6 +29,13 @@ class Group(object):
           if name not in phase_timings:
             phase_timings[name] = []
           phase_timings[name].append(elapsed)
+
+    tasks_by_goalname = dict((goal.name, task.__class__.__name__)
+        for goal, task in tasks_by_goal.items())
+
+    def expand_goal(goal):
+      task_name = tasks_by_goalname[goal]
+      return "%s->%s" % (goal, task_name)
 
     if phase not in executed:
       # Note the locking strategy: We lock the first time we need to, and hold the lock until we're done,
@@ -55,10 +69,13 @@ class Group(object):
         else:
           runqueue.append((None, [goal]))
 
+      execution_phases = defaultdict(list)
+
       for group_name, goals in runqueue:
         if not group_name:
           goal = goals[0]
           context.log.info('[%s:%s]' % (phase, goal.name))
+          execution_phases[phase].append(goal.name)
           execute_task(goal.name, tasks_by_goal[goal], context.targets())
         else:
           for chunk in Group._create_chunks(context, goals):
@@ -66,7 +83,13 @@ class Group(object):
               goal_chunk = filter(goal.group.predicate, chunk)
               if len(goal_chunk) > 0:
                 context.log.info('[%s:%s:%s]' % (phase, group_name, goal.name))
+                execution_phases[phase].append([group_name, goal.name])
                 execute_task(goal.name, tasks_by_goal[goal], goal_chunk)
+
+      if context.options.explain:
+        for phase, goals in execution_phases.items():
+          goal_to_task = ", ".join(expand_goal(goal) for goal in goals)
+          print("%s [%s]" % (phase, goal_to_task))
 
       # Can't put this in a finally block because some tasks fork, and the forked processes would
       # execute this block as well.

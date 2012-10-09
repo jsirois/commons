@@ -126,9 +126,15 @@ class Phase(PhaseBase):
               tasks_by_goal[goal] = task
 
       # Execute phases leaves to roots
-      context.log.debug(
-        'Executing goals in phases %s' % ' -> '.join(map(str, reversed(expanded)))
-      )
+      execution_phases = ' -> '.join(map(str, reversed(expanded)))
+
+      context.log.debug('Executing goals in phases %s' % execution_phases)
+
+
+      if context.options.explain:
+        print("Phase Execution Order:\n\n%s\n" % execution_phases)
+        print("Phase [Goal->Task] Order:\n")
+
       for phase in phases:
         Group.execute(phase, tasks_by_goal, context, executed)
 

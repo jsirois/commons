@@ -109,6 +109,8 @@ class Goal(Command):
   GLOBAL_OPTIONS = [
     Option("-x", "--time", action="store_true", dest="time", default=False,
            help="Times goal phases and outputs a report."),
+    Option("-e", "--explain", action="store_true", dest="explain", default=False,
+           help="Explain the execution of goals."),
     Option("-v", "--log", action="store_true", dest="log", default=False,
            help="[%default] Logs extra build output."),
     Option("-d", "--logdir", dest="logdir",
