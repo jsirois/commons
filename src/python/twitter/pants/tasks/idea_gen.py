@@ -73,6 +73,9 @@ class IdeaGen(IdeGen):
                             dest="idea_gen_java_encoding",
                             help="[%default] Sets the file encoding for java files in this "
                                    "project.")
+    option_group.add_option(mkflag("java-maximum-heap-size"), default="128",
+                            dest="idea_gen_java_maximum_heap_size",
+                            help="[%default] Sets the maximum heap size (in megabytes) for javac.")
 
   def __init__(self, context):
     IdeGen.__init__(self, context)
@@ -85,6 +88,7 @@ class IdeaGen(IdeGen):
     self.fsc = context.options.idea_gen_fsc
 
     self.java_encoding = context.options.idea_gen_java_encoding
+    self.java_maximum_heap_size = context.options.idea_gen_java_maximum_heap_size
 
     idea_version = _VERSIONS[context.options.idea_gen_version]
     self.project_template = os.path.join(_TEMPLATE_BASEDIR, 'project-%s.mustache' % idea_version)
@@ -138,6 +142,7 @@ class IdeaGen(IdeGen):
       modules=[ configured_module ],
       java=TemplateData(
         encoding=self.java_encoding,
+        maximum_heap_size=self.java_maximum_heap_size,
         jdk=self.java_jdk,
         language_level = 'JDK_1_%d' % self.java_language_level
       ),
