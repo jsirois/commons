@@ -107,7 +107,6 @@ public class ServerSetModule extends AbstractModule {
    */
   public static class Builder {
     private Key<ServerSet> key = Key.get(ServerSet.class);
-    private Status initialStatus = Status.ALIVE;
     private Optional<String> auxPortAsPrimary = Optional.absent();
 
     /**
@@ -122,18 +121,7 @@ public class ServerSetModule extends AbstractModule {
     }
 
     /**
-     * Sets the initial status to join the ServerSet with.
-     *
-     * @param initialStatus The initial status to join the ServerSet with.
-     * @return This builder for chaining calls.
-     */
-    public Builder initialStatus(Status initialStatus) {
-      this.initialStatus = initialStatus;
-      return this;
-    }
-
-    /**
-     * Allows joining an auxiliary port with the specified {@code name} as the primary port of the
+     * Allows joining an auxillary port with the specified {@code name} as the primary port of the
      * ServerSet.
      *
      * @param auxPortName The name of the auxillary port to join as the primary ServerSet port.
@@ -150,7 +138,7 @@ public class ServerSetModule extends AbstractModule {
      * @return A Module.
      */
     public ServerSetModule build() {
-      return new ServerSetModule(key, initialStatus, auxPortAsPrimary);
+      return new ServerSetModule(key, auxPortAsPrimary);
     }
   }
 
@@ -164,7 +152,6 @@ public class ServerSetModule extends AbstractModule {
   }
 
   private final Key<ServerSet> serverSetKey;
-  private final Status initialStatus;
   private final Optional<String> auxPortAsPrimary;
 
   /**
@@ -173,15 +160,11 @@ public class ServerSetModule extends AbstractModule {
    * service port.
    *
    * @param serverSetKey The key the ServerSet to join is bound under.
-   * @param initialStatus Initial Status to report to ZooKeeper.
    * @param auxPortAsPrimary Name of the auxiliary port to use as the primary port.
    */
-  ServerSetModule(Key<ServerSet> serverSetKey,
-      Status initialStatus,
-      Optional<String> auxPortAsPrimary) {
+  ServerSetModule(Key<ServerSet> serverSetKey, Optional<String> auxPortAsPrimary) {
 
     this.serverSetKey = checkNotNull(serverSetKey);
-    this.initialStatus = checkNotNull(initialStatus);
     this.auxPortAsPrimary = checkNotNull(auxPortAsPrimary);
   }
 
@@ -195,7 +178,6 @@ public class ServerSetModule extends AbstractModule {
 
     bind(new TypeLiteral<Supplier<EndpointStatus>>() { }).to(EndpointSupplier.class);
     bind(EndpointSupplier.class).in(Singleton.class);
-    bind(Status.class).annotatedWith(Default.class).toInstance(initialStatus);
 
     Optional<String> primaryPortName;
     if (AUX_PORT_AS_PRIMARY.hasAppliedValue()) {
@@ -228,7 +210,6 @@ public class ServerSetModule extends AbstractModule {
     private final LocalServiceRegistry serviceRegistry;
     private final ShutdownRegistry shutdownRegistry;
     private final EndpointSupplier endpointSupplier;
-    private final Status initialStatus;
     private final Optional<String> auxPortAsPrimary;
 
     @Inject
@@ -237,14 +218,12 @@ public class ServerSetModule extends AbstractModule {
         LocalServiceRegistry serviceRegistry,
         ShutdownRegistry shutdownRegistry,
         EndpointSupplier endpointSupplier,
-        @Default Status initialStatus,
         @Default Optional<String> auxPortAsPrimary) {
 
       this.serverSet = checkNotNull(serverSet);
       this.serviceRegistry = checkNotNull(serviceRegistry);
       this.shutdownRegistry = checkNotNull(shutdownRegistry);
       this.endpointSupplier = checkNotNull(endpointSupplier);
-      this.initialStatus = checkNotNull(initialStatus);
       this.auxPortAsPrimary = checkNotNull(auxPortAsPrimary);
     }
 
@@ -268,9 +247,9 @@ public class ServerSetModule extends AbstractModule {
       final EndpointStatus endpointStatus;
       try {
         if (SHARD_ID.hasAppliedValue()) {
-          endpointStatus = serverSet.join(primary, auxSockets, initialStatus, SHARD_ID.get());
+          endpointStatus = serverSet.join(primary, auxSockets, SHARD_ID.get());
         } else {
-          endpointStatus = serverSet.join(primary, auxSockets, initialStatus);
+          endpointStatus = serverSet.join(primary, auxSockets);
         }
 
         endpointSupplier.set(endpointStatus);
@@ -286,7 +265,7 @@ public class ServerSetModule extends AbstractModule {
       shutdownRegistry.addAction(new ExceptionalCommand<UpdateException>() {
         @Override public void execute() throws UpdateException {
           LOG.info("Leaving ServerSet.");
-          endpointStatus.update(Status.DEAD);
+          endpointStatus.leave();
         }
       });
     }

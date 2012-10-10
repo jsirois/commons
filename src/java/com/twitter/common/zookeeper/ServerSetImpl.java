@@ -34,7 +34,6 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -48,9 +47,6 @@ import com.google.gson.GsonBuilder;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 
@@ -145,37 +141,35 @@ public class ServerSetImpl implements ServerSet {
   }
 
   @Override
-  public EndpointStatus join(InetSocketAddress endpoint,
-      Map<String, InetSocketAddress> additionalEndpoints,
-      Status status) throws JoinException, InterruptedException {
+  public EndpointStatus join(
+      InetSocketAddress endpoint,
+      Map<String, InetSocketAddress> additionalEndpoints)
+      throws JoinException, InterruptedException {
 
     LOG.log(Level.WARNING,
         "Joining a ServerSet without a shard ID is deprecated and will soon break.");
-    return join(endpoint, additionalEndpoints, status, Optional.<Integer>absent());
+    return join(endpoint, additionalEndpoints, Optional.<Integer>absent());
   }
 
   @Override
   public EndpointStatus join(
       InetSocketAddress endpoint,
       Map<String, InetSocketAddress> additionalEndpoints,
-      Status status,
       int shardId) throws JoinException, InterruptedException {
 
-    return join(endpoint, additionalEndpoints, status, Optional.of(shardId));
+    return join(endpoint, additionalEndpoints, Optional.of(shardId));
   }
 
   private EndpointStatus join(
       InetSocketAddress endpoint,
       Map<String, InetSocketAddress> additionalEndpoints,
-      Status status,
       Optional<Integer> shardId) throws JoinException, InterruptedException {
 
     checkNotNull(endpoint);
     checkNotNull(additionalEndpoints);
-    checkNotNull(status);
 
     final MemberStatus memberStatus =
-        new MemberStatus(endpoint, additionalEndpoints, status, shardId);
+        new MemberStatus(endpoint, additionalEndpoints, shardId);
     Supplier<byte[]> serviceInstanceSupplier = new Supplier<byte[]>() {
       @Override public byte[] get() {
         return memberStatus.serializeServiceInstance();
@@ -186,9 +180,34 @@ public class ServerSetImpl implements ServerSet {
     return new EndpointStatus() {
       @Override public void update(Status status) throws UpdateException {
         checkNotNull(status);
-        memberStatus.updateStatus(membership, status);
+        LOG.warning("This method is deprecated. Please use leave() instead.");
+        if (status == Status.DEAD) {
+          leave();
+        } else {
+          LOG.warning("Status update has been ignored");
+        }
+      }
+
+      @Override public void leave() throws UpdateException {
+        memberStatus.leave(membership);
       }
     };
+  }
+
+  @Override
+  public EndpointStatus join(
+      InetSocketAddress endpoint,
+      Map<String, InetSocketAddress> additionalEndpoints,
+      Status status) throws JoinException, InterruptedException {
+
+    LOG.warning("This method is deprecated. Please do not specify a status field.");
+    if (status != Status.ALIVE) {
+      LOG.severe("**************************************************************************\n"
+          + "WARNING: MUTABLE STATUS FIELDS ARE NO LONGER SUPPORTED.\n"
+          + "JOINING WITH STATUS ALIVE EVEN THOUGH YOU SPECIFIED " + status
+          + "\n**************************************************************************");
+    }
+    return join(endpoint, additionalEndpoints);
   }
 
   @Override
@@ -206,46 +225,32 @@ public class ServerSetImpl implements ServerSet {
   private class MemberStatus {
     private final InetSocketAddress endpoint;
     private final Map<String, InetSocketAddress> additionalEndpoints;
-    private volatile Status status;
     private final Optional<Integer> shardId;
 
     private MemberStatus(
         InetSocketAddress endpoint,
         Map<String, InetSocketAddress> additionalEndpoints,
-        Status status,
         Optional<Integer> shardId) {
 
       this.endpoint = endpoint;
       this.additionalEndpoints = additionalEndpoints;
-      this.status = status;
       this.shardId = shardId;
     }
 
-    synchronized void updateStatus(Membership membership, Status status) throws UpdateException {
-      if (this.status != status) {
-        this.status = status;
-        if (Status.DEAD == status) {
-          try {
-            membership.cancel();
-          } catch (JoinException e) {
-            throw new UpdateException(
-                "Failed to auto-cancel group membership on transition to DEAD status", e);
-          }
-        } else {
-          try {
-            membership.updateMemberData();
-          } catch (Group.UpdateException e) {
-            throw new UpdateException(
-                "Failed to update service data for: " + membership.getMemberPath(), e);
-          }
-        }
+    synchronized void leave(Membership membership) throws UpdateException {
+      try {
+        membership.cancel();
+      } catch (JoinException e) {
+        throw new UpdateException(
+            "Failed to auto-cancel group membership on transition to DEAD status", e);
       }
     }
 
     byte[] serializeServiceInstance() {
-      ServiceInstance serviceInstance =
-          new ServiceInstance(ServerSets.toEndpoint(endpoint),
-              Maps.transformValues(additionalEndpoints, ServerSets.TO_ENDPOINT), status);
+      ServiceInstance serviceInstance = new ServiceInstance(
+          ServerSets.toEndpoint(endpoint),
+          Maps.transformValues(additionalEndpoints, ServerSets.TO_ENDPOINT),
+          Status.ALIVE);
 
       if (shardId.isPresent()) {
         serviceInstance.setShard(shardId.get());
@@ -306,47 +311,12 @@ public class ServerSetImpl implements ServerSet {
       });
     }
 
-    private Watcher serviceInstanceWatcher = new Watcher() {
-      @Override public void process(WatchedEvent event) {
-        if (event.getState() == KeeperState.SyncConnected) {
-          switch (event.getType()) {
-            case None:
-              // Ignore re-connects that happen while we're watching
-              break;
-            case NodeDeleted:
-              // Ignore deletes since these trigger a group change through the group node watch.
-              break;
-            case NodeDataChanged:
-              notifyNodeChange(event.getPath());
-              break;
-            case NodeCreated:
-              // This watcher is only applied to ephemeral sequential server set member nodes we
-              // already know the path of (ie: the ephemeral sequential exists and we're told about
-              // this by reading children).  Its not clear how we can get a NodeCreated event for a
-              // node we already know about - but this appears to occur in the wild.  Firing a
-              // change here is safe even if the event path does not represent a server set member.
-              // The node de-serializer will throw ServiceInstanceFetchException in this case and
-              // these exceptions are logged and filtered out of member sets.
-              notifyNodeChange(event.getPath());
-
-              // TODO(John Sirois): inject a Statsprovider and track these events in a stat
-              LOG.warning("Unexpected NodeCreated event while watching service node: " +
-                  event.getPath());
-
-              break;
-            default:
-              LOG.severe("Unexpected event watching service node: " + event);
-          }
-        }
-      }
-    };
-
     private ServiceInstance getServiceInstance(final String nodePath) {
       try {
         return backoffHelper.doUntilResult(new Supplier<ServiceInstance>() {
           @Override public ServiceInstance get() {
             try {
-              byte[] data = zkClient.get().getData(nodePath, serviceInstanceWatcher, null);
+              byte[] data = zkClient.get().getData(nodePath, false, null);
               return ServerSets.deserializeServiceInstance(data, codec);
             } catch (InterruptedException e) {
               Thread.currentThread().interrupt();
@@ -392,13 +362,6 @@ public class ServerSetImpl implements ServerSet {
       Set<String> memberIds = ImmutableSet.copyOf(servicesByMemberId.asMap().keySet());
       servicesByMemberId.invalidateAll();
       notifyGroupChange(memberIds);
-    }
-
-    private void notifyNodeChange(String changedPath) {
-      // Invalidate the associated ServiceInstance to trigger a fetch on group notify.
-      String memberId = invalidateNodePath(changedPath);
-      notifyGroupChange(
-          Iterables.concat(servicesByMemberId.asMap().keySet(), ImmutableList.of(memberId)));
     }
 
     private String invalidateNodePath(String deletedPath) {

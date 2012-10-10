@@ -92,9 +92,7 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
 
     ServerSetImpl server = createServerSet();
     EndpointStatus status = server.join(
-        InetSocketAddress.createUnresolved("foo", 1234),
-        makePortMap("http-admin", 8080),
-        Status.ALIVE, 0);
+        InetSocketAddress.createUnresolved("foo", 1234), makePortMap("http-admin", 8080), 0);
 
     ServiceInstance serviceInstance = new ServiceInstance(
         new Endpoint("foo", 1234),
@@ -104,27 +102,8 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
 
     assertChangeFired(serviceInstance);
 
-    status.update(Status.STOPPING);
-    assertChangeFired(serviceInstance.deepCopy().setStatus(Status.STOPPING));
-
-    expireSession(server.getZkClient());
+    status.leave();
     assertChangeFiredEmpty();
-
-    // We should've auto re-joined in our previous state.
-    assertChangeFired(serviceInstance.deepCopy().setStatus(Status.STOPPING));
-
-    // Membership does not change during our monitor's expiration so we should not be notified.
-    expireSession(client.getZkClient());
-
-    status.update(Status.STOPPED);
-    assertChangeFired(serviceInstance.deepCopy().setStatus(Status.STOPPED));
-
-    // Neither membership nor status changed, so we should not be notified.
-    status.update(Status.STOPPED);
-
-    status.update(Status.DEAD);
-    assertChangeFiredEmpty();
-
     assertTrue(serverSetBuffer.isEmpty());
   }
 
@@ -147,16 +126,16 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     // change, just "foo", "bar" since this was an addition.
     assertChangeFired("foo", "bar");
 
-    foo.update(Status.DEAD);
+    foo.leave();
     assertChangeFired("bar");
 
     EndpointStatus baz = join(server, "baz");
     assertChangeFired("bar", "baz");
 
-    baz.update(Status.DEAD);
+    baz.leave();
     assertChangeFired("bar");
 
-    bar.update(Status.DEAD);
+    bar.leave();
     assertChangeFiredEmpty();
 
     assertTrue(serverSetBuffer.isEmpty());
@@ -195,34 +174,29 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     EndpointStatus status1 = server1.join(
         InetSocketAddress.createUnresolved("foo", 1000),
         server1Ports,
-        Status.ALIVE,
         0);
     assertEquals(ImmutableList.of(instance1), ImmutableList.copyOf(serverSetBuffer.take()));
 
     EndpointStatus status2 = server2.join(
         InetSocketAddress.createUnresolved("foo", 1001),
         server2Ports,
-        Status.ALIVE,
         1);
     assertEquals(ImmutableList.of(instance1, instance2),
         ImmutableList.copyOf(serverSetBuffer.take()));
 
     EndpointStatus status3 = server3.join(
-        InetSocketAddress.createUnresolved("foo", 1002),
-        server3Ports,
-        Status.ALIVE,
-        2);
+        InetSocketAddress.createUnresolved("foo", 1002), server3Ports, 2);
     assertEquals(ImmutableList.of(instance1, instance2, instance3),
         ImmutableList.copyOf(serverSetBuffer.take()));
 
-    status2.update(Status.DEAD);
+    status2.leave();
     assertEquals(ImmutableList.of(instance1, instance3),
         ImmutableList.copyOf(serverSetBuffer.take()));
   }
 
-  //TODO(Jake Mannix) move this test method to ServerSetConnectionPoolTest, which should be renamed to
-  //DynamicBackendConnectionPoolTest, and refactor assertChangeFired* methods to be used both
-  //here and there
+  //TODO(Jake Mannix) move this test method to ServerSetConnectionPoolTest, which should be renamed
+  // to DynamicBackendConnectionPoolTest, and refactor assertChangeFired* methods to be used both
+  // here and there
   @Test
   public void testThriftWithServerSet() throws Exception {
     final AtomicReference<Socket> clientConnection = new AtomicReference<Socket>();
@@ -246,21 +220,10 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     serverSetImpl.monitor(serverSetMonitor);
     assertChangeFiredEmpty();
     InetSocketAddress localSocket = new InetSocketAddress(server.getLocalPort());
-    EndpointStatus status = serverSetImpl.join(localSocket,
-        Maps.<String, InetSocketAddress>newHashMap(), Status.STARTING);
-    assertChangeFired(ImmutableMap.<InetSocketAddress, Status>of(localSocket, Status.STARTING));
-
-    Service.Iface svc = createThriftClient(serverSetImpl);
-    try {
-      svc.getString();
-      fail("ServerSet is currently empty, should throw exception here.");
-    } catch (TResourceExhaustedException e) {
-      assertTrue(true);
-    }
-    status.update(Status.ALIVE);
+    EndpointStatus status = serverSetImpl.join(localSocket, Maps.<String, InetSocketAddress>newHashMap());
     assertChangeFired(ImmutableMap.<InetSocketAddress, Status>of(localSocket, Status.ALIVE));
 
-    svc = createThriftClient(serverSetImpl);
+    Service.Iface svc = createThriftClient(serverSetImpl);
     try {
       String value = svc.getString();
       LOG.info("Got value: " + value + " from server");
@@ -308,8 +271,7 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
   private EndpointStatus join(ServerSet serverSet, String host)
       throws JoinException, InterruptedException {
 
-    return serverSet.join(InetSocketAddress.createUnresolved(host, 42),
-        ImmutableMap.<String, InetSocketAddress>of(), Status.ALIVE);
+    return serverSet.join(InetSocketAddress.createUnresolved(host, 42), ImmutableMap.<String, InetSocketAddress>of());
   }
 
   private void assertChangeFired(Map<InetSocketAddress, Status> hostsStatuses)

@@ -43,38 +43,76 @@ public class CompoundServerSet implements ServerSet {
     EndpointStatus doJoin(ServerSet serverSet) throws JoinException, InterruptedException;
   }
 
+  private interface StatusOp {
+    void changeStatus(EndpointStatus status) throws UpdateException;
+  }
+
+  private void changeStatus(
+      ImmutableList<EndpointStatus> statuses,
+      StatusOp statusOp) throws UpdateException {
+
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    int errorIdx = 1;
+    for (EndpointStatus endpointStatus : statuses) {
+      try {
+        statusOp.changeStatus(endpointStatus);
+      } catch (UpdateException exception) {
+        builder.add(String.format("[%d] %s", errorIdx++,
+            Throwables.getStackTraceAsString(exception)));
+      }
+    }
+    if (errorIdx > 1) {
+      throw new UpdateException(
+          "One or more ServerSet update failed: " + STACK_TRACE_JOINER.join(builder.build()));
+    }
+  }
+
   private EndpointStatus doJoin(JoinOp joiner) throws JoinException, InterruptedException {
     // Get the list of endpoint status from the serverSets.
     ImmutableList.Builder<EndpointStatus> builder = ImmutableList.builder();
     for (ServerSet serverSet : serverSets) {
       builder.add(joiner.doJoin(serverSet));
     }
+
     final ImmutableList<EndpointStatus> statuses = builder.build();
 
     return new EndpointStatus() {
-      @Override public void update(Status status) throws UpdateException {
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-        int errorIdx = 1;
-        for (EndpointStatus endpointStatus : statuses) {
-          try {
-            endpointStatus.update(status);
-          } catch (UpdateException exception) {
-            builder.add(String.format("[%d] %s", errorIdx++,
-                Throwables.getStackTraceAsString(exception)));
+      @Override public void leave() throws UpdateException {
+        changeStatus(statuses, new StatusOp() {
+          @Override public void changeStatus(EndpointStatus status) throws UpdateException {
+            status.leave();
           }
-        }
-        if (errorIdx > 1) {
-          throw new UpdateException(
-              "One or more ServerSet update failed: " + STACK_TRACE_JOINER.join(builder.build()));
-        }
+        });
+      }
+
+      @Override public void update(final Status newStatus) throws UpdateException {
+        changeStatus(statuses, new StatusOp() {
+          @Override public void changeStatus(EndpointStatus status) throws UpdateException {
+            status.update(newStatus);
+          }
+        });
       }
     };
   }
 
-  /**
+  @Override
+  public EndpointStatus join(
+      final InetSocketAddress endpoint,
+      final Map<String, InetSocketAddress> additionalEndpoints)
+      throws Group.JoinException, InterruptedException {
+
+    return doJoin(new JoinOp() {
+      @Override public EndpointStatus doJoin(ServerSet serverSet)
+          throws JoinException, InterruptedException {
+        return serverSet.join(endpoint, additionalEndpoints);
+      }
+    });
+  }
+
+  /*
    * If any one of the serverSet throws an exception during respective join, the exception is
    * propagated. Join is successful only if all the joins are successful.
-   * <p>
+   *
    * NOTE: If an exception occurs during the join, the serverSets in the composite can be in a
    * partially joined state.
    *
@@ -99,14 +137,13 @@ public class CompoundServerSet implements ServerSet {
   public EndpointStatus join(
       final InetSocketAddress endpoint,
       final Map<String, InetSocketAddress> additionalEndpoints,
-      final Status status,
       final int shardId) throws JoinException, InterruptedException {
 
     return doJoin(new JoinOp() {
       @Override public EndpointStatus doJoin(ServerSet serverSet)
           throws JoinException, InterruptedException {
 
-        return serverSet.join(endpoint, additionalEndpoints, status, shardId);
+        return serverSet.join(endpoint, additionalEndpoints, shardId);
       }
     });
   }

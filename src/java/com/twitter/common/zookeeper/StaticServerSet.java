@@ -63,14 +63,13 @@ public class StaticServerSet implements ServerSet {
   private EndpointStatus join(
       InetSocketAddress endpoint,
       Map<String, InetSocketAddress> auxEndpoints,
-      Status status,
       Optional<Integer> shardId) {
 
     LOG.warning("Attempt to join fixed server set ignored.");
     ServiceInstance joining = new ServiceInstance(
         ServerSets.toEndpoint(endpoint),
         Maps.transformValues(auxEndpoints, ServerSets.TO_ENDPOINT),
-        status);
+        Status.ALIVE);
     if (shardId.isPresent()) {
       joining.setShard(shardId.get());
     }
@@ -80,8 +79,12 @@ public class StaticServerSet implements ServerSet {
     }
 
     return new EndpointStatus() {
+      @Override public void leave() throws UpdateException {
+        LOG.warning("Attempt to adjust state of fixed server set ignored.");
+      }
+
       @Override public void update(Status status) throws UpdateException {
-        LOG.warning("Attempt to adjust static of fixed server set ignored.");
+        LOG.warning("Attempt to adjust state of fixed server set ignored.");
       }
     };
   }
@@ -92,17 +95,26 @@ public class StaticServerSet implements ServerSet {
       Map<String, InetSocketAddress> auxEndpoints,
       Status status) {
 
-    return join(endpoint, auxEndpoints, status, Optional.<Integer>absent());
+    LOG.warning("This method is deprecated. Please do not specify a status field.");
+    return join(endpoint, auxEndpoints, Optional.<Integer>absent());
+  }
+
+  @Override
+  public EndpointStatus join(
+      InetSocketAddress endpoint,
+      Map<String, InetSocketAddress> auxEndpoints) {
+
+    LOG.warning("Joining a ServerSet without a shard ID is deprecated and will soon break.");
+    return join(endpoint, auxEndpoints, Optional.<Integer>absent());
   }
 
   @Override
   public EndpointStatus join(
       InetSocketAddress endpoint,
       Map<String, InetSocketAddress> auxEndpoints,
-      Status status,
       int shardId) throws JoinException, InterruptedException {
 
-    return join(endpoint, auxEndpoints, status, Optional.of(shardId));
+    return join(endpoint, auxEndpoints, Optional.of(shardId));
   }
 
   @Override
