@@ -18,6 +18,7 @@ from __future__ import print_function
 
 __author__ = 'John Sirois'
 
+import copy
 import hashlib
 import getpass
 import os
@@ -31,10 +32,12 @@ from twitter.common.collections import OrderedDict, OrderedSet
 from twitter.common.config import Properties
 from twitter.common.dirutil import safe_open, safe_rmtree
 
-from twitter.pants import get_buildroot, is_exported as provides, is_internal, is_java, pants
+from twitter.pants import (get_buildroot, is_exported as provides, is_internal, is_java, pants,
+  is_codegen)
 from twitter.pants.base import Address, ParseContext, Target
 from twitter.pants.base.generator import Generator, TemplateData
-from twitter.pants.targets import InternalTarget, AnnotationProcessor, JavaLibrary, ScalaLibrary
+from twitter.pants.targets import (InternalTarget, AnnotationProcessor, JavaLibrary, ScalaLibrary,
+  JavaThriftLibrary)
 from twitter.pants.tasks import binary_utils, Task, TaskError
 
 class Semver(object):
@@ -163,9 +166,11 @@ class DependencyWriter(object):
     self.get_db = get_db
     self.template_relpath = template_relpath
 
-  def write(self, target, path, confs=None):
-    def as_jar(internal_target):
+  def write(self, target, path, confs=None, synth=False):
+    def as_jar(internal_target, is_tgt=False):
       jar, _, _, _ = self.get_db(internal_target).as_jar_with_version(internal_target)
+      if synth and is_tgt:
+        jar.name = jar.name + '-only'
       return jar
 
     # TODO(John Sirois): a dict is used here to de-dup codegen targets which have both the original
@@ -173,27 +178,30 @@ class DependencyWriter(object):
     # Consider reworking codegen tasks to add removal of the original codegen targets when rewriting
     # the graph
     dependencies = OrderedDict()
+    internal_codegen = {}
     for dep in target.internal_dependencies:
       jar = as_jar(dep)
-      dependencies[(jar.org, jar.name)] = self.internaldep(jar)
+      dependencies[(jar.org, jar.name)] = self.internaldep(jar, dep, synth)
+      if is_codegen(dep):
+        internal_codegen[jar.name] = jar.name
     for jar in target.jar_dependencies:
       if jar.rev:
         dependencies[(jar.org, jar.name)] = self.jardep(jar)
-    target_jar = self.internaldep(as_jar(target)).extend(dependencies=dependencies.values())
+    target_jar = self.internaldep(as_jar(target, is_tgt=True)).extend(dependencies=dependencies.values())
 
-    template_kwargs = self.templateargs(target_jar, confs)
+    template_kwargs = self.templateargs(target_jar, confs, synth)
     with safe_open(path, 'w') as output:
       template = pkgutil.get_data(__name__, self.template_relpath)
       Generator(template, **template_kwargs).write(output)
 
-  def templateargs(self, target_jar, confs=None):
+  def templateargs(self, target_jar, confs=None, synth=False):
     """
       Subclasses must return a dict for use by their template given the target jar template data
       and optional specific ivy configurations.
     """
     raise NotImplementedError()
 
-  def internaldep(self, jar_dependency):
+  def internaldep(self, jar_dependency, dep=None, synth=False):
     """
       Subclasses must return a template data for the given internal target (provided in jar
       dependency form).
@@ -212,41 +220,46 @@ class PomWriter(DependencyWriter):
   def __init__(self, get_db):
     super(PomWriter, self).__init__(get_db, os.path.join('jar_publish', 'pom.mustache'))
 
-  def templateargs(self, target_jar, confs=None):
+  def templateargs(self, target_jar, confs=None, synth=False):
     return dict(artifact=target_jar)
 
-  def jardep(self, jar):
+  def jardep(self, jar, classifier=None):
     return TemplateData(
       org=jar.org,
-      name=jar.name,
+      name=jar.name + ('-only' if classifier == 'idl' else ''),
       rev=jar.rev,
-      scope='compile',
+      scope='runtime' if classifier == 'idl' else 'compile',
+      classifier=classifier,
       excludes=[self.create_exclude(exclude) for exclude in jar.excludes if exclude.name]
     )
 
-  def internaldep(self, jar_dependency):
-    return self.jardep(jar_dependency)
+  def internaldep(self, jar_dependency, dep=None, synth=False):
+    classifier = 'idl' if is_codegen(dep) and synth else None
+    return self.jardep(jar_dependency, classifier=classifier)
 
 
 class IvyWriter(DependencyWriter):
   def __init__(self, get_db):
     super(IvyWriter, self).__init__(get_db, os.path.join('ivy_resolve', 'ivy.mustache'))
 
-  def templateargs(self, target_jar, confs=None):
+  def templateargs(self, target_jar, confs=None, synth=False):
     return dict(lib=target_jar.extend(
+      is_idl=synth,
       publications=set(confs) if confs else set(),
     ))
 
-  def _jardep(self, jar, transitive=True, ext=None, url=None, configurations='default'):
+  def _jardep(self, jar, transitive=True, ext=None, url=None, configurations='default', classifier=None):
     return TemplateData(
       org=jar.org,
-      module=jar.name,
+      module=jar.name + ('-only' if classifier == 'idl' else ''),
       version=jar.rev,
       force=jar.force,
       excludes=[self.create_exclude(exclude) for exclude in jar.excludes],
       transitive=transitive,
+      is_idl=(classifier == 'idl'),
       ext=ext,
       url=url,
+      classifier=classifier,
       configurations=configurations,
     )
 
@@ -256,8 +269,9 @@ class IvyWriter(DependencyWriter):
       configurations=';'.join(jar._configurations)
     )
 
-  def internaldep(self, jar_dependency):
-    return self._jardep(jar_dependency)
+  def internaldep(self, jar_dependency, dep=None, synth=False):
+    classifier = 'idl' if is_codegen(dep) and synth else None
+    return self._jardep(jar_dependency, classifier=classifier)
 
 
 def is_exported(target):
@@ -425,6 +439,7 @@ class JarPublish(Task):
 
     context.products.require('jars')
     context.products.require('source_jars')
+    context.products.require('idl_jars')
     context.products.require('javadoc_jars')
 
   def execute(self, targets):
@@ -450,32 +465,54 @@ class JarPublish(Task):
       _, _, _, fingerprint = pushdb.as_jar_with_version(target)
       return fingerprint or '0.0.0'
 
-    def stage_artifacts(target, jar, version, changelog, confs=None):
-      def artifact_path(name=None, suffix='', extension='jar'):
-        return os.path.join(self.outdir, jar.org, jar.name,
-                            '%s-%s%s.%s' % ((name or jar.name), version, suffix, extension))
+    def lookup_synthetic_target(target):
+      # lookup the source target that generated this synthetic target
+      revmap = self.context.products.get('java:rev')
+      if revmap.get(target):
+        for _, codegen_targets in revmap.get(target).items():
+          for codegen_target in codegen_targets:
+            # TODO(phom) this only works for Thrift Library, not Protobuf
+            if isinstance(codegen_target, JavaThriftLibrary):
+              return codegen_target
 
-      with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt'), 'w') as changelog_file:
-        changelog_file.write(changelog)
+    def stage_artifacts(target, jar, version, changelog, confs=None, synth_target=None):
+      def artifact_path(name=None, suffix='', extension='jar', artifact_ext=''):
+        return os.path.join(self.outdir, jar.org, jar.name + artifact_ext,
+                            '%s%s-%s%s.%s' % ((name or jar.name), artifact_ext if name != 'ivy' else '', version, suffix, extension))
 
       def get_pushdb(target):
         return get_db(target)[0]
 
-      PomWriter(get_pushdb).write(target, artifact_path(extension='pom'))
+      if synth_target:
+        with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt', artifact_ext='-only'), 'w') as changelog_file:
+          changelog_file.write(changelog)
+        ivyxml = artifact_path(name='ivy', extension='xml', artifact_ext='-only')
+        # use idl publication spec in ivy for idl artifact
+        IvyWriter(get_pushdb).write(target, ivyxml, ['idl'], synth=True)
+        PomWriter(get_pushdb).write(target, artifact_path(extension='pom', artifact_ext='-only'), synth=True)
+      else:
+        with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt'), 'w') as changelog_file:
+          changelog_file.write(changelog)
+        ivyxml = artifact_path(name='ivy', extension='xml')
+        IvyWriter(get_pushdb).write(target, ivyxml, confs)
+        PomWriter(get_pushdb).write(target, artifact_path(extension='pom'))
 
-      ivyxml = artifact_path(name='ivy', extension='xml')
-      IvyWriter(get_pushdb).write(target, ivyxml, confs)
-
-      def copy(typename, suffix=''):
+      def copy(typename, suffix='', tgt=target):
         genmap = self.context.products.get(typename)
-        for basedir, jars in genmap.get(target).items():
+        for basedir, jars in genmap.get(tgt).items():
           for artifact in jars:
-            shutil.copy(os.path.join(basedir, artifact), artifact_path(suffix=suffix))
+            if (synth_target):
+              shutil.copy(os.path.join(basedir, artifact), artifact_path(suffix=suffix, artifact_ext='-only'))
+            else:
+              shutil.copy(os.path.join(basedir, artifact), artifact_path(suffix=suffix))
 
-      copy('jars')
-      if is_java(target):
-        copy('javadoc_jars', '-javadoc')
-      copy('source_jars', '-sources')
+      if (synth_target):
+        copy('idl_jars', '-idl', synth_target)
+      else:
+        copy('jars')
+        if is_java(target):
+          copy('javadoc_jars', '-javadoc')
+        copy('source_jars', '-sources')
 
       return ivyxml
 
@@ -490,9 +527,15 @@ class JarPublish(Task):
     published = []
     skip = (self.restart_at is not None)
     for target in self.exported_targets():
+      synth_target = lookup_synthetic_target(target)
       pushdb, dbfile, repo = get_db(target)
       jar, semver, sha, fingerprint = pushdb.as_jar_with_version(target)
 
+      if synth_target:
+        # add idl artifact to the published cache
+        tmp_jar = copy.copy(jar)
+        tmp_jar.name = tmp_jar.name + '-only'
+        published.append(tmp_jar)
       published.append(jar)
 
       if skip and (jar.org, jar.name) == self.restart_at:
@@ -541,7 +584,11 @@ class JarPublish(Task):
             raise TaskError('User aborted push')
 
         pushdb.set_version(target, newver, head_sha, newfingerprint)
+
         ivyxml = stage_artifacts(target, jar, newver.version(), changelog, confs=repo['confs'])
+        if (synth_target):
+          idl_ivyxml = stage_artifacts(synth_target, jar, newver.version(), changelog, confs=repo['confs'], synth_target=synth_target)
+
         if self.dryrun:
           print('Skipping publish of %s in test mode.' % jar_coordinate(jar, newver.version()))
         else:
@@ -576,6 +623,26 @@ class JarPublish(Task):
             raise TaskError('Failed to push %s - ivy failed with %d' % (
               jar_coordinate(jar, newver.version()), result)
             )
+
+          if (synth_target):
+            args = [
+              '-settings', ivysettings,
+              '-ivy', idl_ivyxml,
+              '-deliverto', '%s/[organisation]/[module]/ivy-[revision].xml' % self.outdir,
+              '-publish', resolver,
+              '-publishpattern',
+                '%s/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]' % self.outdir,
+              '-revision', newver.version(),
+              '-m2compatible',
+            ]
+            if self.snapshot:
+              args.append('-overwrite')
+
+            result = binary_utils.runjava(jvmargs=jvmargs, classpath=self.ivycp, args=args)
+            if result != 0:
+              raise TaskError('Failed to push %s - ivy failed with %d' % (
+                jar_coordinate(jar, newver.version()), result)
+              )
 
           if self.commit:
             pushdb.dump(dbfile)

@@ -195,6 +195,7 @@ class IvyResolve(NailgunTask):
       module=name,
       version='latest.integration',
       publications=None,
+      is_idl=False,
       dependencies=[self._generate_jar_template(jar) for jar in jars],
       excludes=[self._generate_exclude_template(exclude) for exclude in excludes]
     )
@@ -290,8 +291,11 @@ class IvyResolve(NailgunTask):
 
   @contextmanager
   def _cachepath(self, file):
-    with safe_open(file, 'r') as cp:
-      yield (path.strip() for path in cp.read().split(os.pathsep) if path.strip())
+    if not os.path.exists(file):
+      yield ()
+    else:
+      with safe_open(file, 'r') as cp:
+        yield (path.strip() for path in cp.read().split(os.pathsep) if path.strip())
 
   def _mapjars(self, genmap, target):
     """
