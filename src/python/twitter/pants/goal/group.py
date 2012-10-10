@@ -34,8 +34,13 @@ class Group(object):
         for goal, task in tasks_by_goal.items())
 
     def expand_goal(goal):
-      task_name = tasks_by_goalname[goal]
-      return "%s->%s" % (goal, task_name)
+      if len(goal) == 2: # goal is (group, goal)
+        group_name, goal_name = goal
+        task_name = tasks_by_goalname[goal_name]
+        return "%s:%s->%s" % (group_name, goal_name, task_name)
+      else:
+        task_name = tasks_by_goalname[goal]
+        return "%s->%s" % (goal, task_name)
 
     if phase not in executed:
       # Note the locking strategy: We lock the first time we need to, and hold the lock until we're done,
@@ -69,13 +74,14 @@ class Group(object):
         else:
           runqueue.append((None, [goal]))
 
-      execution_phases = defaultdict(list)
+      # OrderedSet takes care of not repeating chunked task execution mentions
+      execution_phases = defaultdict(OrderedSet)
 
       for group_name, goals in runqueue:
         if not group_name:
           goal = goals[0]
           context.log.info('[%s:%s]' % (phase, goal.name))
-          execution_phases[phase].append(goal.name)
+          execution_phases[phase].add(goal.name)
           execute_task(goal.name, tasks_by_goal[goal], context.targets())
         else:
           for chunk in Group._create_chunks(context, goals):
@@ -83,7 +89,7 @@ class Group(object):
               goal_chunk = filter(goal.group.predicate, chunk)
               if len(goal_chunk) > 0:
                 context.log.info('[%s:%s:%s]' % (phase, group_name, goal.name))
-                execution_phases[phase].append([group_name, goal.name])
+                execution_phases[phase].add((group_name, goal.name))
                 execute_task(goal.name, tasks_by_goal[goal], goal_chunk)
 
       if context.options.explain:
