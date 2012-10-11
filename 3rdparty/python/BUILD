@@ -88,7 +88,7 @@ python_library(
 
 python_library(
   name = 'rbtools',
-  dependencies = [python_requirement('RBTools==0.4.1')])
+  dependencies = [python_requirement('RBTools==0.4.2')])
 
 python_library(
   name = 'zookeeper',
