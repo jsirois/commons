@@ -26,7 +26,9 @@ def pylint_build_filter():
 python_library(
   name = 'pants-deps',
   dependencies = [
-    python_requirement('elementtree'),
+    python_requirement("ansicolors"),
+    python_requirement("elementtree"),
+    python_requirement('mako'),
     python_requirement('markdown'),
     python_requirement('pygments'),
     python_requirement('pylint', version_filter=pylint_build_filter),

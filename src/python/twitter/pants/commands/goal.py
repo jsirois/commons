@@ -26,6 +26,15 @@ import traceback
 from contextlib import contextmanager
 from optparse import Option, OptionParser
 
+try:
+  from colors import yellow, magenta, cyan
+except ImportError:
+  turn_off_colored_logging = True
+else:
+  turn_off_colored_logging = False
+
+from functools import wraps
+
 from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir, safe_rmtree
@@ -129,6 +138,8 @@ class Goal(Command):
     Option("--verify-artifact-cache", "--no-verify-artifact-cache", action="callback",
       callback=_set_bool, dest="verify_artifact_cache", default=False,
       help="Whether to verify that cached artifacts are identical after rebuilding them."),
+    Option("--no-colors", dest="no_color", action="store_true", default=turn_off_colored_logging,
+           help="Do not colorize log messages."),
     Option("--all", dest="target_directory", action="append",
            help="DEPRECATED: Use [dir]: with no flag in a normal target position on the command "
                   "line. (Adds all targets found in the given directory's BUILD file. Can be "
@@ -393,6 +404,18 @@ class Goal(Command):
         log.init()
       logger = log
 
+      if not self.options.no_color:
+        def colorwrapper(func, clrname):
+          @wraps(func)
+          def wrapper(msg, *args, **kwargs):
+            return func(clrname(msg), *args, **kwargs)
+          return wrapper
+
+        log.info = colorwrapper(log.info, yellow)
+        log.warn = colorwrapper(log.warn, magenta)
+        log.debug = colorwrapper(log.debug, cyan)
+
+
     if self.options.recursive_directory:
       log.warn('--all-recursive is deprecated, use a target spec with the form [dir]:: instead')
       for dir in self.options.recursive_directory:
@@ -423,7 +446,7 @@ class Goal(Command):
         return Phase.execute(context, 'goals')
 
     if logger:
-      logger.debug('Operating on targets: %s', self.targets)
+      logger.debug('Operating on targets: %s' % self.targets)
 
     ret = Phase.attempt(context, self.phases)
     if self.options.time:
