@@ -27,7 +27,7 @@ from contextlib import contextmanager
 from optparse import Option, OptionParser
 
 try:
-  from colors import yellow, magenta, cyan
+  from colors import yellow, green, cyan
 except ImportError:
   turn_off_colored_logging = True
 else:
@@ -411,8 +411,8 @@ class Goal(Command):
             return func(clrname(msg), *args, **kwargs)
           return wrapper
 
-        log.info = colorwrapper(log.info, yellow)
-        log.warn = colorwrapper(log.warn, magenta)
+        log.info = colorwrapper(log.info, green)
+        log.warn = colorwrapper(log.warn, yellow)
         log.debug = colorwrapper(log.debug, cyan)
 
 
