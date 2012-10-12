@@ -75,6 +75,9 @@ def parse_data(datastring):
 
 
 def parse_data_into(option_name, default=None):
+  """
+    An optparse-compatible callback for populating Amounts of Data.
+  """
   def parse_data_callback(option, opt, value, parser):
     try:
       setattr(parser.values, option_name, parse_data(value or default))
