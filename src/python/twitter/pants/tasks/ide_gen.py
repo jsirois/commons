@@ -18,6 +18,7 @@ import shutil
 
 from twitter.common.collections.orderedset import OrderedSet
 from twitter.common.dirutil import safe_mkdir
+from twitter.pants.targets.jvm_target import JvmTarget
 
 from twitter.pants import (
   extract_jvm_targets,
@@ -197,11 +198,12 @@ class IdeGen(JvmBinaryTask):
     excludes = OrderedSet()
     compile = OrderedSet()
     def prune(target):
-      if target.excludes:
-        excludes.update(target.excludes)
-      jars.update(jar for jar in target.jar_dependencies if jar.rev)
-      if is_cp(target):
-        target.walk(compile.add)
+      if isinstance(target, JvmTarget):
+        if target.excludes:
+          excludes.update(target.excludes)
+        jars.update(jar for jar in target.jar_dependencies if jar.rev)
+        if is_cp(target):
+          target.walk(compile.add)
 
     for target in targets:
       target.walk(prune)
