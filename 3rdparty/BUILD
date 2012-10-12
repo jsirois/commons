@@ -103,11 +103,6 @@ jar_library(name = 'cascading-thrift',
                 .exclude(org = 'org.apache.thrift')
             ])
 
-jar_library(name = 'cssparser',
-            dependencies = [
-              jar(org = 'net.sourceforge.cssparser', name = 'cssparser', rev = '0.9.5').with_sources()
-            ])
-
 jar_library(name = 'cascading2-test',
     dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV) ]
   )
