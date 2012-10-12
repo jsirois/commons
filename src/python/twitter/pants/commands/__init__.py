@@ -22,7 +22,7 @@ import sys
 from twitter.common.collections import OrderedSet
 from twitter.pants.base import BuildFile, Target
 
-class Command:
+class Command(object):
   """Baseclass for all pants subcommands."""
 
   @staticmethod
