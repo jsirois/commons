@@ -1,9 +1,13 @@
+from optparse import OptionValueError
+
 from twitter.common.lang import Compatibility
 from twitter.common.quantity import Data, Time, Amount
+
 
 class InvalidTime(ValueError):
   def __init__(self, timestring):
     ValueError.__init__(self, "Invalid time span: %s" % timestring)
+
 
 def parse_time(timestring):
   """
@@ -35,12 +39,16 @@ class InvalidData(ValueError):
   def __init__(self, datastring):
     ValueError.__init__(self, "Invalid size: %s" % datastring)
 
+
 def parse_data(datastring):
   """
     Parse a data string of the format:
       [integer][unit]
     where unit is in upper/lowercase k, kb, m, mb, g, gb, t, tb
   """
+  if not isinstance(datastring, Compatibility.string):
+    raise InvalidData('parse_data takes a string, got %s' % type(datastring))
+
   datastring = datastring.strip().lower()
 
   try:
@@ -60,6 +68,16 @@ def parse_data(datastring):
     if datastring.endswith(base):
       try:
         return Amount(int(datastring[:-len(base)]), BASES[base])
-      except ValueError:
-        raise InvalidData(datastring)
-  raise InvalidData(datastring)
+      except ValueError as e:
+        raise InvalidData('Could not parse amount: %s' % e)
+  raise InvalidData('Amount did not have a valid base: %s.  Valid bases: %s' % (
+      datastring, ' '.join(BASES)))
+
+
+def parse_data_into(option_name, default=None):
+  def parse_data_callback(option, opt, value, parser):
+    try:
+      setattr(parser.values, option_name, parse_data(value or default))
+    except Exception as e:
+      raise OptionValueError('Failed to parse: %s' % e)
+  return parse_data_callback
