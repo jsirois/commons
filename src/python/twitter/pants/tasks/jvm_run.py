@@ -17,6 +17,7 @@
 __author__ = 'Benjy Weinberger'
 
 import shlex
+import sys
 
 from twitter.common.dirutil import safe_open
 from twitter.pants.targets import JvmBinary
