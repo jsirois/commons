@@ -18,12 +18,13 @@ package com.twitter.common.zookeeper;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.Atomics;
 
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
@@ -32,6 +33,7 @@ import com.twitter.common.base.ExceptionalCommand;
 import com.twitter.common.zookeeper.Candidate.Leader;
 import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
+import com.twitter.common.zookeeper.ServerSet.UpdateException;
 import com.twitter.thrift.Status;
 
 /**
@@ -40,7 +42,6 @@ import com.twitter.thrift.Status;
  */
 public class SingletonService {
 
-  private static final Logger LOG = Logger.getLogger(SingletonService.class.getName());
   private static final String LEADER_ELECT_NODE_PREFIX = "singleton_candidate_";
 
   /**
@@ -120,16 +121,29 @@ public class SingletonService {
 
     candidate.offerLeadership(new Leader() {
       private EndpointStatus endpointStatus = null;
-      @Override public void onElected(ExceptionalCommand<JoinException> abdicate) {
-        try {
-          endpointStatus = serverSet.join(endpoint, additionalEndpoints, status);
-          listener.onLeading(endpointStatus);
-        } catch (Group.JoinException e) {
-          LOG.log(Level.SEVERE, "Failed to join group.", e);
-        } catch (InterruptedException e) {
-          LOG.log(Level.SEVERE, "Interrupted while joining group.", e);
-          Thread.currentThread().interrupt();
-        }
+      @Override public void onElected(final ExceptionalCommand<JoinException> abdicate) {
+        listener.onLeading(new LeaderControl() {
+          EndpointStatus endpointStatus = null;
+          final AtomicBoolean left = new AtomicBoolean(false);
+
+          // Methods are synchronized to prevent simultaneous invocations.
+          @Override public synchronized void advertise()
+              throws JoinException, InterruptedException {
+
+            Preconditions.checkState(!left.get(), "Cannot advertise after leaving.");
+            Preconditions.checkState(endpointStatus == null, "Cannot advertise more than once.");
+            endpointStatus = serverSet.join(endpoint, additionalEndpoints, status);
+          }
+
+          @Override public synchronized void leave() throws UpdateException, JoinException {
+            Preconditions.checkState(left.compareAndSet(false, true),
+                "Cannot leave more than once.");
+            if (endpointStatus != null) {
+              endpointStatus.leave();
+            }
+            abdicate.execute();
+          }
+        });
       }
 
       @Override public void onDefeated() {
@@ -138,9 +152,49 @@ public class SingletonService {
     });
   }
 
-  public static interface LeadershipListener {
-    public void onLeading(EndpointStatus status);
+  /**
+   * A listener to be notified of changes in the leadership status.
+   * Implementers should be careful to avoid blocking operations in these callbacks.
+   */
+  public interface LeadershipListener {
 
+    /**
+     * Notifies the listener that is is current leader.
+     *
+     * @param control A controller handle to advertise and/or leave advertised presence.
+     */
+    public void onLeading(LeaderControl control);
+
+    /**
+     * Notifies the listener that it is no longer leader.  The leader should take this opportunity
+     * to remove its advertisement gracefully.
+     *
+     * @param status A handle on the endpoint status for the advertised leader.
+     */
     public void onDefeated(@Nullable EndpointStatus status);
+  }
+
+  /**
+   * A controller for the state of the leader.  This will be provided to the leader upon election,
+   * which allows the leader to decide when to advertise in the underlying {@link ServerSet} and
+   * terminate leadership at will.
+   */
+  public interface LeaderControl {
+
+    /**
+     * Advertises the leader's server presence to clients.
+     *
+     * @throws JoinException If there was an error advertising.
+     * @throws InterruptedException If interrupted while advertising.
+     */
+    void advertise() throws JoinException, InterruptedException;
+
+    /**
+     * Leaves candidacy for leadership, removing advertised server presence if applicable.
+     *
+     * @throws UpdateException If the leader's status could not be updated.
+     * @throws JoinException If there was an error abdicating from leader election.
+     */
+    void leave() throws UpdateException, JoinException;
   }
 }

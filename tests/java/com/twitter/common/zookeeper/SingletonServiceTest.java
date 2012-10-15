@@ -23,9 +23,12 @@ import com.twitter.common.base.ExceptionalCommand;
 import com.twitter.common.collections.Pair;
 import com.twitter.common.testing.EasyMockTest;
 import com.twitter.common.zookeeper.Candidate.Leader;
+import com.twitter.common.zookeeper.Group.JoinException;
 import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
+import com.twitter.common.zookeeper.SingletonService.LeaderControl;
 import com.twitter.thrift.Status;
 import org.easymock.Capture;
+import org.easymock.IExpectationSetters;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,6 +40,7 @@ import java.util.Map;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.fail;
 
 /**
  * @author William Farner
@@ -44,6 +48,10 @@ import static org.easymock.EasyMock.expect;
 public class SingletonServiceTest extends EasyMockTest {
   private static final int PORT_A = 1234;
   private static final int PORT_B = 8080;
+  private static final InetSocketAddress PRIMARY_ENDPOINT =
+      InetSocketAddress.createUnresolved("foo", PORT_A);
+  private static final Map<String, InetSocketAddress> AUX_ENDPOINTS =
+      ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved("foo", PORT_B));
 
   private SingletonService.LeadershipListener listener;
   private ServerSet serverSet;
@@ -65,87 +73,161 @@ public class SingletonServiceTest extends EasyMockTest {
     service = new SingletonService(serverSet, candidate);
   }
 
-  private void newLeader(final String hostName) throws Exception {
+  private void newLeader(final String hostName, Capture<Leader> leader) throws Exception {
     service.lead(InetSocketAddress.createUnresolved(hostName, PORT_A),
         ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved(hostName, PORT_B)),
-        Status.STARTING, listener);
+        Status.ALIVE, listener);
+
+    // This actually elects the leader.
+    leader.getValue().onElected(abdicate);
   }
 
-  private Pair<InetSocketAddress, Map<String, InetSocketAddress>> getEndpoints(String host) {
-    return new Pair<InetSocketAddress, Map<String, InetSocketAddress>>(
-        InetSocketAddress.createUnresolved(host, PORT_A),
-        ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved(host, PORT_B)));
+  private IExpectationSetters<EndpointStatus> expectJoin() throws Exception {
+    return expect(serverSet.join(PRIMARY_ENDPOINT, AUX_ENDPOINTS, Status.ALIVE));
   }
 
   @Test
-  public void testLead() throws Exception {
-    Pair<InetSocketAddress, Map<String, InetSocketAddress>> endpoints = getEndpoints("foo");
-
-    Capture<Leader> leaderCapture = new Capture<Leader>();
+  public void testLeadAdvertise() throws Exception {
+    Capture<Leader> leaderCapture = createCapture();
 
     expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
-    expect(serverSet.join(endpoints.getFirst(), endpoints.getSecond(), Status.STARTING))
-        .andReturn(endpointStatus);
-    listener.onLeading(endpointStatus);
-    endpointStatus.update(Status.ALIVE);
-    endpointStatus.update(Status.STOPPED);
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    expectJoin().andReturn(endpointStatus);
+    endpointStatus.leave();
+    abdicate.execute();
 
     control.replay();
 
-    newLeader("foo");
-    endpointStatus.update(Status.ALIVE);
-    endpointStatus.update(Status.STOPPED);
+    newLeader("foo", leaderCapture);
+    controlCapture.getValue().advertise();
+    controlCapture.getValue().leave();
+  }
 
-    // This actually elects the leader.
-    leaderCapture.getValue().onElected(abdicate);
+  @Test
+  public void teatLeadLeaveNoAdvertise() throws Exception {
+    Capture<Leader> leaderCapture = createCapture();
+
+    expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
+    abdicate.execute();
+
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    control.replay();
+
+    newLeader("foo", leaderCapture);
+    controlCapture.getValue().leave();
   }
 
   @Test
   public void testLeadJoinFailure() throws Exception {
-    Pair<InetSocketAddress, Map<String, InetSocketAddress>> endpoints = getEndpoints("foo");
-
     Capture<Leader> leaderCapture = new Capture<Leader>();
 
     expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
-    expect(serverSet.join(endpoints.getFirst(), endpoints.getSecond(), Status.STARTING))
-        .andThrow(new Group.JoinException("Injected join failure.", new Exception()));
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    expectJoin().andThrow(new Group.JoinException("Injected join failure.", new Exception()));
+    abdicate.execute();
 
     control.replay();
 
-    newLeader("foo");
+    newLeader("foo", leaderCapture);
 
-    // This actually elects the leader.
-    leaderCapture.getValue().onElected(abdicate);
+    try {
+      controlCapture.getValue().advertise();
+      fail("Join should have failed.");
+    } catch (JoinException e) {
+      // Expected.
+    }
+
+    controlCapture.getValue().leave();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testMultipleAdvertise() throws Exception {
+    Capture<Leader> leaderCapture = createCapture();
+
+    expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    expectJoin().andReturn(endpointStatus);
+
+    control.replay();
+
+    newLeader("foo", leaderCapture);
+    controlCapture.getValue().advertise();
+    controlCapture.getValue().advertise();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testMultipleLeave() throws Exception {
+    Capture<Leader> leaderCapture = createCapture();
+
+    expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    expectJoin().andReturn(endpointStatus);
+    endpointStatus.leave();
+    abdicate.execute();
+
+    control.replay();
+
+    newLeader("foo", leaderCapture);
+    controlCapture.getValue().advertise();
+    controlCapture.getValue().leave();
+    controlCapture.getValue().leave();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testAdvertiseAfterLeave() throws Exception {
+    Capture<Leader> leaderCapture = createCapture();
+
+    expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
+    Capture<LeaderControl> controlCapture = createCapture();
+    listener.onLeading(capture(controlCapture));
+
+    abdicate.execute();
+
+    control.replay();
+
+    newLeader("foo", leaderCapture);
+    controlCapture.getValue().leave();
+    controlCapture.getValue().advertise();
   }
 
   @Test
   public void testLeadMulti() throws Exception {
-    List<Capture<Leader>> captures = Lists.newArrayList();
+    List<Capture<Leader>> leaderCaptures = Lists.newArrayList();
+    List<Capture<LeaderControl>> leaderControlCaptures = Lists.newArrayList();
 
     for (int i = 0; i < 5; i++) {
-      Pair<InetSocketAddress, Map<String, InetSocketAddress>> endpoints = getEndpoints("foo" + i);
-
       Capture<Leader> leaderCapture = new Capture<Leader>();
-      captures.add(leaderCapture);
+      leaderCaptures.add(leaderCapture);
+      Capture<LeaderControl> controlCapture = createCapture();
+      leaderControlCaptures.add(controlCapture);
 
       expect(candidate.offerLeadership(capture(leaderCapture))).andReturn(null);
-      expect(serverSet.join(endpoints.getFirst(), endpoints.getSecond(), Status.STARTING))
-          .andReturn(endpointStatus);
-      listener.onLeading(endpointStatus);
-      endpointStatus.update(Status.ALIVE);
-      endpointStatus.update(Status.STOPPED);
+      listener.onLeading(capture(controlCapture));
+      InetSocketAddress primary = InetSocketAddress.createUnresolved("foo" + i, PORT_A);
+      Map<String, InetSocketAddress> aux =
+          ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved("foo" + i, PORT_B));
+      expect(serverSet.join(primary, aux, Status.ALIVE)).andReturn(endpointStatus);
+      endpointStatus.leave();
+      abdicate.execute();
     }
 
     control.replay();
 
     for (int i = 0; i < 5; i++) {
       final String leaderName = "foo" + i;
-      newLeader(leaderName);
-      endpointStatus.update(Status.ALIVE);
-      endpointStatus.update(Status.STOPPED);
-
-      // This actually elects the leader.
-      captures.get(i).getValue().onElected(abdicate);
+      newLeader(leaderName, leaderCaptures.get(i));
+      leaderControlCaptures.get(i).getValue().advertise();
+      leaderControlCaptures.get(i).getValue().leave();
     }
   }
 }
