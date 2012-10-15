@@ -40,11 +40,11 @@ class Jira(object):
   # http://docs.atlassian.com/software/jira/docs/api/5.0.1/constant-values.html
   RESOLVED_STATUS_ID = 5
 
-  def __init__(self, server_url, api_base='/rest/api/2/'):
+  def __init__(self, server_url, api_base='/rest/api/2/', user=None, password=None):
     self._base_url = urlparse.urljoin(server_url, api_base)
-    self._user = getpass.getuser()
-    # Lazily request password.
-    self._pass = None
+    self._user = user or getpass.getuser()
+    #Set the password if initialized or Lazily request password later when request is made.
+    self._pass = password
 
   def _getpass(self):
     if not self._pass:
@@ -89,12 +89,12 @@ class Jira(object):
     except urllib2.URLError as e:
       raise JiraError(cause=e)
 
-  def api_call(self, endpoint, post_json=None):
+  def api_call(self, endpoint, post_json=None, authorization=None):
     url = urlparse.urljoin(self._base_url, endpoint)
     headers = {'User-Agent': 'twitter.common.jira'}
-    base64string = base64.encodestring('%s:%s' % (self._user, self._getpass()))[:-1]
+    base64string = authorization or base64.b64encode('%s:%s' % (self._user, self._getpass()))[:-1]
     headers['Authorization'] = 'Basic %s' % base64string
-
+    log.info(headers)
     data = json.dumps(post_json) if post_json else None
     if data:
       headers['Content-Type'] = 'application/json'
