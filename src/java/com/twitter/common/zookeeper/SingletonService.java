@@ -19,12 +19,11 @@ package com.twitter.common.zookeeper;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Atomics;
 
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
@@ -41,6 +40,7 @@ import com.twitter.thrift.Status;
  * the {@link ServerSet} at a time.
  */
 public class SingletonService {
+  private static final Logger LOG = Logger.getLogger(SingletonService.class.getName());
 
   private static final String LEADER_ELECT_NODE_PREFIX = "singleton_candidate_";
 
@@ -107,16 +107,51 @@ public class SingletonService {
    *
    * @param endpoint The primary endpoint to register as a leader candidate in the service.
    * @param additionalEndpoints Additional endpoints that are available on the host.
-   * @param status Current status of the candidate.
+   * @param status deprecated, will be ignored entirely
+   * @param listener Handler to call when the candidate is elected or defeated.
+   * @throws Group.WatchException If there was a problem watching the ZooKeeper group.
+   * @throws Group.JoinException If there was a problem joining the ZooKeeper group.
+   * @throws InterruptedException If the thread watching/joining the group was interrupted.
+   * @deprecated The status field is deprecated. Please use
+   *            {@link #lead(InetSocketAddress, Map, LeadershipListener)}
+   */
+  @Deprecated
+  public void lead(final InetSocketAddress endpoint,
+                   final Map<String, InetSocketAddress> additionalEndpoints,
+                   final Status status,
+                   final LeadershipListener listener)
+                   throws Group.WatchException, Group.JoinException, InterruptedException {
+
+    if (status != Status.ALIVE) {
+      LOG.severe("******************************************************************************");
+      LOG.severe("WARNING: MUTABLE STATUS FIELDS ARE NO LONGER SUPPORTED.");
+      LOG.severe("JOINING WITH STATUS ALIVE EVEN THOUGH YOU SPECIFIED " + status);
+      LOG.severe("******************************************************************************");
+    } else {
+      LOG.warning("******************************************************************************");
+      LOG.warning("WARNING: MUTABLE STATUS FIELDS ARE NO LONGER SUPPORTED.");
+      LOG.warning("Please use SingletonService.lead(InetSocketAddress, Map, LeadershipListener)");
+      LOG.warning("******************************************************************************");
+    }
+
+    lead(endpoint, additionalEndpoints, listener);
+  }
+
+  /**
+   * Attempts to lead the singleton service.
+   *
+   * @param endpoint The primary endpoint to register as a leader candidate in the service.
+   * @param additionalEndpoints Additional endpoints that are available on the host.
    * @param listener Handler to call when the candidate is elected or defeated.
    * @throws Group.WatchException If there was a problem watching the ZooKeeper group.
    * @throws Group.JoinException If there was a problem joining the ZooKeeper group.
    * @throws InterruptedException If the thread watching/joining the group was interrupted.
    */
   public void lead(final InetSocketAddress endpoint,
-      final Map<String, InetSocketAddress> additionalEndpoints,
-      final Status status, final LeadershipListener listener)
-      throws Group.WatchException, Group.JoinException, InterruptedException {
+                   final Map<String, InetSocketAddress> additionalEndpoints,
+                   final LeadershipListener listener)
+                   throws Group.WatchException, Group.JoinException, InterruptedException {
+
     Preconditions.checkNotNull(listener);
 
     candidate.offerLeadership(new Leader() {
@@ -132,7 +167,7 @@ public class SingletonService {
 
             Preconditions.checkState(!left.get(), "Cannot advertise after leaving.");
             Preconditions.checkState(endpointStatus == null, "Cannot advertise more than once.");
-            endpointStatus = serverSet.join(endpoint, additionalEndpoints, status);
+            endpointStatus = serverSet.join(endpoint, additionalEndpoints);
           }
 
           @Override public synchronized void leave() throws UpdateException, JoinException {

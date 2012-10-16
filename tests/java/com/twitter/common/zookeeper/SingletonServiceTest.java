@@ -16,28 +16,26 @@
 
 package com.twitter.common.zookeeper;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.twitter.common.base.Closure;
-import com.twitter.common.base.ExceptionalCommand;
-import com.twitter.common.collections.Pair;
-import com.twitter.common.testing.EasyMockTest;
-import com.twitter.common.zookeeper.Candidate.Leader;
-import com.twitter.common.zookeeper.Group.JoinException;
-import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
-import com.twitter.common.zookeeper.SingletonService.LeaderControl;
-import com.twitter.thrift.Status;
-import org.easymock.Capture;
-import org.easymock.IExpectationSetters;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 
-import static org.easymock.EasyMock.anyObject;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+
+import org.easymock.Capture;
+import org.easymock.IExpectationSetters;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.twitter.common.base.ExceptionalCommand;
+import com.twitter.common.testing.EasyMockTest;
+import com.twitter.common.zookeeper.Candidate.Leader;
+import com.twitter.common.zookeeper.Group.JoinException;
+import com.twitter.common.zookeeper.ServerSet.EndpointStatus;
+import com.twitter.common.zookeeper.SingletonService.LeaderControl;
+
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.fail;
@@ -76,14 +74,14 @@ public class SingletonServiceTest extends EasyMockTest {
   private void newLeader(final String hostName, Capture<Leader> leader) throws Exception {
     service.lead(InetSocketAddress.createUnresolved(hostName, PORT_A),
         ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved(hostName, PORT_B)),
-        Status.ALIVE, listener);
+        listener);
 
     // This actually elects the leader.
     leader.getValue().onElected(abdicate);
   }
 
   private IExpectationSetters<EndpointStatus> expectJoin() throws Exception {
-    return expect(serverSet.join(PRIMARY_ENDPOINT, AUX_ENDPOINTS, Status.ALIVE));
+    return expect(serverSet.join(PRIMARY_ENDPOINT, AUX_ENDPOINTS));
   }
 
   @Test
@@ -216,7 +214,7 @@ public class SingletonServiceTest extends EasyMockTest {
       InetSocketAddress primary = InetSocketAddress.createUnresolved("foo" + i, PORT_A);
       Map<String, InetSocketAddress> aux =
           ImmutableMap.of("http-admin", InetSocketAddress.createUnresolved("foo" + i, PORT_B));
-      expect(serverSet.join(primary, aux, Status.ALIVE)).andReturn(endpointStatus);
+      expect(serverSet.join(primary, aux)).andReturn(endpointStatus);
       endpointStatus.leave();
       abdicate.execute();
     }
