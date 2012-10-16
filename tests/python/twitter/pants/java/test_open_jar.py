@@ -15,12 +15,14 @@
 # ==================================================================================================
 
 import os
+import sys
 import unittest
 
 from contextlib import contextmanager
 
 from twitter.common.contextutil import temporary_dir, temporary_file
 from twitter.common.dirutil import safe_mkdir
+from twitter.common.lang import Compatibility
 
 from twitter.pants.java import open_jar
 
@@ -40,7 +42,13 @@ class OpenJarTest(unittest.TestCase):
         with open_jar(jarfile) as jar:
           self.assertEquals(list(entries), jar.namelist())
 
-    assert_mkdirs('')
+    if Compatibility.PY2 and sys.version_info[1] <= 6:
+      # Empty zip files in python 2.6 or lower cannot be read normally.
+      from zipfile import BadZipfile
+      self.assertRaises(BadZipfile, assert_mkdirs, '')
+    else:
+      assert_mkdirs('')
+
     assert_mkdirs('a', 'a/')
     assert_mkdirs('a/b/c', 'a/', 'a/b/', 'a/b/c/')
 
