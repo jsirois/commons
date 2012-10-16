@@ -14,8 +14,22 @@
 # limitations under the License.
 # ==================================================================================================
 
+python_test_suite(name = 'all',
+  dependencies = [
+    pants(':dirutil'),
+    pants(':fileset')
+  ]
+)
+
 python_tests(name = 'dirutil',
-  sources = globs('*.py'),
+  sources = globs('*.py') - ['fileset_test.py'],
+  dependencies = [
+    pants('src/python/twitter/common/dirutil'),
+  ]
+)
+
+python_tests(name = 'fileset',
+  sources = ['fileset_test.py'],
   dependencies = [
     'src/python/twitter/common/dirutil',
   ]
