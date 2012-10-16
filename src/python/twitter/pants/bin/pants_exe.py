@@ -48,19 +48,11 @@ _BUILD_ALIASES = set([
 
 _LOG_EXIT_OPTION = '--log-exit'
 
-
-def _log_exit(result):
-  if result == 0:
-    print("Pants executed successfully")
-  else:
-    print("Pants failed with error %s" % result)
-
-
 def _do_exit(result=0, msg=None):
   if msg:
     print(msg, file=sys.stderr)
-  if _LOG_EXIT_OPTION in sys.argv:
-    _log_exit(result)
+  if _LOG_EXIT_OPTION in sys.argv and result == 0:
+    print("\nSUCCESS\n")
   sys.exit(result)
 
 
