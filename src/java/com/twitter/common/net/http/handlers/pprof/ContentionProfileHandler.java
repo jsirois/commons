@@ -17,10 +17,10 @@
 package com.twitter.common.net.http.handlers.pprof;
 
 /**
- * Extends ProfileHandler to profile RUNNING threads, which measures CPU usage by location.
+ * Extends ProfileHandler to profile BLOCKED threads, which measures lock contention by location.
  */
-public class CpuProfileHandler extends ProfileHandler {
-  public CpuProfileHandler() {
-    super(Thread.State.RUNNABLE);
+public class ContentionProfileHandler extends ProfileHandler {
+  public ContentionProfileHandler() {
+    super(Thread.State.BLOCKED);
   }
 }

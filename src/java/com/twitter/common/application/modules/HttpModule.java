@@ -47,6 +47,7 @@ import com.twitter.common.net.http.handlers.ThreadStackPrinter;
 import com.twitter.common.net.http.handlers.TimeSeriesDataSource;
 import com.twitter.common.net.http.handlers.VarsHandler;
 import com.twitter.common.net.http.handlers.VarsJsonHandler;
+import com.twitter.common.net.http.handlers.pprof.ContentionProfileHandler;
 import com.twitter.common.net.http.handlers.pprof.CpuProfileHandler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -201,6 +202,8 @@ public class HttpModule extends AbstractModule {
     Registration.registerServlet(binder(), "/logconfig", LogConfig.class, false);
     Registration.registerServlet(binder(), "/logs", LogPrinter.class, false);
     Registration.registerServlet(binder(), "/pprof/profile", CpuProfileHandler.class, false);
+    Registration.registerServlet(
+        binder(), "/pprof/contention", ContentionProfileHandler.class, false);
     Registration.registerServlet(binder(), "/quitquitquit", QuitHandler.class, true);
     Registration.registerServlet(binder(), "/threads", ThreadStackPrinter.class, false);
     Registration.registerServlet(binder(), "/vars", VarsHandler.class, false);
