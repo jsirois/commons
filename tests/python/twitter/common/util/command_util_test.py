@@ -38,7 +38,7 @@ class CommandUtilTest(unittest.TestCase):
     with open(temp_filename, "r") as file1:
       str1 = file1.read()
     self.assertTrue(bool(re.search(".*Executing: ls -z.*", str1))) #command logged
-    self.assertTrue(bool(re.search(".*illegal option.*", str1))) #Error logged
+    self.assertTrue(bool(re.search(".*illegal option.*", str1)) or bool(re.search(".*invalid option.*", str1))) #Error logged
 
   def test_execute(self):
     temp_filename = tempfile.mktemp()
