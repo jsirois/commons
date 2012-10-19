@@ -16,8 +16,6 @@
 
 from __future__ import print_function
 
-__author__ = 'John Sirois'
-
 import copy
 import hashlib
 import getpass
@@ -32,11 +30,19 @@ from twitter.common.collections import OrderedDict, OrderedSet
 from twitter.common.config import Properties
 from twitter.common.dirutil import safe_open, safe_rmtree
 
-from twitter.pants import (get_buildroot, is_exported as provides, is_internal, is_java, pants,
+from twitter.pants import (
+  get_buildroot,
+  is_exported as provides,
+  is_internal,
+  is_java,
   is_codegen)
-from twitter.pants.base import Address, ParseContext, Target
+from twitter.pants.base import Address, Target
 from twitter.pants.base.generator import Generator, TemplateData
-from twitter.pants.targets import (InternalTarget, AnnotationProcessor, JavaLibrary, ScalaLibrary,
+from twitter.pants.targets import (
+  InternalTarget,
+  AnnotationProcessor,
+  JavaLibrary,
+  ScalaLibrary,
   JavaThriftLibrary)
 from twitter.pants.tasks import binary_utils, Task, TaskError
 
@@ -187,7 +193,9 @@ class DependencyWriter(object):
     for jar in target.jar_dependencies:
       if jar.rev:
         dependencies[(jar.org, jar.name)] = self.jardep(jar)
-    target_jar = self.internaldep(as_jar(target, is_tgt=True)).extend(dependencies=dependencies.values())
+    target_jar = self.internaldep(as_jar(target, is_tgt=True)).extend(
+      dependencies=dependencies.values()
+    )
 
     template_kwargs = self.templateargs(target_jar, confs, synth)
     with safe_open(path, 'w') as output:
@@ -248,7 +256,9 @@ class IvyWriter(DependencyWriter):
       publications=set(confs) if confs else set(),
     ))
 
-  def _jardep(self, jar, transitive=True, ext=None, url=None, configurations='default', classifier=None):
+  def _jardep(self, jar, transitive=True, ext=None, url=None, configurations='default',
+              classifier=None):
+
     return TemplateData(
       org=jar.org,
       module=jar.name + ('-only' if classifier == 'idl' else ''),
@@ -478,43 +488,53 @@ class JarPublish(Task):
     def stage_artifacts(target, jar, version, changelog, confs=None, synth_target=None):
       def artifact_path(name=None, suffix='', extension='jar', artifact_ext=''):
         return os.path.join(self.outdir, jar.org, jar.name + artifact_ext,
-                            '%s%s-%s%s.%s' % ((name or jar.name), artifact_ext if name != 'ivy' else '', version, suffix, extension))
+                            '%s%s-%s%s.%s' % (
+                              (name or jar.name),
+                              artifact_ext if name != 'ivy' else '',
+                              version,
+                              suffix,
+                              extension
+                            ))
 
       def get_pushdb(target):
         return get_db(target)[0]
 
-      if synth_target:
-        with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt', artifact_ext='-only'), 'w') as changelog_file:
-          changelog_file.write(changelog)
-        ivyxml = artifact_path(name='ivy', extension='xml', artifact_ext='-only')
-        # use idl publication spec in ivy for idl artifact
-        IvyWriter(get_pushdb).write(target, ivyxml, ['idl'], synth=True)
-        PomWriter(get_pushdb).write(target, artifact_path(extension='pom', artifact_ext='-only'), synth=True)
-      else:
-        with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt'), 'w') as changelog_file:
-          changelog_file.write(changelog)
-        ivyxml = artifact_path(name='ivy', extension='xml')
-        IvyWriter(get_pushdb).write(target, ivyxml, confs)
-        PomWriter(get_pushdb).write(target, artifact_path(extension='pom'))
+      with safe_open(artifact_path(suffix='-CHANGELOG', extension='txt'), 'w') as changelog_file:
+        changelog_file.write(changelog)
+      ivyxml = artifact_path(name='ivy', extension='xml')
+      IvyWriter(get_pushdb).write(target, ivyxml, confs)
+      PomWriter(get_pushdb).write(target, artifact_path(extension='pom'))
 
-      def copy(typename, suffix='', tgt=target):
+      idl_ivyxml = None
+      if synth_target:
+        changelog_path = artifact_path(suffix='-CHANGELOG', extension='txt', artifact_ext='-only')
+        with safe_open(changelog_path, 'w') as changelog_file:
+          changelog_file.write(changelog)
+        idl_ivyxml = artifact_path(name='ivy', extension='xml', artifact_ext='-only')
+        # use idl publication spec in ivy for idl artifact
+        IvyWriter(get_pushdb).write(synth_target, idl_ivyxml, ['idl'], synth=True)
+        PomWriter(get_pushdb).write(synth_target,
+                                    artifact_path(extension='pom', artifact_ext='-only'),
+                                    synth=True)
+
+      def copy(tgt, typename, suffix='', artifact_ext=''):
         genmap = self.context.products.get(typename)
         for basedir, jars in genmap.get(tgt).items():
           for artifact in jars:
-            if (synth_target):
-              shutil.copy(os.path.join(basedir, artifact), artifact_path(suffix=suffix, artifact_ext='-only'))
-            else:
-              shutil.copy(os.path.join(basedir, artifact), artifact_path(suffix=suffix))
+            path = artifact_path(suffix=suffix, artifact_ext=artifact_ext)
+            shutil.copy(os.path.join(basedir, artifact), path)
 
+      copy(target, typename='jars')
       if (synth_target):
-        copy('idl_jars', '-idl', synth_target)
+        copy(synth_target, typename='idl_jars', suffix='-idl', artifact_ext='-only')
       else:
-        copy('jars')
-        if is_java(target):
-          copy('javadoc_jars', '-javadoc')
-        copy('source_jars', '-sources')
+        copy(target, typename='source_jars', suffix='-sources')
 
-      return ivyxml
+      if is_java(target):
+        copy(target, typename='javadoc_jars', suffix='-javadoc')
+
+
+      return ivyxml, idl_ivyxml
 
     if self.overrides:
       print('Publishing with revision overrides:\n  %s' % '\n  '.join(
@@ -560,13 +580,14 @@ class JarPublish(Task):
 
       if no_changes and not self.force:
         print('No changes for %s' % jar_coordinate(jar, semver.version()))
-        stage_artifacts(target, jar, (newver if self.force else semver).version(), changelog)
+        stage_artifacts(target, jar, (newver if self.force else semver).version(), changelog,
+                        synth_target=synth_target)
       elif skip:
         print('Skipping %s to resume at %s' % (
           jar_coordinate(jar, (newver if self.force else semver).version()),
           coordinate(self.restart_at[0], self.restart_at[1])
         ))
-        stage_artifacts(target, jar, semver.version(), changelog)
+        stage_artifacts(target, jar, semver.version(), changelog, synth_target=synth_target)
       else:
         if not self.dryrun:
           # Confirm push looks good
@@ -585,9 +606,8 @@ class JarPublish(Task):
 
         pushdb.set_version(target, newver, head_sha, newfingerprint)
 
-        ivyxml = stage_artifacts(target, jar, newver.version(), changelog, confs=repo['confs'])
-        if (synth_target):
-          idl_ivyxml = stage_artifacts(synth_target, jar, newver.version(), changelog, confs=repo['confs'], synth_target=synth_target)
+        ivyxml, idl_ivyxml = stage_artifacts(target, jar, newver.version(), changelog,
+                                             confs=repo['confs'], synth_target=synth_target)
 
         if self.dryrun:
           print('Skipping publish of %s in test mode.' % jar_coordinate(jar, newver.version()))
@@ -630,8 +650,8 @@ class JarPublish(Task):
               '-ivy', idl_ivyxml,
               '-deliverto', '%s/[organisation]/[module]/ivy-[revision].xml' % self.outdir,
               '-publish', resolver,
-              '-publishpattern',
-                '%s/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]' % self.outdir,
+              '-publishpattern', '%s/[organisation]/[module]/'
+                                 '[artifact]-[revision](-[classifier]).[ext]' % self.outdir,
               '-revision', newver.version(),
               '-m2compatible',
             ]
@@ -719,7 +739,8 @@ class JarPublish(Task):
                      '-m', 'pants build committing publish data for push of '
                            '%(coordinate)s' % args])
 
-    self.check_call(['git', 'push' , 'origin', 'master', 'refs/tags/%(org)s-%(name)s-%(rev)s' % args])
+    self.check_call(['git', 'push' , 'origin', 'master',
+                     'refs/tags/%(org)s-%(name)s-%(rev)s' % args])
 
   def check_call(self, cmd, failuremsg=None):
     self.log_call(cmd)
