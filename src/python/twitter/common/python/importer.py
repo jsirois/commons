@@ -468,7 +468,9 @@ class EggZipImporter(object):
         raise IOError('Absolute path %r doesn\'t start with zipfile name %r' %
                       (fullpath, prefix))
       else:
+        # rewrite fullpath
         relpath = fullpath
+        fullpath = os.path.join(prefix, relpath)
 
       self._log('nested_read: %s' % fullpath, at_level=4)
       content = Nested.read(fullpath)
