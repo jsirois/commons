@@ -77,12 +77,14 @@ class Fileset(object):
   """
 
   @classmethod
-  def walk(cls, path=None, allow_dirs=False):
+  def walk(cls, path=None, allow_dirs=False, follow_links=False):
     """Walk the directory tree starting at path, or os.curdir if None.  If
        allow_dirs=False, iterate only over files.  If allow_dirs=True,
-       iterate over both files and directories."""
+       iterate over both files and directories.  If follow_links=True symlinked
+       directories will be traversed.
+    """
     path = path or os.curdir
-    for root, dirs, files in os.walk(path):
+    for root, dirs, files in os.walk(path, followlinks=follow_links):
       if allow_dirs:
         for dirname in dirs:
           base_dir = os.path.relpath(os.path.normpath(os.path.join(root, dirname)), path)
@@ -129,7 +131,7 @@ class Fileset(object):
       for globspec in globspecs:
         if fnmatch.fnmatch(path, globspec):
           return True
-    return cls(lambda: set(cls._do_rglob(matcher, allow_dirs=False, root=root)))
+    return cls(lambda: set(cls._do_rglob(matcher, allow_dirs=False, root=root, **kw)))
 
   @classmethod
   def zglobs(cls, *globspecs, **kw):
@@ -144,7 +146,7 @@ class Fileset(object):
       for pattern in patterns:
         if pattern.match(path):
           return True
-    return cls(lambda: set(cls._do_rglob(matcher, allow_dirs=True, root=root)))
+    return cls(lambda: set(cls._do_rglob(matcher, allow_dirs=True, root=root, **kw)))
 
   def __init__(self, callable_):
     self._callable = callable_
