@@ -26,12 +26,13 @@ except ImportError:
 import atexit
 import copy
 import inspect
-import os
-import sys
 import optparse
+import os
 import shlex
-import traceback
-from collections import defaultdict
+import sys
+import threading
+
+from collections import defaultdict, deque
 
 from twitter.common import options
 from twitter.common.app.module import AppModule
@@ -625,7 +626,7 @@ class Application(object):
   def quit(self, rc, exit_function=sys.exit):
     self._debug_log('Shutting application down.')
     self._teardown_modules()
-    import threading
+    self._debug_log('Finishing up module teardown.')
     nondaemons = 0
     for thr in threading.enumerate():
       self._debug_log('  Active thread%s: %s' % (' (daemon)' if thr.isDaemon() else '', thr))
