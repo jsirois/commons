@@ -43,7 +43,7 @@ public final class Glog {
      * configuration or programming error that can be corrected by mapping the underlying log
      * system's level appropriately.
      */
-    UNKOWN('U'),
+    UNKNOWN('U'),
 
     /**
      * Indicates the message is for debugging purposes only.
@@ -114,7 +114,7 @@ public final class Glog {
      * Gets the level of the log record.
      *
      * @param record The record to extract a log level from.
-     * @return The record's log level. Can be {@code null} or {@link Level#UNKOWN} if unknown.
+     * @return The record's log level. Can be {@code null} or {@link Level#UNKNOWN} if unknown.
      */
     @Nullable
     Level getLevel(T record);
@@ -184,7 +184,7 @@ public final class Glog {
     }
 
     StringBuilder sb = new StringBuilder(messageLength)
-        .append(Objects.firstNonNull(formatter.getLevel(record), Level.UNKOWN).label)
+        .append(Objects.firstNonNull(formatter.getLevel(record), Level.UNKNOWN).label)
         .append(DATE_TIME_FORMATTER.print(formatter.getTimeStamp(record)))
         .append(" THREAD")
         .append(formatter.getThreadId(record));

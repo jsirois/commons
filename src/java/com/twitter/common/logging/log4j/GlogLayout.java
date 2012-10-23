@@ -22,6 +22,7 @@ import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LocationInfo;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.spi.ThrowableInformation;
 
 import com.twitter.common.logging.Glog;
 import com.twitter.common.logging.Glog.Formatter;
@@ -65,14 +66,16 @@ public class GlogLayout extends Layout implements Formatter<LoggingEvent> {
 
   @Override
   public String getClassName(LoggingEvent record) {
-    return record.locationInformationExists()
-        ? record.getLocationInformation().getClassName()
+    LocationInfo locationInformation = record.getLocationInformation();
+    return (locationInformation != null)
+        ? locationInformation.getClassName()
         : null;
   }
 
   @Override
   public String getMethodName(LoggingEvent record) {
-    return record.locationInformationExists()
+    LocationInfo locationInformation = record.getLocationInformation();
+    return (locationInformation != null)
         ? record.getLocationInformation().getMethodName()
         : null;
   }
@@ -94,7 +97,7 @@ public class GlogLayout extends Layout implements Formatter<LoggingEvent> {
 
   @Override
   public Throwable getThrowable(LoggingEvent record) {
-    LocationInfo locationInformation = record.getLocationInformation();
-    return locationInformation != null ? record.getThrowableInformation().getThrowable() : null;
+    ThrowableInformation throwableInformation = record.getThrowableInformation();
+    return throwableInformation != null ? throwableInformation.getThrowable() : null;
   }
 }
