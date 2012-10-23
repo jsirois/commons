@@ -13,17 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==================================================================================================
-from twitter.pants.targets.jar_dependency import JarDependency
 
 __author__ = 'Phil Hom'
 
 import os
 
-from contextlib import contextmanager
-
-from twitter.common.dirutil import safe_mkdir, safe_open
-
-from twitter.pants import is_jar, is_jvm
 from twitter.pants.tasks.ivy_resolve import IvyResolve
 
 
@@ -50,6 +44,7 @@ class IdlResolve(IvyResolve):
               if os.path.basename(path).replace('-idl.jar','') in ident.id:
                 deps.append(target)
           jars.update({path:deps})
+      self.context.log.debug('Fetched idl jars: %s' % jars)
       self.context.products.idl_jars = jars
 
   def _is_idl(self, path):

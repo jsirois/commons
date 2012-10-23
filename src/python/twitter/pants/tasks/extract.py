@@ -20,43 +20,39 @@ import os
 
 from collections import defaultdict
 
-from twitter.common import log
-from twitter.common.collections import OrderedSet
 from twitter.common.contextutil import open_zip
 
 from twitter.pants.targets import JavaThriftLibrary
-from twitter.pants.tasks import TaskError, Task
-from twitter.pants.base.fileset import Fileset
+from twitter.pants.tasks import Task
 from twitter.pants.tasks.binary_utils import safe_extract
 
-class Extract(Task):
 
+class Extract(Task):
   def __init__(self, context):
     Task.__init__(self, context)
-    self._target_dir = context.config.getdefault('pants_workdir')
+    self._workdir = context.config.get('idl-extract', 'workdir')
 
   def execute(self, targets):
-    # TODO(John Sirois): actually .add(...) these to the context
     jars = self.context.products.idl_jars
     for jar in jars.keys():
       sources = self._extract(jar)
-      name = os.path.basename(jar)
       tgt = self._create_java_thrift_target(os.path.basename(jar), sources)
       for target in jars[jar]:
-        target.dependencies.add(tgt)
+        target.update_dependencies([tgt])
 
   def _extract(self, jar):
-    self.context.log.debug('Extracting idl jar to: %s' % self._target_dir)
-    safe_extract(jar, self._target_dir)
+    self.context.log.debug('Extracting idl jar to: %s' % self._workdir)
+    safe_extract(jar, self._workdir)
     contents = self._list_jar_content(jar)
     sources = []
     for content in contents:
       if content.endswith('.thrift'):
-        sources.append(os.path.join(self._target_dir, content))
+        sources.append(os.path.join(self._workdir, content))
+    self.context.log.debug('Found thrift IDL sources: %s' % sources)
     return sources
 
   def _create_java_thrift_target(self, name, files, deps=None):
-    return self.context.add_new_target('.',
+    return self.context.add_new_target(self._workdir,
                                        JavaThriftLibrary,
                                        name=name,
                                        sources=files,

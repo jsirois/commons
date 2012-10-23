@@ -559,7 +559,7 @@ goal(
 goal(
   name='idl',
   action=IdlResolve,
-).install('resolve-idl').with_description('Resovles idl jar dependencies.')
+).install('resolve-idl').with_description('Resolves idl jar dependencies.')
 
 goal(
   name='extract',
