@@ -2,7 +2,8 @@ package com.twitter.common.net.http.handlers;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.BindingAnnotation;
-import com.twitter.common.base.ExceptionalClosure;
+
+import com.twitter.common.base.Closure;
 import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.util.templating.StringTemplateHelper;
 import com.twitter.common.util.templating.StringTemplateHelper.TemplateException;
@@ -52,13 +53,19 @@ public abstract class StringTemplateServlet extends HttpServlet {
     templateHelper = new StringTemplateHelper(getClass(), templateName, cacheTemplates);
   }
 
-  protected final void writeTemplate(HttpServletResponse response,
-        ExceptionalClosure<StringTemplate, ?> parameterSetter) throws IOException {
+  protected final void writeTemplate(
+      HttpServletResponse response,
+      Closure<StringTemplate> parameterSetter) throws IOException {
+
     writeTemplate(response, CONTENT_TYPE_TEXT_HTML, HttpServletResponse.SC_OK, parameterSetter);
   }
 
-  protected final void writeTemplate(HttpServletResponse response, String contentType, int status,
-      ExceptionalClosure<StringTemplate, ?> parameterSetter) throws IOException {
+  protected final void writeTemplate(
+      HttpServletResponse response,
+      String contentType,
+      int status,
+      Closure<StringTemplate> parameterSetter) throws IOException {
+
     Preconditions.checkNotNull(response);
     MorePreconditions.checkNotBlank(contentType);
     Preconditions.checkArgument(status > 0);

@@ -34,7 +34,7 @@ import org.antlr.stringtemplate.StringTemplate;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 
-import com.twitter.common.base.ExceptionalClosure;
+import com.twitter.common.base.Closure;
 import com.twitter.common.base.MorePreconditions;
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Data;
@@ -152,8 +152,8 @@ public class LogPrinter extends StringTemplateServlet {
         LOG.warning("Failed to download file " + request.file.getPath() + ": " + e.getMessage());
       }
     } else {
-      writeTemplate(resp, new ExceptionalClosure<StringTemplate, LogConfigException>() {
-        @Override public void execute(StringTemplate template) throws LogConfigException {
+      writeTemplate(resp, new Closure<StringTemplate>() {
+        @Override public void execute(StringTemplate template) {
 
           // TODO(William Farner): Consider using unix file utility to check if the requested file is a
           //    text file, and allow the user to download the file if it is not.

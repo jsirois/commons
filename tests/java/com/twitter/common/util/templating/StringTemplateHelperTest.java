@@ -66,11 +66,14 @@ public class StringTemplateHelperTest {
     new StringTemplateHelper(getClass(), "missing_template", false);
   }
 
-  @Test(expected = TemplateException.class)
+  private static class CustomException extends RuntimeException {
+  }
+
+  @Test(expected = CustomException.class)
   public void testClosureError() throws Exception {
     templateHelper.writeTemplate(new StringWriter(), new Closure<StringTemplate>() {
       @Override public void execute(StringTemplate template) {
-        throw new RuntimeException("Injected");
+        throw new CustomException();
       }
     });
   }

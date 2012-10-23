@@ -1,5 +1,6 @@
 package com.twitter.common.util.templating;
 
+import java.io.IOException;
 import java.io.Writer;
 
 import com.google.common.base.Preconditions;
@@ -8,7 +9,7 @@ import org.antlr.stringtemplate.AutoIndentWriter;
 import org.antlr.stringtemplate.StringTemplate;
 import org.antlr.stringtemplate.StringTemplateGroup;
 
-import com.twitter.common.base.ExceptionalClosure;
+import com.twitter.common.base.Closure;
 import com.twitter.common.base.MorePreconditions;
 
 /**
@@ -66,7 +67,7 @@ public class StringTemplateHelper {
    */
   public void writeTemplate(
       Writer out,
-      ExceptionalClosure<StringTemplate, ?> parameterSetter) throws TemplateException {
+      Closure<StringTemplate> parameterSetter) throws TemplateException {
 
     Preconditions.checkNotNull(out);
     Preconditions.checkNotNull(parameterSetter);
@@ -75,7 +76,7 @@ public class StringTemplateHelper {
     try {
       parameterSetter.execute(stringTemplate);
       stringTemplate.write(new AutoIndentWriter(out));
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new TemplateException("Failed to write template: " + e, e);
     }
   }
