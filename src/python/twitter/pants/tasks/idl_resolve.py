@@ -18,6 +18,7 @@ __author__ = 'Phil Hom'
 
 import os
 
+from twitter.pants import is_internal
 from twitter.pants.tasks.ivy_resolve import IvyResolve
 
 
@@ -30,18 +31,17 @@ class IdlResolve(IvyResolve):
 
   def execute(self, targets):
     IvyResolve.execute(self, targets)
-    self._populate_Idl_list(targets)
+    self._populate_Idl_list()
 
-  def _populate_Idl_list(self, targets):
+  def _populate_Idl_list(self):
     with self._cachepath(self._classpath_file) as classpath:
       jars = {}
       for path in classpath:
         if self._is_idl(path):
           deps = []
-          for target in targets:
-            depkeys = target.dependencies.map.keys()
-            for ident in depkeys:
-              if os.path.basename(path).replace('-idl.jar','') in ident.id:
+          for target in self.context.targets(predicate=is_internal):
+            for dep in target.dependencies:
+              if os.path.basename(path).replace('-idl.jar','') in dep.id:
                 deps.append(target)
           jars.update({path:deps})
       self.context.log.debug('Fetched idl jars: %s' % jars)
