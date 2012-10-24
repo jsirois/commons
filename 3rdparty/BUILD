@@ -275,17 +275,59 @@ jar_library(name = 'kryo-serializers',
             ]
            )
 
-jar_library(name = 'lucene-modules',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-modules', rev = 'r1211247',
-                  apidocs = 'https://builds.apache.org//job/Lucene-trunk/javadoc/all/index.html').withSources()
-             ]
-            )
+LUCENE_REV = '4.0.0'
 
 jar_library(name = 'lucene-core',
             dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-core', rev = 'r1211247',
-                  apidocs = 'https://builds.apache.org//job/Lucene-trunk/javadoc/all/index.html').withSources()
+              jar(org = 'org.apache.lucene', name = 'lucene-core', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-queries',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-queries', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-analyzers',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-analyzers-common', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-spatial',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-spatial', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-queryparser',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-queryparser', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-test-framework',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-test-framework', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-analyzers-smartcn',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-analyzers-smartcn', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-facet',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-facet', rev = LUCENE_REV).withSources()
+            ]
+           )
+
+jar_library(name = 'lucene-suggest',
+            dependencies = [
+              jar(org = 'org.apache.lucene', name = 'lucene-suggest', rev = LUCENE_REV).withSources()
             ]
            )
 

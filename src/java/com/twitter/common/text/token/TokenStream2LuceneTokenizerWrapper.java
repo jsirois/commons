@@ -33,9 +33,10 @@ public class TokenStream2LuceneTokenizerWrapper extends Tokenizer {
 
   public TokenStream2LuceneTokenizerWrapper(TokenStream stream, Reader input)
       throws IOException {
-    super(stream.cloneAttributes());
+    super(stream.cloneAttributes(), input);
+    Preconditions.checkNotNull(input);
     this.stream = stream;
-    reset(input);
+    reset();
   }
 
   @Override
@@ -48,9 +49,11 @@ public class TokenStream2LuceneTokenizerWrapper extends Tokenizer {
     return true;
   }
 
-  @Override
-  public void reset(Reader input) throws IOException {
-    Preconditions.checkNotNull(input);
+  /**
+   * Make sure we copy the reader's content to the TokenStream.
+   */
+  public void reset() throws IOException {
+    super.reset();
     StringWriter writer = new StringWriter();
     IOUtils.copy(input, writer);
     stream.reset(writer.toString());

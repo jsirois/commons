@@ -65,7 +65,7 @@ public class LuceneTokenizer2TokenStreamWrapper extends TokenStream {
   public void reset(CharSequence input) {
     Preconditions.checkNotNull(input);
     try {
-      tokenizer.reset(new StringReader(input.toString()));
+      tokenizer.setReader(new StringReader(input.toString()));
       termAttr.setTermBuffer(input);
     } catch (IOException e) {
       throw new RuntimeException(e);
