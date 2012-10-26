@@ -66,22 +66,27 @@ class CommandUtil(object):
 
     if log_cmd:
       log.info("Executing: %s" % " ".join(cmd))
+    #Call subprocess.call to run the command.
     try:
       ret = subprocess.call(cmd, stdout=std_out_file, stderr=std_err_file)
-    except OSError as exception:
-      log.error("Exception occurred %s" % exception)
-      return (1, None) if return_output else 1
-
-    if tmp_filename:
-      file_read = open(tmp_filename, "r")
-      text = file_read.read()
-      file_read.close()
-      os.remove(tmp_filename)
+      text = None
+      #Check if there is some output or error captured to log
+      if tmp_filename:
+        with open(tmp_filename, 'r') as file_read:
+          text = file_read.read()
+        os.remove(tmp_filename)
       if text:
         log.info("External output:\n%s" % text)
-        if return_output:
-          return (ret, text)
-    return ret
+      return (ret, text) if return_output else ret
+    except subprocess.CalledProcessError as exception:
+      log.error("Subprocess Exception occurred %s" % exception)
+      return (ret, None) if return_output else ret
+    except OSError as exception:
+      log.error("OS Exception occurred %s" % exception)
+      #IF this exception occurs the ret value is not initialized hence return non-zero
+      return (1, None) if return_output else 1
+
+
 
   @staticmethod
   def check_call(cmd):

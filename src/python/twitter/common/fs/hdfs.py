@@ -54,7 +54,7 @@ class HDFSHelper(object):
     elif kwargs.get('supress_output', True):
       return self._cmd_class.execute_suppress_stdout(cmd)
     else:
-      return self._cmd_class.execute(cmd)
+      self._cmd_class.execute(cmd)
 
   def get(self, src, dst):
     """
@@ -99,15 +99,19 @@ class HDFSHelper(object):
     """
     return self._call("-cat", remote_file_pattern, also_output_to_file=local_file)
 
-  def _ls(self, path, is_dir=False, is_recursive=False, additional_args=""):
+  def _ls(self, path, is_dir=False, is_recursive=False):
     """
-    Return list of [hdfs_full_path, filesize].
+    Return list of [hdfs_full_path, filesize]
+    Raises exception when the hadoop ls command returns error
     """
     hdfs_cmd = '-lsr' if is_recursive else '-ls'
-    ls_result = self._call(hdfs_cmd, path, additional_args, return_output=True)
-    lines = ls_result.splitlines()
+    (exit_code, ls_result) = self._call(hdfs_cmd, path, return_output=True)
+    if exit_code != 0:
+      raise self.InternalError("Error occurred. %s.Check logs for details" % ls_result)
     file_list = []
-
+    if ls_result == None:
+      return file_list
+    lines = ls_result.splitlines()
     for line in lines:
       if line == "" or line.startswith("Found"):
         continue
@@ -128,19 +132,19 @@ class HDFSHelper(object):
       file_list.append([filename, metadata.filesize])
     return file_list
 
-  def ls(self, path, is_dir=False, additional_args=""):
+  def ls(self, path, is_dir=False):
     """
     Returns list of [hdfs_full_path, filesize]
     If is_dir is true returns only the toplevel directories.
     """
-    return self._ls(path, is_dir, False, additional_args)
+    return self._ls(path, is_dir, False)
 
-  def lsr(self, path, is_dir=False, additional_args=""):
+  def lsr(self, path, is_dir=False):
     """
     Returns list of [hdfs_full_path, filesize] in recursive manner
     If is_dir is true returns only the directories.
     """
-    return self._ls(path, is_dir, True, additional_args)
+    return self._ls(path, is_dir, True)
 
   def read(self, filename):
     """

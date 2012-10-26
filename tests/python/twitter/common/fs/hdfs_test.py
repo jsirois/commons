@@ -22,11 +22,17 @@ class MockCommandUtil:
 
   @staticmethod
   def execute(cmd, get_output=True):
-    if cmd[4] == '-lsr' or cmd[4] == '-ls':
-      return "\n".join(["Found 1 items",
+    if (cmd[4] == '-lsr' or cmd[4] == '-ls') and cmd[5] =='path':
+      return (0,"\n".join(["Found 1 items",
             "drwxr-xr-x   - tdesai staff         68 2012-08-06 13:51 hadoop_dir/test_dir",
             "-rwxrwxrwx   1 tdesai staff          6 2012-08-06 14:01 tejal.txt",
-            "-rwxrwxrwx   1 tdesai staff          6 2012-08-06 14:01 tejal txt"])
+            "-rwxrwxrwx   1 tdesai staff          6 2012-08-06 14:01 tejal txt"]))
+
+    if (cmd[4] == '-lsr' or cmd[4] == '-ls') and cmd[5] =='non_existing':
+      return (255,"ls: File doesnot exists")
+
+    if (cmd[4] == '-lsr' or cmd[4] == '-ls') and cmd[5] =='empty':
+      return (0,None)
 
     if cmd[4] == '-test':
       return " ".join(cmd) == \
@@ -45,7 +51,6 @@ class MockCommandUtil:
             "hadoop --config /etc/hadoop/hadoop-conf-tst-smf1 dfs -copyToLocal " + \
              "non_exist " + tmp_file:
           return 1
-
 
     if cmd[4] == '-copyFromLocal':
       if cmd[5] != 'text_file':
@@ -98,17 +103,23 @@ class HdfsTest(unittest.TestCase):
     expected_output_dir = [['hadoop_dir/test_dir', 68]]
     expected_output = [['tejal.txt', 6], ['tejal txt',6]]
     self.assertEqual(cmd, expected_output_dir)
-    cmd = hdfs_helper.ls('path2')
+    cmd = hdfs_helper.ls('path')
     self.assertEqual(cmd, expected_output)
+    #Empty path
+    cmd = hdfs_helper.ls('empty', True)
+    self.assertTrue(not cmd)
+    #Return code 255
+    self.assertRaises(HDFSHelper.InternalError,hdfs_helper.ls,'non_existing', True )
+
 
 
   def test_hdfs_lsr(self):
     hdfs_helper = HDFSHelper("/etc/hadoop/hadoop-conf-tst-smf1", command_class=MockCommandUtil)
     expected_output = [['tejal.txt', 6], ['tejal txt',6]]
     expected_output_dir = [['hadoop_dir/test_dir', 68]]
-    cmd = hdfs_helper.lsr('path3')
+    cmd = hdfs_helper.lsr('path')
     self.assertEqual(cmd, expected_output)
-    cmd = hdfs_helper.lsr('path1', True)
+    cmd = hdfs_helper.lsr('path', True)
     self.assertEqual(cmd, expected_output_dir)
 
   def test_exists(self):
