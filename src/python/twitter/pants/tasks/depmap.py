@@ -16,16 +16,15 @@
 
 from __future__ import print_function
 
-__author__ = 'John Sirois'
+import sys
+import traceback
 
 from twitter.pants.tasks import Task
 from twitter.pants.tasks import TaskError
 
 from twitter.pants import is_jvm, is_python
-from twitter.pants.base import Address, Target
+from twitter.pants.targets.jar_dependency import JarDependency
 
-import sys
-import traceback
 
 class Depmap(Task):
   """Generates either a textual dependency tree or a graphviz digraph dotfile for the dependency set
@@ -128,15 +127,20 @@ class Depmap(Task):
   def _dep_id(self, dependency):
     """Returns a tuple of dependency_id , is_internal_dep."""
 
-    dep = dependency._create_template_data()
-    params = dict(
-      org = dep.org,
-      name = dep.module,
-      rev = dep.version,
-      sep = self.separator,
-    )
+    params = dict(sep=self.separator)
+    if isinstance(dependency, JarDependency):
+      params.update(dict(
+        org=dependency.org,
+        name=dependency.name,
+        rev=dependency.rev,
+      ))
+    else:
+      params.update(dict(
+        org='internal',
+        name=dependency.id,
+      ))
 
-    if dep.version:
+    if params.get('rev'):
       return "%(org)s%(sep)s%(name)s%(sep)s%(rev)s" % params, False
     else:
       return "%(org)s%(sep)s%(name)s" % params, True
