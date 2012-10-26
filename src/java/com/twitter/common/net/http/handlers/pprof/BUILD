@@ -9,6 +9,7 @@ java_library(name = 'pprof',
     pants('3rdparty:servlet-api'),
     pants('3rdparty:util-core'),
     pants('3rdparty:util-jvm'),
+    pants('src/java/com/twitter/common/net/http/handlers:params'),
     pants('src/java/com/twitter/common/quantity'),
   ],
   sources = globs('*.java')

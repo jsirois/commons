@@ -230,20 +230,16 @@ public class LogPrinter extends StringTemplateServlet {
       dir = req.getParameter(DIR_PARAM) == null ? null : new File(req.getParameter(DIR_PARAM));
       file = req.getParameter(FILE_PARAM) ==  null ? null
           : new LogFile(req.getParameter(FILE_PARAM));
-      download = req.getParameter(DOWNLOAD_PARAM) == null ? false
-          : Boolean.parseBoolean(req.getParameter(DOWNLOAD_PARAM));
-      tailing = req.getParameter(TAIL_PARAM) != null
-                && Boolean.parseBoolean(req.getParameter(TAIL_PARAM));
-      page = req.getParameter(PAGE_PARAM) == null ? DEFAULT_PAGE
-          : Integer.parseInt(req.getParameter(PAGE_PARAM));
+      download = HttpServletRequestParams.getBool(req, DOWNLOAD_PARAM, false);
+      tailing = HttpServletRequestParams.getBool(req, TAIL_PARAM, false);
+      page = HttpServletRequestParams.getInt(req, PAGE_PARAM, DEFAULT_PAGE);
       Preconditions.checkArgument(page >= 0);
 
-      startPos = req.getParameter(START_POS_PARAM) == null ? -1
-          : Long.parseLong(req.getParameter(START_POS_PARAM));
+      startPos = HttpServletRequestParams.getLong(req, START_POS_PARAM, -1);
       if (file != null) {
         Preconditions.checkArgument(startPos >= -1 && startPos <= file.getFile().length());
       }
-      filter = req.getParameter(FILTER_PARAM) == null ? "" : req.getParameter(FILTER_PARAM);
+      filter = HttpServletRequestParams.getString(req, FILTER_PARAM, "");
     }
 
     public boolean isFileViewRequest() {

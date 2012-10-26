@@ -22,6 +22,8 @@ THRIFT_SOURCES = [ 'ThriftServlet.java' ]
 
 TIME_SERIES_SOURCES = [ 'TimeSeriesDataSource.java' ]
 
+PARAMS_SOURCES = [ 'HttpServletRequestParams.java' ]
+
 java_library(name = 'text',
   provides = artifact(
     org = 'com.twitter.common',
@@ -58,17 +60,18 @@ java_library(name = 'handlers',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:commons-codec',
-    '3rdparty:gson',
-    '3rdparty:guava',
-    '3rdparty:guice',
-    '3rdparty:servlet-api',
-    '3rdparty:stringtemplate',
-    'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/quantity',
-    'src/java/com/twitter/common/stats',
-    ':string-template',
-    ':text',
+    pants('3rdparty:commons-codec'),
+    pants('3rdparty:gson'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:servlet-api'),
+    pants('3rdparty:stringtemplate'),
+    pants(':params'),
+    pants(':string-template'),
+    pants(':text'),
+    pants('src/java/com/twitter/common/base'),
+    pants('src/java/com/twitter/common/quantity'),
+    pants('src/java/com/twitter/common/stats'),
   ],
   sources = globs('*.java')
     - TEXT_SOURCES - STRING_TEMPLATE_SOURCES - THRIFT_SOURCES - TIME_SERIES_SOURCES,
@@ -114,4 +117,18 @@ java_library(name = 'time-series',
     'src/java/com/twitter/common/stats:time-series',
   ],
   sources = TIME_SERIES_SOURCES
+)
+
+java_library(name = 'params',
+  provides = artifact(
+    org = 'com.twitter.common',
+    name = 'net-http-handlers-params',
+    repo = pants('build-support/commons/ivy:public'),
+  ),
+  dependencies = [
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:servlet-api'),
+  ],
+  sources = PARAMS_SOURCES
 )
