@@ -74,7 +74,7 @@ java_library(name = 'handlers',
     pants('src/java/com/twitter/common/stats'),
   ],
   sources = globs('*.java')
-    - TEXT_SOURCES - STRING_TEMPLATE_SOURCES - THRIFT_SOURCES - TIME_SERIES_SOURCES,
+    - TEXT_SOURCES - STRING_TEMPLATE_SOURCES - THRIFT_SOURCES - TIME_SERIES_SOURCES - PARAMS_SOURCES,
 
   resources = [
     'logconfig.st',

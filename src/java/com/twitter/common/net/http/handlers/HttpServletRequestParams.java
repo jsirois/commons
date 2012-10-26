@@ -1,9 +1,8 @@
 package com.twitter.common.net.http.handlers;
 
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Simple utility for parsing HttpServletRequest parameters by type.
@@ -63,8 +62,9 @@ public class HttpServletRequestParams {
    * Returns a string param from an HttpServletRequest if set, returns a defualt value
    * if the parameter is not set.
    */
-  public static String getString(HttpServletRequest request, String param, String defaultValue) {
-    Preconditions.checkNotNull(defaultValue);
+  @Nullable
+  public static String getString(HttpServletRequest request, String param,
+                                 @Nullable String defaultValue) {
     if (request.getParameter(param) != null) {
       return request.getParameter(param);
     } else {
