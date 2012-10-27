@@ -524,9 +524,7 @@ jar_library(name = 'commons-net',
 #
 
 jar_library(name = 'easymock',
-            dependencies = [
-              jar(org = 'org.easymock', name = 'easymock', rev = '3.1').with_sources()
-            ])
+            dependencies = [ jar(org = 'org.easymock', name = 'easymock', rev = '3.0') ])
 
 jar_library(name = 'mockito',
             dependencies = [
@@ -568,5 +566,16 @@ jar_library(name = 'tl4j',
                 # testing code (e.g. ConcurrentJunitRunner). So exclude it here so that the junit
                 # target defined above is used instead. tl4j seems to be happy with junit-4.10.
                 .exclude(org = 'junit', name='junit')
+            ]
+           )
+
+# TODO(John Sirois): support an ivy 'runtime' configuration and punch through a way to indicate this
+# via pants
+jar_library(name = 'easymockclassextension',
+            dependencies = [
+              pants(':easymock'),
+              pants(':cglib'),
+              jar(org = 'org.easymock', name = 'easymockclassextension', rev = '3.0'),
+              jar(org = 'org.objenesis', name = 'objenesis', rev = '1.2'),
             ]
            )

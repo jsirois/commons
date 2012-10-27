@@ -17,6 +17,7 @@
 scala_tests(name = 'stats',
   dependencies = [
     pants('3rdparty:easymock'),
+    pants('3rdparty:easymockclassextension'),
     pants('3rdparty:ostrich'),
     pants('3rdparty:specs'),
     pants('src/java/com/twitter/common/stats:stats-provider'),
