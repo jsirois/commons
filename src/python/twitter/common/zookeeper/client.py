@@ -233,8 +233,8 @@ class ZooKeeper(object):
           raise
         self._logger('%s raced, re-enqueueing' % self)
         self._zk._add_completion(self._fn)
-      except (zookeeper.ConnectionLossException, SystemError):
-        self._logger('%s excepted, re-enqueueing' % self)
+      except (zookeeper.ConnectionLossException, zookeeper.InvalidStateException, SystemError) as e:
+        self._logger('%s excepted (%s), re-enqueueing' % (self, e))
         self._zk._add_completion(self._fn)
       return zookeeper.OK
 
@@ -257,7 +257,7 @@ class ZooKeeper(object):
           result = self._fn(self._zk._zh)
           self._logger('%s success' % self)
           return result
-        except (zookeeper.ConnectionLossException, TypeError) as e:
+        except (zookeeper.ConnectionLossException, zookeeper.InvalidStateException, TypeError) as e:
           # TypeError because we raced on live latch from True=>False when _zh gets reinitialized.
           if isinstance(e, TypeError) and self._zk._zh is not None:
             self._logger('%s excepted, user error' % self)
@@ -265,8 +265,8 @@ class ZooKeeper(object):
           # We had the misfortune of the live latch being set but having a session event propagate
           # before the BlockingCompletion could be executed.
           while not self._zk._stopped.is_set():
-            self._logger('%s [live: %s] excepted on connection event' % (
-                self, self._zk._live.is_set()))
+            self._logger('%s [live: %s] excepted on connection event: %s' % (
+                self, self._zk._live.is_set(), e))
             self._zk._live.wait(timeout=0.1)
             if self._zk._live.is_set():
               break
