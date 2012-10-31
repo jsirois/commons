@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -34,7 +35,7 @@ public class HeapProfileHandler extends HttpServlet {
     } catch (ClassNotFoundException e) {
       // If your runtime environment cannot load the class, the profiler will return an
       // error message each time it is used.
-      LOG.log(Level.WARNING, "Could not load Heapster class", e);
+      LOG.warning("Continuing without heapster profiling, could not load Heapster class: " + e);
     }
     this.heapster = helper;
   }
