@@ -17,13 +17,7 @@
 package com.twitter.common.zookeeper;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -32,17 +26,14 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -52,7 +43,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -66,6 +57,7 @@ import com.twitter.common.base.Function;
 import com.twitter.common.base.Supplier;
 import com.twitter.common.io.Codec;
 import com.twitter.common.io.CompatibilityCodec;
+import com.twitter.common.io.JsonCodec;
 import com.twitter.common.io.ThriftCodec;
 import com.twitter.common.util.BackoffHelper;
 import com.twitter.common.zookeeper.Group.GroupChangeListener;
@@ -87,8 +79,8 @@ public class ServerSetImpl implements ServerSet {
 
   @CmdLine(name = "serverset_encode_json",
            help = "If true, use JSON for encoding server set information."
-               + " Defaults to true (use JSON).")
-  private static final Arg<Boolean> ENCODE_JSON = Arg.create(true);
+               + " Defaults to false (use Thrift).")
+  private static final Arg<Boolean> ENCODE_JSON = Arg.create(false);
 
   private final ZooKeeperClient zkClient;
   private final Group group;
@@ -461,108 +453,11 @@ public class ServerSetImpl implements ServerSet {
     }
   }
 
-  private static class EndpointSchema {
-    final String host;
-    final Integer port;
-
-    EndpointSchema(Endpoint endpoint) {
-      Preconditions.checkNotNull(endpoint);
-      this.host = endpoint.getHost();
-      this.port = endpoint.getPort();
-    }
-
-    String getHost() {
-      return host;
-    }
-
-    Integer getPort() {
-      return port;
-    }
-  }
-
-  private static class ServiceInstanceSchema {
-    final EndpointSchema primaryEndpoint;
-    final Map<String, EndpointSchema> additionalEndpoints;
-    final Status status;
-    final Integer shard;
-
-    ServiceInstanceSchema(ServiceInstance instance) {
-      this.primaryEndpoint = new EndpointSchema(instance.getServiceEndpoint());
-      if (instance.getAdditionalEndpoints() != null) {
-        this.additionalEndpoints = Maps.transformValues(
-            instance.getAdditionalEndpoints(),
-            new Function<Endpoint, EndpointSchema>() {
-              @Override public EndpointSchema apply(Endpoint endpoint) {
-                return new EndpointSchema(endpoint);
-              }
-            }
-        );
-      } else {
-        this.additionalEndpoints = Maps.newHashMap();
-      }
-      this.status  = instance.getStatus();
-      this.shard = instance.isSetShard() ? instance.getShard() : null;
-    }
-
-    EndpointSchema getPrimaryEndpoint() {
-      return primaryEndpoint;
-    }
-
-    Map<String, EndpointSchema> getAdditionalEndpoints() {
-      return additionalEndpoints;
-    }
-
-    Status getStatus() {
-      return status;
-    }
-
-    Integer getShard() {
-      return shard;
-    }
-  }
-
-  /**
-   * An adapted JSON codec that makes use of {@link ServiceInstanceSchema} to circumvent the
-   * __isset_bit_vector internal thrift struct field that tracks primitive types.
-   */
-  private static class AdaptedJsonCodec implements Codec<ServiceInstance> {
-    private static final Charset ENCODING = Charsets.UTF_8;
-    private static final Class<ServiceInstanceSchema> CLASS = ServiceInstanceSchema.class;
-    private final Gson gson = new Gson();
-
-    @Override
-    public void serialize(ServiceInstance instance, OutputStream sink) throws IOException {
-      Writer w = new OutputStreamWriter(sink, ENCODING);
-      gson.toJson(new ServiceInstanceSchema(instance), CLASS, w);
-      w.flush();
-    }
-
-    @Override
-    public ServiceInstance deserialize(InputStream source) throws IOException {
-      ServiceInstanceSchema output = gson.fromJson(new InputStreamReader(source, ENCODING), CLASS);
-      Endpoint primary = new Endpoint(
-          output.getPrimaryEndpoint().getHost(), output.getPrimaryEndpoint().getPort());
-      Map<String, Endpoint> additional = Maps.transformValues(
-          output.getAdditionalEndpoints(),
-          new Function<EndpointSchema, Endpoint>() {
-            @Override public Endpoint apply(EndpointSchema endpoint) {
-              return new Endpoint(endpoint.getHost(), endpoint.getPort());
-            }
-          }
-      );
-      ServiceInstance instance =
-          new ServiceInstance(primary, ImmutableMap.copyOf(additional), output.getStatus());
-      if (output.getShard() != null) {
-        instance.setShard(output.getShard());
-      }
-      return instance;
-    }
-  }
-
   private static Codec<ServiceInstance> createCodec(final boolean useJsonEncoding) {
-    final Codec<ServiceInstance> json = new AdaptedJsonCodec();
-    final Codec<ServiceInstance> thrift =
-        ThriftCodec.create(ServiceInstance.class, ThriftCodec.BINARY_PROTOCOL);
+    final Codec<ServiceInstance> json = JsonCodec.create(ServiceInstance.class, new GsonBuilder()
+        .setExclusionStrategies(JsonCodec.getThriftExclusionStrategy()).create());
+    final Codec<ServiceInstance> thrift = ThriftCodec.create(ServiceInstance.class,
+        ThriftCodec.BINARY_PROTOCOL);
     final Predicate<byte[]> recognizer = new Predicate<byte[]>() {
       public boolean apply(byte[] input) {
         return (input.length > 1 && input[0] == '{' && input[1] == '\"') == useJsonEncoding;

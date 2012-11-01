@@ -42,7 +42,6 @@ import org.apache.zookeeper.data.ACL;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.twitter.common.io.Codec;
 import com.twitter.common.net.pool.DynamicHostSet;
 import com.twitter.common.thrift.TResourceExhaustedException;
 import com.twitter.common.thrift.Thrift;
@@ -193,35 +192,6 @@ public class ServerSetImplTest extends BaseZooKeeperTest {
     status2.leave();
     assertEquals(ImmutableList.of(instance1, instance3),
         ImmutableList.copyOf(serverSetBuffer.take()));
-  }
-
-  @Test
-  public void testJsonCodec() throws Exception {
-    Codec<ServiceInstance> codec = ServerSetImpl.createJsonCodec();
-    ServiceInstance instance1 = new ServiceInstance(
-        new Endpoint("foo", 1000),
-        ImmutableMap.of("http", new Endpoint("foo", 8080)),
-        Status.ALIVE)
-        .setShard(0);
-    byte[] data = ServerSets.serializeServiceInstance(instance1, codec);
-    assertTrue(ServerSets.deserializeServiceInstance(data, codec).getServiceEndpoint().isSetPort());
-    assertTrue(ServerSets.deserializeServiceInstance(data, codec).isSetShard());
-
-    ServiceInstance instance2 = new ServiceInstance(
-        new Endpoint("foo", 1000),
-        ImmutableMap.of("http-admin1", new Endpoint("foo", 8080)),
-        Status.ALIVE);
-    data = ServerSets.serializeServiceInstance(instance2, codec);
-    assertTrue(ServerSets.deserializeServiceInstance(data, codec).getServiceEndpoint().isSetPort());
-    assertFalse(ServerSets.deserializeServiceInstance(data, codec).isSetShard());
-
-    ServiceInstance instance3 = new ServiceInstance(
-        new Endpoint("foo", 1000),
-        ImmutableMap.<String, Endpoint>of(),
-        Status.ALIVE);
-    data = ServerSets.serializeServiceInstance(instance3, codec);
-    assertTrue(ServerSets.deserializeServiceInstance(data, codec).getServiceEndpoint().isSetPort());
-    assertFalse(ServerSets.deserializeServiceInstance(data, codec).isSetShard());
   }
 
   //TODO(Jake Mannix) move this test method to ServerSetConnectionPoolTest, which should be renamed
