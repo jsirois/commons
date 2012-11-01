@@ -317,6 +317,14 @@ public class JUnitConsoleRunner {
         notFoundError(spec, out, e);
       } catch (ClassNotFoundException e) {
         notFoundError(spec, out, e);
+      } catch (LinkageError e) {
+        // Any of a number of runtime linking errors can occur when trying to load a class,
+        // fail with the test spec so the class failing to link is known.
+        notFoundError(spec, out, e);
+      } catch (RuntimeException e) {
+        // The class may fail with some variant of RTE in its static initializers, trap these
+        // and dump the bad spec in question to help narrow down issue.
+        notFoundError(spec, out, e);
       }
     }
     List<Request> requests = Lists.newArrayList();
