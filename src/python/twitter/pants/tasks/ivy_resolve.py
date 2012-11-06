@@ -254,20 +254,46 @@ class IvyResolve(NailgunTask):
     def is_jardependant(target):
       return is_jar(target) or is_jvm(target)
 
-    jars = set()
+    jars = {}
     excludes = set()
+    # Support the ivy force concept when we sanely can for internal dep conflicts.
+    # TODO(John Sirois): Consider supporting / implementing the configured ivy revision picking
+    # strategy generally.
+    def add_jar(jar):
+      coordinate = (jar.org, jar.name)
+      existing = jars.get(coordinate)
+      if not existing:
+        jars[coordinate] = jar
+      elif jar != existing:
+        if existing.force:
+          if jar.force:
+            raise TaskError('Cannot force %s#%s to both rev %s and %s' % (
+              jar.org, jar.name, existing.rev, jar.rev
+            ))
+          else:
+            self.context.log.debug('Ignoring rev %s for %s#%s already forced to %s' % (
+              jar.rev, jar.org, jar.name, existing.rev
+            ))
+        elif jar.force:
+          self.context.log.debug(
+            'Forcing %s#%s from %s to %s' % (jar.org, jar.name, existing.rev, jar.rev)
+          )
+          jars[coordinate] = jar
+
     def collect_jars(target):
       if is_jar(target):
-        jars.add(target)
+        add_jar(target)
       elif target.jar_dependencies:
-        jars.update(jar for jar in target.jar_dependencies if jar.rev)
+        for jar in target.jar_dependencies:
+          if jar.rev:
+            add_jar(jar)
       if target.excludes:
         excludes.update(target.excludes)
 
     for target in targets:
       target.walk(collect_jars, is_jardependant)
 
-    return jars, excludes
+    return jars.values(), excludes
 
   def _generate_jar_template(self, jar):
     template = TemplateData(
