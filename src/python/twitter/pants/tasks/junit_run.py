@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 import re
 import sys
@@ -42,6 +40,10 @@ class JUnitRun(JvmTask):
                             dest = "junit_run_fail_fast",
                             action="callback", callback=mkflag.set_bool, default=False,
                             help = "[%default] Fail fast on the first test failure in a suite")
+
+    option_group.add_option(mkflag("batch-size"), type = "int", default=sys.maxint,
+                            dest = "junit_run_batch_size",
+                            help = "[ALL] Runs at most this many tests in a single test process.")
 
     option_group.add_option(mkflag("jvmargs"), dest = "junit_run_jvmargs", action="append",
                             help = "Runs junit tests in a jvm with these extra jvm args.")
@@ -140,6 +142,9 @@ class JUnitRun(JvmTask):
       or context.config.get('junit-run', 'workdir')
     )
 
+    self.batch_size = context.options.junit_run_batch_size
+    self.fail_fast = context.options.junit_run_fail_fast
+
     self.coverage = context.options.junit_run_coverage
     self.coverage_filters = context.options.junit_run_coverage_patterns or []
     self.coverage_dir = os.path.join(self.outdir, 'coverage')
@@ -163,7 +168,7 @@ class JUnitRun(JvmTask):
 
     self.flags = []
     if context.options.junit_run_xmlreport or context.options.junit_run_suppress_output:
-      if context.options.junit_run_fail_fast:
+      if self.fail_fast:
         self.flags.append('-fail-fast')
       if context.options.junit_run_xmlreport:
         self.flags.append('-xmlreport')
@@ -174,6 +179,11 @@ class JUnitRun(JvmTask):
     if context.options.junit_run_per_test_timer:
       self.flags.append('-per-test-timer')
 
+  def _partition(self, tests):
+    stride = min(self.batch_size, len(tests))
+    for i in xrange(0, len(tests), stride):
+      yield tests[i:i+stride]
+
   def execute(self, targets):
     if not self.context.options.junit_run_skip:
       tests = list(self.normalize_test_classes() if self.test_classes
@@ -182,15 +192,22 @@ class JUnitRun(JvmTask):
         junit_classpath = self.classpath(profile_classpath(self.junit_profile), confs=self.confs)
 
         def run_tests(classpath, main, jvmargs=None):
-          with safe_args(tests) as all_tests:
-            result = runjava(
-              jvmargs=(jvmargs or []) + self.java_args,
-              classpath=classpath,
-              main=main,
-              args=self.flags + all_tests
-            )
-            if result != 0:
-              raise TaskError()
+          # TODO(John Sirois): Integrated batching with the test runner.  As things stand we get
+          # results summaries for example for each batch but no overall summary.
+          # http://jira.local.twitter.com/browse/AWESOME-1114
+          result = 0
+          for batch in self._partition(tests):
+            with safe_args(batch) as batch_tests:
+              result += runjava(
+                jvmargs=(jvmargs or []) + self.java_args,
+                classpath=classpath,
+                main=main,
+                args=self.flags + batch_tests
+              )
+              if result != 0 and self.fail_fast:
+                break
+          if result != 0:
+            raise TaskError()
 
         if self.coverage:
           emma_classpath = profile_classpath(self.emma_profile)
