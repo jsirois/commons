@@ -27,7 +27,6 @@ class JarLibrary(Target):
     dependencies: one or more JarDependencies this JarLibrary bundles or Pants pointing to other
         JarLibraries or JavaTargets"""
 
-    assert len(dependencies) > 0, "At least one dependency must be specified"
     Target.__init__(self, name, False)
     self.add_label('jars')
     self.dependencies = resolve(dependencies)
