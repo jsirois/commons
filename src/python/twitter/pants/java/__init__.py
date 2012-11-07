@@ -16,6 +16,7 @@
 
 import os
 import tempfile
+import zipfile
 
 from contextlib import contextmanager
 
@@ -47,8 +48,22 @@ def open_jar(path, *args, **kwargs):
         mkdirs(parent_path)
 
         # Any real directory will do so we pick the system tmp dir as a convenient cross-platform
-        # available dir.
-        real_write(tempfile.gettempdir(), arcpath)
+        # available dir.  We store directories without compression since they have no contents and
+        # attempts to store them with compression lead to corrupted zip files as such:
+        # $ unzip -t junit-runner-0.0.19.jar
+        # Archive:  junit-runner-0.0.19.jar
+        # testing: com/
+        # error:  invalid compressed data to inflate
+        # testing: com/twitter/
+        # error:  invalid compressed data to inflate
+        # testing: com/twitter/common/
+        # error:  invalid compressed data to inflate
+        # testing: com/twitter/common/testing/
+        # error:  invalid compressed data to inflate
+        # testing: com/twitter/common/testing/runner/
+        # error:  invalid compressed data to inflate
+        # testing: com/twitter/common/testing/runner/StreamSource.class   OK
+        real_write(tempfile.gettempdir(), arcpath, zipfile.ZIP_STORED)
 
     def write(path, arcname=None, **kwargs):
       mkdirs(os.path.dirname(path)
