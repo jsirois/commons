@@ -38,7 +38,7 @@ def safe_mkdir(directory, clean=False):
 
 def safe_rmtree(directory):
   """
-    Delete a directory if its present. If its not present its a no-op.
+    Delete a directory if it's present. If it's not present, no-op.
   """
   if os.path.exists(directory):
     shutil.rmtree(directory, True)
@@ -46,7 +46,7 @@ def safe_rmtree(directory):
 
 def safe_open(filename, *args, **kwargs):
   """
-    Open a file safely (assuring that the directory components leading up to it
+    Open a file safely (ensuring that the directory components leading up to it
     have been created first.)
   """
   safe_mkdir(os.path.dirname(filename))
@@ -55,7 +55,7 @@ def safe_open(filename, *args, **kwargs):
 
 def safe_delete(filename):
   """
-    Delete a file safely. If its not present, its a no-op.
+    Delete a file safely. If it's not present, no-op.
   """
   try:
     os.unlink(filename)
