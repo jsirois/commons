@@ -356,9 +356,20 @@ class Goal(Command):
 
       # Bootstrap user goals by loading any BUILD files implied by targets
       with self.check_errors('The following targets could not be loaded:') as error:
-        with self.timer.timing('parse:BUILD'):
-          for spec in specs:
-            self.parse_spec(error, spec)
+        for spec in specs:
+          try:
+            for target, address in spec_parser.parse(spec):
+              if target:
+                self.targets.extend(target.resolve())
+              else:
+                siblings = Target.get_all_addresses(address.buildfile)
+                prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'
+                error('%s => %s?:\n    %s' % (address, prompt,
+                                              '\n    '.join(str(a) for a in siblings)))
+          except (TypeError, ImportError, TaskError, GoalError):
+            error(spec, include_traceback=True)
+          except (IOError, SyntaxError):
+            error(spec)
 
       self.phases = [Phase(goal) for goal in goals]
 
