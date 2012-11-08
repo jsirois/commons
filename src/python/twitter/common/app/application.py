@@ -535,8 +535,9 @@ class Application(object):
     """
       Function to add all options from a command
     """
+    module = inspect.getmodule(command_function).__name__
     for option in getattr(command_function, Application.OPTIONS_ATTR, []):
-      self.add_option(option)
+      self._add_option(module, option)
 
   def _debug_log(self, msg):
     if hasattr(self._option_values, 'twitter_common_app_debug') and (
