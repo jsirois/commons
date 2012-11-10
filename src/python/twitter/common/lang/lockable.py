@@ -1,4 +1,5 @@
 import threading
+from functools import wraps
 
 class Lockable(object):
   def __init__(self):
@@ -6,6 +7,7 @@ class Lockable(object):
 
   @staticmethod
   def sync(method):
+    @wraps(method)
     def wrapper(self, *args, **kw):
       with self.__lock:
         return method(self, *args, **kw)
