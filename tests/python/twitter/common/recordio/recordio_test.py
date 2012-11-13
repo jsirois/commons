@@ -14,197 +14,217 @@
 # limitations under the License.
 # ==================================================================================================
 
-import os
-import tempfile
-import struct
+try:
+  from cStringIO import StringIO
+except ImportError:
+  from StringIO import StringIO
 
-import pytest
+from contextlib import contextmanager
+import os
+import struct
+import tempfile
 
 from twitter.common.recordio import RecordIO
 from twitter.common.recordio import RecordWriter, RecordReader
+from twitter.common.recordio.filelike import FileLike
 
-from recordio_test_harness import DurableFile, EphemeralFile
+import pytest
 
-def test_raises_if_initialized_with_nil_filehandle():
-  with pytest.raises(RecordIO.InvalidFileHandle):
-    RecordWriter(None)
-  with pytest.raises(RecordIO.InvalidFileHandle):
-    RecordReader(None)
+from recordio_test_harness import DurableFile as DurableFileBase
+from recordio_test_harness import EphemeralFile as EphemeralFileBase
 
-def test_recordwriter_raises_on_readonly_file():
-  with EphemeralFile('r') as fp:
-    with pytest.raises(RecordIO.InvalidFileHandle):
-      RecordWriter(fp)
 
-def test_recordwriter_works_with_append():
-  with EphemeralFile('a') as fp:
-    try:
-      RecordWriter(fp)
-    except:
-      assert False, 'Failed to initialize RecordWriter in append mode'
+class RecordioTestBase(object):
+  @classmethod
+  @contextmanager
+  def DurableFile(cls, mode):
+    with DurableFileBase(mode) as fp:
+      yield fp
 
-def test_recordwriter_works_with_readplus():
-  with EphemeralFile('r+') as fp:
-    try:
-      RecordWriter(fp)
-    except:
-      assert False, 'Failed to initialize RecordWriter in r+ mode'
+  @classmethod
+  @contextmanager
+  def EphemeralFile(cls, mode):
+    with EphemeralFileBase(mode) as fp:
+      yield fp
 
-def test_recordwriter_works_with_write():
-  with EphemeralFile('w') as fp:
-    try:
-      RecordWriter(fp)
-    except:
-      assert False, 'Failed to initialize RecordWriter in r+ mode'
+  def test_paranoid_append_returns_false_on_nonexistent_file(self):
+    fn = tempfile.mktemp()
+    assert RecordWriter.append(fn, 'hello world!') == False
 
-def test_recordreader_works_with_plus():
-  with EphemeralFile('a+') as fp:
-    try:
-      RecordReader(fp)
-    except:
-      assert False, 'Failed to initialize RecordWriter in r+ mode'
-  with EphemeralFile('w+') as fp:
-    try:
-      RecordReader(fp)
-    except:
-      assert False, 'Failed to initialize RecordWriter in r+ mode'
-
-def test_recordreader_fails_with_writeonly():
-  with EphemeralFile('a') as fp:
-    with pytest.raises(RecordIO.InvalidFileHandle):
-      RecordReader(fp)
-  with EphemeralFile('w') as fp:
-    with pytest.raises(RecordIO.InvalidFileHandle):
-      RecordReader(fp)
-
-def test_paranoid_append_returns_false_on_nonexistent_file():
-  fn = tempfile.mktemp()
-  assert RecordWriter.append(fn, 'hello world!') == False
-
-def test_basic_recordwriter_write():
-  test_string = "hello world"
-  with EphemeralFile('w') as fp:
-    fn = fp.name
-    rw = RecordWriter(fp)
-    rw.write(test_string)
-    rw.close()
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
+  def test_basic_recordwriter_write(self):
+    test_string = "hello world"
+    with self.EphemeralFile('r+') as fp:
+      rw = RecordWriter(fp)
+      rw.write(test_string)
+      fp.seek(0)
+      rr = RecordReader(fp)
       assert rr.read() == test_string
 
-def test_basic_recordwriter_write_synced():
-  test_string = "hello world"
-  with EphemeralFile('w') as fp:
-    fn = fp.name
-    RecordWriter.do_write(fp, test_string, RecordIO.StringCodec(), sync=True)
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
+  def test_basic_recordwriter_write_synced(self):
+    test_string = "hello world"
+    with self.EphemeralFile('r+') as fp:
+      RecordWriter.do_write(fp, test_string, RecordIO.StringCodec(), sync=True)
+      fp.seek(0)
+      rr = RecordReader(fp)
       assert rr.read() == test_string
 
-def test_recordwriter_framing():
-  test_string_1 = "hello world"
-  test_string_2 = "ahoy ahoy, bonjour"
+  def test_sanity_check_bytes(self):
+    with self.EphemeralFile('r+') as fp:
+      fpw = FileLike.get(fp)
+      fpw.write(struct.pack('>L', RecordIO.SANITY_CHECK_BYTES+1))
+      fpw.write('a')
+      fpw.flush()
+      fpw.seek(0)
 
-  with EphemeralFile('w') as fp:
-    fn = fp.name
-    rw = RecordWriter(fp)
-    rw.write(test_string_1)
-    rw.close()
+      rr = RecordReader(fp)
+      with pytest.raises(RecordIO.RecordSizeExceeded):
+        rr.read()
 
-    with open(fn, 'a') as fpa:
-      rw = RecordWriter(fpa)
-      rw.write(test_string_2)
+  def test_raises_if_initialized_with_nil_filehandle(self):
+    with pytest.raises(RecordIO.InvalidFileHandle):
+      RecordWriter(None)
+    with pytest.raises(RecordIO.InvalidFileHandle):
+      RecordReader(None)
+
+  def test_premature_end_of_stream(self):
+    with self.EphemeralFile('r+') as fp:
+      fp.write(struct.pack('>L', 1))
+      fp.seek(0)
+      rr = RecordReader(fp)
+      with pytest.raises(RecordIO.PrematureEndOfStream):
+        rr.read()
+
+  def test_premature_end_of_stream_mid_message(self):
+    with self.EphemeralFile('r+') as fp:
+      fp.write(struct.pack('>L', 2))
+      fp.write('a')
+      fp.seek(0)
+      rr = RecordReader(fp)
+      with pytest.raises(RecordIO.PrematureEndOfStream):
+        rr.read()
+
+
+class TestRecordioBuiltin(RecordioTestBase):
+  def test_recordwriter_framing(self):
+    test_string_1 = "hello world"
+    test_string_2 = "ahoy ahoy, bonjour"
+
+    with self.EphemeralFile('w') as fp:
+      fn = fp.name
+      rw = RecordWriter(fp)
+      rw.write(test_string_1)
+      rw.close()
+
+      with open(fn, 'a') as fpa:
+        rw = RecordWriter(fpa)
+        rw.write(test_string_2)
+
+      with open(fn) as fpr:
+        rr = RecordReader(fpr)
+        assert rr.read() == test_string_1
+        assert rr.read() == test_string_2
+
+  def test_paranoid_append_framing(self):
+    with self.DurableFile('w') as fp:
+      fn = fp.name
+
+    test_string_1 = "hello world"
+    test_string_2 = "ahoy ahoy, bonjour"
+
+    RecordWriter.append(fn, test_string_1)
+    RecordWriter.append(fn, test_string_2)
 
     with open(fn) as fpr:
       rr = RecordReader(fpr)
       assert rr.read() == test_string_1
       assert rr.read() == test_string_2
 
-def test_paranoid_append_framing():
-  with DurableFile('w') as fp:
-    fn = fp.name
+    os.remove(fn)
 
-  test_string_1 = "hello world"
-  test_string_2 = "ahoy ahoy, bonjour"
+  def test_recordwriter_raises_on_readonly_file(self):
+    with self.EphemeralFile('r') as fp:
+      with pytest.raises(RecordIO.InvalidFileHandle):
+        RecordWriter(fp)
 
-  RecordWriter.append(fn, test_string_1)
-  RecordWriter.append(fn, test_string_2)
+  def test_recordwriter_works_with_append(self):
+    with self.EphemeralFile('a') as fp:
+      try:
+        RecordWriter(fp)
+      except:
+        assert False, 'Failed to initialize RecordWriter in append mode'
 
-  with open(fn) as fpr:
-    rr = RecordReader(fpr)
-    assert rr.read() == test_string_1
-    assert rr.read() == test_string_2
+  def test_recordwriter_works_with_readplus(self):
+    with self.EphemeralFile('r+') as fp:
+      try:
+        RecordWriter(fp)
+      except:
+        assert False, 'Failed to initialize RecordWriter in r+ mode'
 
-  os.remove(fn)
+  def test_recordwriter_works_with_write(self):
+    with self.EphemeralFile('w') as fp:
+      try:
+        RecordWriter(fp)
+      except:
+        assert False, 'Failed to initialize RecordWriter in w mode'
 
-def test_basic_recordreader_try_read():
-  test_string = "hello world"
-  with EphemeralFile('r') as fp:
-    fn = fp.name
+  def test_recordreader_works_with_plus(self):
+    with self.EphemeralFile('a+') as fp:
+      try:
+        RecordReader(fp)
+      except:
+        assert False, 'Failed to initialize RecordWriter in a+ mode'
+    with self.EphemeralFile('w+') as fp:
+      try:
+        RecordReader(fp)
+      except:
+        assert False, 'Failed to initialize RecordWriter in w+ mode'
 
-    rr = RecordReader(fp)
-    assert rr.try_read() is None
-    rr.close()
+  def test_recordreader_fails_with_writeonly(self):
+    with self.EphemeralFile('a') as fp:
+      with pytest.raises(RecordIO.InvalidFileHandle):
+        RecordReader(fp)
+    with self.EphemeralFile('w') as fp:
+      with pytest.raises(RecordIO.InvalidFileHandle):
+        RecordReader(fp)
 
-    with open(fn, 'w') as fpw:
-      rw = RecordWriter(fpw)
-      rw.write(test_string)
+  def test_basic_recordreader_try_read(self):
+    test_string = "hello world"
+    with self.EphemeralFile('r') as fp:
+      fn = fp.name
 
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
-      assert rr.try_read() == test_string
+      rr = RecordReader(fp)
+      assert rr.try_read() is None
+      rr.close()
 
-def test_basic_recordreader_read():
-  test_string = "hello world"
-  with EphemeralFile('r') as fp:
-    fn = fp.name
+      with open(fn, 'w') as fpw:
+        rw = RecordWriter(fpw)
+        rw.write(test_string)
 
-    rr = RecordReader(fp)
-    assert rr.read() is None
-    rr.close()
+      with open(fn) as fpr:
+        rr = RecordReader(fpr)
+        assert rr.try_read() == test_string
 
-    with open(fn, 'w') as fpw:
-      rw = RecordWriter(fpw)
-      rw.write(test_string)
+  def test_basic_recordreader_read(self):
+    test_string = "hello world"
+    with self.EphemeralFile('r') as fp:
+      fn = fp.name
 
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
-      assert rr.read() == test_string
+      rr = RecordReader(fp)
+      assert rr.read() is None
+      rr.close()
 
-def test_premature_end_of_stream():
-  with EphemeralFile('w') as fp:
-    fn = fp.name
+      with open(fn, 'w') as fpw:
+        rw = RecordWriter(fpw)
+        rw.write(test_string)
 
-    fp.write(struct.pack('>L', 1))
-    fp.close()
+      with open(fn) as fpr:
+        rr = RecordReader(fpr)
+        assert rr.read() == test_string
 
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
-      with pytest.raises(RecordIO.PrematureEndOfStream):
-        rr.read()
 
-def test_premature_end_of_stream_mid_message():
-  with EphemeralFile('w') as fp:
-    fn = fp.name
 
-    fp.write(struct.pack('>L', 2))
-    fp.write('a')
-    fp.close()
-
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
-      with pytest.raises(RecordIO.PrematureEndOfStream):
-        rr.read()
-
-def test_sanity_check_bytes():
-  with EphemeralFile('w') as fp:
-    fn = fp.name
-
-    fp.write(struct.pack('>L', RecordIO.SANITY_CHECK_BYTES+1))
-    fp.write('a')
-    fp.close()
-
-    with open(fn) as fpr:
-      rr = RecordReader(fpr)
-      with pytest.raises(RecordIO.RecordSizeExceeded):
-        rr.read()
+class TestRecordioStringIO(RecordioTestBase):
+  @classmethod
+  @contextmanager
+  def EphemeralFile(cls, mode):
+    yield StringIO()

@@ -21,6 +21,9 @@ import errno
 from twitter.common import log
 from twitter.common.lang import Compatibility
 
+from .filelike import FileLike
+
+
 class RecordIO(object):
   class Error(Exception): pass
   class PrematureEndOfStream(Error): pass
@@ -33,7 +36,6 @@ class RecordIO(object):
 
   # Maximum record size
   SANITY_CHECK_BYTES = 64 * 1024 * 1024
-
 
   class Codec(object):
     """
@@ -55,7 +57,6 @@ class RecordIO(object):
         Return: blob in custom format
       """
       raise RecordIO.UnimplementedException("Codec.decode pure virtual.")
-
 
   class StringCodec(Codec):
     def __init__(self):
@@ -88,7 +89,7 @@ class RecordIO(object):
 
       validate_filehandle()
       validate_codec()
-      self._fp = fp
+      self._fp = FileLike.get(fp)
       self._codec = codec
 
     def close(self):
@@ -112,29 +113,22 @@ class RecordIO(object):
         May raise:
           RecordIO.PrematureEndOfStream
       """
-      fd = os.dup(self._fp.fileno())
       try:
-        cur_fp = os.fdopen(fd, self._fp.mode)
-        cur_fp.seek(0)
-      except OSError as e:
-        log.error('Failed to duplicate fd on %s, error = %s' % (self._fp.name, e))
-        try:
-          os.close(fd)
-        except OSError as e:
-          if e.errno != errno.EBADF:
-            log.error('Failed to close duped fd on %s, error = %s' % (self._fp.name, e))
+        dup_fp = self._fp.dup()
+      except self._fp.Error:
+        log.error('Failed to dup %r' % self._fp)
         return
 
       try:
         while True:
-          blob = RecordIO.Reader.do_read(cur_fp, self._codec)
+          blob = RecordIO.Reader.do_read(dup_fp, self._codec)
           if blob:
             yield blob
           else:
             break
       except RecordIO.Error as e:
         log.error('Caught exception in __iter__: %s' % e)
-        cur_fp.close()
+        dup_fp.close()
 
     @staticmethod
     def do_read(fp, decoder):
@@ -212,14 +206,6 @@ class RecordIO(object):
       self._sync = bool(value)
 
     @staticmethod
-    def _fsync(fp):
-      try:
-        fp.flush()
-        os.fsync(fp.fileno())
-      except (IOError, OSError) as e:
-        log.error("Failed to fsync on %s! Error: %s" % (fp.name, e))
-
-    @staticmethod
     def do_write(fp, input, codec, sync=False):
       """
         Write a record to the current fp using the supplied codec.
@@ -238,7 +224,7 @@ class RecordIO(object):
         log.debug("Got exception in write(%s): %s" % (fp.name, e))
         return False
       if sync:
-        RecordIO.Writer._fsync(fp)
+        fp.flush()
       return True
 
     @staticmethod
