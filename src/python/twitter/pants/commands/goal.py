@@ -110,6 +110,48 @@ goal(name='help', action=Help).install().with_description('Provide help for the 
 def _set_bool(option, opt_str, value, parser):
   setattr(parser.values, option.dest, not opt_str.startswith("--no"))
 
+class SpecParser(object):
+  """Parses goal target specs; either simple target addresses or else sibling (:) or descendant
+  (::) selector forms
+  """
+
+  def __init__(self, root_dir):
+    self._root_dir = root_dir
+
+  def _get_dir(self, spec):
+    path = spec.split(':', 1)[0]
+    if os.path.isdir(path):
+      return path
+    else:
+      if os.path.isfile(path):
+        return os.path.dirname(path)
+      else:
+        return spec
+
+  def _parse_addresses(self, spec):
+    if spec.endswith('::'):
+      dir = self._get_dir(spec[:-len('::')])
+      for buildfile in BuildFile.scan_buildfiles(self._root_dir, os.path.join(self._root_dir, dir)):
+        for address in Target.get_all_addresses(buildfile):
+          yield address
+    elif spec.endswith(':'):
+      dir = self._get_dir(spec[:-len(':')])
+      for address in Target.get_all_addresses(BuildFile(self._root_dir, dir)):
+        yield address
+    else:
+      yield Address.parse(self._root_dir, spec)
+
+  def parse(self, spec):
+    """Parses the given target spec into one or more targets.
+
+    Returns a generator of target, address pairs in which the target may be None if the address
+    points to a non-existent target.
+    """
+    for address in self._parse_addresses(spec):
+      target = Target.get(address)
+      yield target, address
+
+
 class Goal(Command):
   """Lists installed goals or else executes a named goal."""
 
@@ -360,7 +402,7 @@ class Goal(Command):
           try:
             for target, address in spec_parser.parse(spec):
               if target:
-                self.targets.extend(target.resolve())
+                self.targets.extend(tgt for tgt in target.resolve() if isinstance(tgt, Target))
               else:
                 siblings = Target.get_all_addresses(address.buildfile)
                 prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'

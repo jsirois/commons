@@ -83,16 +83,16 @@ class ListTargets(ConsoleTask):
     else:
       print_fn = lambda address: str(address)
 
-    list_targets = OrderedSet()
+    visited = set()
+    for address in self._addresses():
+      result = print_fn(address)
+      if result and result not in visited:
+        visited.add(result)
+        yield result
 
-    if targets:
-      for target in targets:
-        line = print_fn(target.address)
-        list_targets.add(line)
+  def _addresses(self):
+    if self.context.target_roots:
+      return (target.address for target in self.context.target_roots)
     else:
-      for buildfile in BuildFile.scan_buildfiles(self.root_dir):
-        for address in Target.get_all_addresses(buildfile):
-          line = print_fn(address)
-          list_targets.add(line)
-
-    return list_targets
+      return (address for buildfile in BuildFile.scan_buildfiles(self._root_dir)
+                      for address in Target.get_all_addresses(buildfile))
