@@ -30,6 +30,7 @@ function run_pants_bare() {
   PYTHONPATH=$MAKO_EGG:$MARKDOWN_EGG:$PYGMENTS_EGG:$PYSTACHE_EGG:$PYTHON_DAEMON_EGG:$MY_DIR/src/python python $PANTS_EXE "$@"
   ret=$?
   deactivate
+  return $((result))
 }
 
 if [ ! -e $VIRTUAL_PYTHON/bin/python ]; then
