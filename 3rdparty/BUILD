@@ -171,6 +171,11 @@ jar_library(name = 'commons-dbcp',
             ]
            )
 
+jar_library(name = 'dnsjava',
+            dependencies = [
+              jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
+            ])
+
 # common rev for all com.twitter%finagle* artifacts
 FINAGLE_REV = '5.3.17'
 
