@@ -14,7 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants import has_sources
 from twitter.pants.tasks.console_task import ConsoleTask
 
 
@@ -37,9 +36,7 @@ class MinimalCover(ConsoleTask):
         yield str(target.address)
 
   def _collect_internal_deps(self, target):
-    internal_deps = []
-    def collect(dep):
-      if dep != target and has_sources(dep):
-        internal_deps.append(dep)
-    target.walk(collect)
+    internal_deps = set()
+    target.walk(internal_deps.add)
+    internal_deps.discard(target)
     return internal_deps
