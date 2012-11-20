@@ -836,3 +836,19 @@ goal(
   action=Filemap
 ).install().with_description('Outputs a mapping from source file to'
                              ' the target that owns the source file')
+
+
+from twitter.pants.tasks.minimal_cover import MinimalCover
+
+goal(
+  name='minimize',
+  action=MinimalCover
+).install().with_description('Print the minimal cover of the given targets.')
+
+
+from twitter.pants.tasks.filter import Filter
+
+goal(
+  name='filter',
+  action=Filter
+).install().with_description('Filter the input targets based on various criteria.')
