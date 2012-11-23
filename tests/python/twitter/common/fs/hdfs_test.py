@@ -58,9 +58,9 @@ class MockCommandUtil:
         with open(tmp_file, "r") as f:
           text1 = f.read()
         return (text1 == "write_text" and
-          " ".join(cmd) == "hadoop --config /etc/hadoop/hadoop-conf-tst-smf1 dfs " + \
-          " -copyFromLocal " + tmp_file + " dest")
-    #For resr all cases return the command
+          " ".join(cmd) == " ".join(["hadoop", "--config", "/etc/hadoop/hadoop-conf-tst-smf1", 
+                                     "dfs", "-copyFromLocal", tmp_file, "somefile"]))
+    #For rest all cases return the command
     return " ".join(cmd)
 
   @staticmethod
@@ -135,7 +135,7 @@ class HdfsTest(unittest.TestCase):
 
   def test_write(self):
     hdfs_helper = HDFSHelper("/etc/hadoop/hadoop-conf-tst-smf1", command_class=MockCommandUtil)
-    self.assertEquals(0, hdfs_helper.write('somefile',"write_text"))
+    self.assertEqual(True, hdfs_helper.write('somefile',"write_text"))
 
   def test_mkdir(self):
     hdfs_helper = HDFSHelper("/etc/hadoop/hadoop-conf-tst-smf1", command_class=MockCommandUtil)

@@ -17,6 +17,7 @@
 __author__ = 'tdesai'
 
 import os
+import subprocess
 import sys
 import tempfile
 from twitter.common.contextutil import temporary_file
@@ -47,14 +48,14 @@ class HDFSHelper(object):
     Checks the result of the call by default but this can be disabled with check=False.
     """
     cmd = ['hadoop', '--config', self._config, 'dfs', cmd] + list(args)
-    if kwargs.get('check', False):
+    if kwargs.get('check'):
       return self._cmd_class.check_call(cmd)
-    elif kwargs.get('return_output', True):
+    elif kwargs.get('return_output'):
       return self._cmd_class.execute_and_get_output(cmd)
-    elif kwargs.get('supress_output', True):
+    elif kwargs.get('supress_output'):
       return self._cmd_class.execute_suppress_stdout(cmd)
     else:
-      self._cmd_class.execute(cmd)
+      return self._cmd_class.execute(cmd)
 
   def get(self, src, dst):
     """
@@ -90,8 +91,13 @@ class HDFSHelper(object):
   def exists(self, path, flag = '-e'):
     """
     Checks if the path exists in hdfs
+    Returns true if it exists or else
+    Returns false
     """
-    return self._call("-test", flag, path) == 0
+    try:
+        return self._call("-test", flag, path) == 0
+    except subprocess.CalledProcessError:
+        return False
 
   def cat(self, remote_file_pattern, local_file=sys.stdout):
     """
@@ -168,6 +174,9 @@ class HDFSHelper(object):
     with temporary_file() as fp:
       fp.write(text)
       fp.flush()
+      te = self._call('-copyFromLocal', fp.name, filename)
+      print "sel",te
+      return te
       return self._call('-copyFromLocal', fp.name, filename)
 
 
