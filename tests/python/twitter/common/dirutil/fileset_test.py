@@ -14,9 +14,10 @@
 # limitations under the License.
 # ==================================================================================================
 
-from contextlib import contextmanager
 import os
-from tempfile import NamedTemporaryFile
+import pytest
+
+from contextlib import contextmanager
 
 from twitter.common.contextutil import temporary_dir
 from twitter.common.dirutil import Fileset as RealFileset
@@ -33,9 +34,11 @@ class Fileset(RealFileset):
     cls.FILELIST = old
 
   @classmethod
-  def walk(cls, root=None, allow_dirs=False):
+  def walk(cls, path=None, allow_dirs=False, follow_links=False):
     for filename in cls.FILELIST:
-      if filename.endswith('/'):
+      if isinstance(filename, Exception):
+        raise filename
+      elif filename.endswith('/'):
         path = os.path.normpath(filename)
         if allow_dirs:
           yield path
@@ -50,6 +53,28 @@ def ll(foo):
 
 def leq(fs_foo, *bar):
   return set(fs_foo) == set(bar)
+
+
+def test_add():
+  with Fileset.over(['a', 'b']):
+    assert leq(Fileset.rglobs('a') + ['b'], 'a', 'b')
+
+  with Fileset.over(['a', 'b']):
+    assert leq(Fileset.rglobs('a') + Fileset.rglobs('b'), 'a', 'b')
+
+
+def test_subtract():
+  with Fileset.over(['a', 'b']):
+    assert leq(Fileset.rglobs('*') - ['b'], 'a')
+
+  with Fileset.over(['a', 'b']):
+    assert leq(Fileset.rglobs('*') - Fileset.rglobs('a'), 'b')
+
+
+def test_lazy_raise():
+  with pytest.raises(KeyError):
+    with Fileset.over(['a', KeyError()]):
+      apply(Fileset.rglobs('*'))
 
 
 def test_zglobs():

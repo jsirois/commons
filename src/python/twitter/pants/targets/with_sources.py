@@ -102,7 +102,7 @@ class TargetWithSources(Target):
           try:
             for i in iter(item):
               flatmap(i)
-          except:
+          except TypeError:
             if callable(item):
               flatmap(item())
             else:

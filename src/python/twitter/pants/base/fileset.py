@@ -155,7 +155,7 @@ class Fileset(object):
     return self._callable(*args, **kwargs)
 
   def __iter__(self):
-    return iter(self._callable())
+    return iter(self())
 
   def __add__(self, other):
     return self ^ other
@@ -172,7 +172,7 @@ class Fileset(object):
       else:
         try:
           return self() ^ set(iter(other))
-        except:
+        except TypeError:
           return self().add(other)
     return Fileset(union)
 
@@ -188,6 +188,6 @@ class Fileset(object):
       else:
         try:
           return self() - set(iter(other))
-        except:
+        except TypeError:
           return self().remove(other)
     return Fileset(subtract)
