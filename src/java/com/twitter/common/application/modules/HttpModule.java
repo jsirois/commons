@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServlet;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -29,6 +30,7 @@ import com.twitter.common.application.modules.LifecycleModule.ServiceRunner;
 import com.twitter.common.application.modules.LocalServiceRegistry.LocalService;
 import com.twitter.common.args.Arg;
 import com.twitter.common.args.CmdLine;
+import com.twitter.common.args.constraints.NotEmpty;
 import com.twitter.common.args.constraints.Range;
 import com.twitter.common.base.Command;
 import com.twitter.common.base.ExceptionalSupplier;
@@ -78,6 +80,12 @@ public class HttpModule extends AbstractModule {
 
   @CmdLine(name = "http_primary_service", help = "True if HTTP is the primary service.")
   protected static final Arg<Boolean> HTTP_PRIMARY_SERVICE = Arg.create(false);
+
+  @NotEmpty
+  @CmdLine(name = "http_announce_port_names",
+      help = "Names to identify the HTTP port with when advertising the service.")
+  protected static final Arg<Set<String>> ANNOUNCE_NAMES =
+      Arg.<Set<String>>create(ImmutableSet.of("http"));
 
   private static final Logger LOG = Logger.getLogger(HttpModule.class.getName());
 
@@ -227,8 +235,8 @@ public class HttpModule extends AbstractModule {
     private final Set<HttpServletConfig> httpServlets;
     private final Set<HttpAssetConfig> httpAssets;
     private final Set<HttpFilterConfig> httpFilters;
-    private final Injector injector;
     private final Set<String> additionalIndexLinks;
+    private final Injector injector;
 
     @Inject HttpServerLauncher(
         HttpServerDispatch httpServer,
@@ -284,7 +292,7 @@ public class HttpModule extends AbstractModule {
 
       return HTTP_PRIMARY_SERVICE.get()
           ? LocalService.primaryService(httpServer.getPort(), shutdown)
-          : LocalService.auxiliaryService("http", httpServer.getPort(), shutdown);
+          : LocalService.auxiliaryService(ANNOUNCE_NAMES.get(), httpServer.getPort(), shutdown);
     }
   }
 }
