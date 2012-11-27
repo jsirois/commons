@@ -83,12 +83,12 @@ class VarsEndpoint(object):
   @HttpServer.route("/vars")
   @HttpServer.route("/vars/:var")
   def handle_vars(self, var = None):
+    HttpServer.set_content_type('text/plain; charset=iso-8859-1')
     samples = self._monitor.sample()
 
     if var is None:
-      body='<br>'.join(
+      return '\n'.join(
         '%s %s' % (key, val) for key, val in sorted(samples.items()))
-      return '<html><body><pre>%s</pre></body></html>' % body
     else:
       if var in samples:
         return samples[var]

@@ -128,6 +128,10 @@ class HttpServer(object):
   def abort(*args, **kwargs):
     return bottle.abort(*args, **kwargs)
 
+  @staticmethod
+  def set_content_type(header_value):
+    bottle.response.content_type = header_value
+
   def __init__(self):
     self._app = bottle.Bottle()
     self._request = bottle.request   # it's sort of upsetting that these are globals
