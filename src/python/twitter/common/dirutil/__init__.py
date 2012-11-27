@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2011 Twitter, Inc.
+# Copyright 2012 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -14,13 +14,15 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'Brian Wickman'
-
+import atexit
+from collections import defaultdict
+import errno
 import fcntl
 import os
 import shutil
 import stat
-import errno
+import tempfile
+import threading
 
 def safe_mkdir(directory, clean=False):
   """
@@ -34,6 +36,44 @@ def safe_mkdir(directory, clean=False):
   except OSError as e:
     if e.errno != errno.EEXIST:
       raise
+
+
+_MKDTEMP_CLEANER = None
+_MKDTEMP_DIRS = defaultdict(set)
+_MKDTEMP_LOCK = threading.Lock()
+
+
+def _mkdtemp_atexit_cleaner():
+  for td in _MKDTEMP_DIRS.pop(os.getpid(), []):
+    safe_rmtree(td)
+
+
+def _mkdtemp_unregister_cleaner():
+  global _MKDTEMP_CLEANER
+  _MKDTEMP_CLEANER = None
+
+
+def _mkdtemp_register_cleaner(cleaner):
+  global _MKDTEMP_CLEANER
+  if not cleaner:
+    return
+  assert callable(cleaner)
+  if _MKDTEMP_CLEANER is None:
+    atexit.register(cleaner)
+    _MKDTEMP_CLEANER = cleaner
+
+
+def safe_mkdtemp(cleaner=_mkdtemp_atexit_cleaner, **kw):
+  """
+    Given the parameters to standard tempfile.mkdtemp, create a temporary directory
+    that is cleaned up on process exit.
+  """
+  # proper lock sanitation on fork [issue 6721] would be desirable here.
+  with _MKDTEMP_LOCK:
+    _mkdtemp_register_cleaner(cleaner)
+    td = tempfile.mkdtemp(**kw)
+    _MKDTEMP_DIRS[os.getpid()].add(td)
+    return td
 
 
 def safe_rmtree(directory):
@@ -228,5 +268,12 @@ __all__ = (
   'safe_size',
   'tail_f',
   'unlock_file',
-  'Lock'
+  'Fileset',
+  'Lock',
+
+  # @visible for testing
+  '_mkdtemp_atexit_cleaner',
+  '_mkdtemp_register_cleaner',
+  '_mkdtemp_unregister_cleaner',
+  '_MKDTEMP_DIRS',
 )

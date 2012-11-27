@@ -25,6 +25,7 @@ python_tests(name = 'dirutil',
   sources = globs('*.py') - ['fileset_test.py'],
   dependencies = [
     pants('src/python/twitter/common/dirutil'),
+    python_requirement('mox')
   ]
 )
 
