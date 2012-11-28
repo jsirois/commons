@@ -30,7 +30,7 @@ class IdlResolve(IvyResolve):
     super(IdlResolve, self).__init__(context, ['idl'])
 
   def execute(self, targets):
-    IvyResolve.execute(self, targets)
+    super(IdlResolve, self).execute(targets)
     self._populate_Idl_list()
 
   def _populate_Idl_list(self):
@@ -49,3 +49,10 @@ class IdlResolve(IvyResolve):
 
   def _is_idl(self, path):
     return path.endswith('-idl.jar')
+
+  def _is_jar(self, path):
+    is_idl = self._is_idl(path)
+    if not is_idl and super(IdlResolve, self)._is_jar(path):
+      self.context.log.warn('Ignoring invalid idl dependency: %s' % path)
+    return is_idl
+
