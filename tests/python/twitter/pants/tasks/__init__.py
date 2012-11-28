@@ -89,6 +89,7 @@ class TaskTest(unittest.TestCase):
   def setUpClass(cls):
     cls.build_root = mkdtemp(suffix='_BUILD_ROOT')
     set_buildroot(cls.build_root)
+    Target._clear_all_addresses()
 
   @classmethod
   def tearDownClass(cls):
@@ -132,33 +133,37 @@ class ConsoleTaskTest(TaskTest):
     """Subclasses must return the type of the ConsoleTask subclass under test."""
     raise NotImplementedError()
 
-  def execute_task(self, config=None, args=None, targets=None):
+  def execute_task(self, config=None, args=None, targets=None, extra_targets=None):
     """Creates a new task and executes it with the given config, command line args and targets.
 
-    config:  an optional string representing the contents of a pants.ini config.
-    args:    optional list of command line flags, these should be prefixed with '--test-'.
-    targets: optional list of Target objects passed on the command line.
-
+    config:        an optional string representing the contents of a pants.ini config.
+    args:          optional list of command line flags, these should be prefixed with '--test-'.
+    targets:       optional list of Target objects passed on the command line.
+    extra_targets: optional list of extra targets in the context in addition to those passed on the
+                   command line
     Returns the text output of the task.
     """
     with closing(StringIO()) as output:
       task = prepare_task(self.task_type(), config=config, args=args, targets=targets,
                           outstream=output)
-      task.execute(targets or [])
+      task.execute(list(targets or ()) + list(extra_targets or ()))
       return output.getvalue()
 
-  def execute_console_task(self, config=None, args=None, targets=None, **kwargs):
+  def execute_console_task(self, config=None, args=None, targets=None, extra_targets=None,
+                           **kwargs):
     """Creates a new task and executes it with the given config, command line args and targets.
 
-    config:   an optional string representing the contents of a pants.ini config.
-    args:     optional list of command line flags, these should be prefixed with '--test-'.
-    targets:  optional list of Target objects passed on the command line.
+    config:        an optional string representing the contents of a pants.ini config.
+    args:          optional list of command line flags, these should be prefixed with '--test-'.
+    targets:       optional list of Target objects passed on the command line.
+    extra_targets: optional list of extra targets in the context in addition to those passed on the
+                   command line
     **kwargs: additional kwargs are passed to the task constructor.
 
     Returns the list of items returned from invoking the console task's console_output method.
     """
     task = prepare_task(self.task_type(), config=config, args=args, targets=targets, **kwargs)
-    return list(task.console_output(targets or []))
+    return list(task.console_output(list(targets or ()) + list(extra_targets or ())))
 
   def assert_entries(self, sep, *output, **kwargs):
     """Verifies the expected output text is flushed by the console task under test.
@@ -167,8 +172,8 @@ class ConsoleTaskTest(TaskTest):
 
     sep:      the expected output separator.
     *output:  the output entries expected between the separators
-    **kwargs: additional kwargs are passed to the task constructor except for config args and
-              targets which are passed to execute_console_task.
+    **kwargs: additional kwargs are passed to the task constructor except for config args, targets
+              and extra_targets which are passed to execute_task.
     """
     # We expect each output line to be suffixed with the separator, so for , and [1,2,3] we expect:
     # '1,2,3,' - splitting this by the separator we should get ['1', '2', '3', ''] - always an extra
@@ -182,7 +187,7 @@ class ConsoleTaskTest(TaskTest):
     NB: order of entries is not tested, just presence.
 
     *output:  the expected output entries
-    **kwargs: additional kwargs are passed to the task constructor except for config args and
-              targets which are passed to execute_console_task.
+    **kwargs: additional kwargs are passed to the task constructor except for config args, targets
+              and extra_targets which are passed to execute_console_task.
     """
     self.assertEqual(sorted(output), sorted(self.execute_console_task(**kwargs)))

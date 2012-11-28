@@ -16,35 +16,33 @@
 
 from textwrap import dedent
 
-from twitter.pants.tasks.minimal_cover import MinimalCover
+from twitter.pants.tasks.dependees import ReverseDepmap
 
 from . import ConsoleTaskTest
 
 
-class BaseMinimalCovertTest(ConsoleTaskTest):
+class BaseReverseDepmapTest(ConsoleTaskTest):
   @classmethod
   def task_type(cls):
-    return MinimalCover
+    return ReverseDepmap
 
 
-class MinimalCoverEmptyTest(BaseMinimalCovertTest):
+class ReverseDepmapEmptyTest(BaseReverseDepmapTest):
   def test(self):
     self.assert_console_output(targets=[])
 
 
-class MinimalCoverTest(BaseMinimalCovertTest):
-
+class ReverseDepmapTest(BaseReverseDepmapTest):
   @classmethod
   def setUpClass(cls):
-    super(MinimalCoverTest, cls).setUpClass()
+    super(ReverseDepmapTest, cls).setUpClass()
 
     def create_target(path, name, *deps):
-      all_deps = ["pants('%s')" % dep for dep in list(deps)] + ["python_requirement('foo')"]
       cls.create_target(path, dedent('''
           python_library(name='%s',
             dependencies=[%s]
           )
-          ''' % (name, ','.join(all_deps))))
+          ''' % (name, ','.join("pants('%s')" % dep for dep in list(deps)))))
 
     create_target('common/a', 'a')
     create_target('common/b', 'b')
@@ -55,71 +53,49 @@ class MinimalCoverTest(BaseMinimalCovertTest):
 
   def test_roots(self):
     self.assert_console_output(
-      'common/a/BUILD:a',
-      targets=[self.target('common/a')],
-      extra_targets=[self.target('common/b')]
-    )
-
-  def test_nodups(self):
-    targets = [self.target('common/a')] * 2
-    self.assertEqual(2, len(targets))
-    self.assert_console_output(
-      'common/a/BUILD:a',
-      targets=targets
-    )
-
-  def test_disjoint(self):
-    self.assert_console_output(
-      'common/a/BUILD:a',
-      'common/b/BUILD:b',
-      'common/c/BUILD:c',
-      targets=[
-        self.target('common/a'),
-        self.target('common/b'),
-        self.target('common/c'),
-      ]
-    )
-
-  def test_identical(self):
-    self.assert_console_output(
-      'common/a/BUILD:a',
-      targets=[
-        self.target('common/a'),
-        self.target('common/a'),
-        self.target('common/a'),
-      ]
-    )
-
-  def test_intersection(self):
-    self.assert_console_output(
-      'overlaps/BUILD:one',
       'overlaps/BUILD:two',
-      targets=[
-        self.target('overlaps:one'),
-        self.target('overlaps:two')
-      ]
+      targets=[self.target('common/c')],
+      extra_targets=[self.target('common/a')]
     )
 
+  def test_normal(self):
+    self.assert_console_output(
+      'overlaps/BUILD:two',
+      targets=[self.target('common/c')]
+    )
+
+  def test_closed(self):
+    self.assert_console_output(
+      'overlaps/BUILD:two',
+      'common/c/BUILD:c',
+      args=['--test-closed'],
+      targets=[self.target('common/c')]
+    )
+
+  def test_transitive(self):
     self.assert_console_output(
       'overlaps/BUILD:one',
-      'common/c/BUILD:c',
-      targets=[
-        self.target('common/a'),
-        self.target('common/b'),
-        self.target('common/c'),
-        self.target('overlaps:one'),
-      ]
+      'overlaps/BUILD:three',
+      args=['--test-transitive'],
+      targets=[self.target('common/b')]
     )
 
+  def test_nodups_dependees(self):
     self.assert_console_output(
       'overlaps/BUILD:two',
       'overlaps/BUILD:three',
       targets=[
         self.target('common/a'),
-        self.target('common/b'),
-        self.target('common/c'),
-        self.target('overlaps:one'),
-        self.target('overlaps:two'),
-        self.target('overlaps:three'),
-      ]
+        self.target('overlaps:one')
+      ],
+    )
+
+  def test_nodups_roots(self):
+    targets = [self.target('common/c')] * 2
+    self.assertEqual(2, len(targets))
+    self.assert_console_output(
+      'overlaps/BUILD:two',
+      'common/c/BUILD:c',
+      args=['--test-closed'],
+      targets=targets
     )

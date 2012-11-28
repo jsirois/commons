@@ -24,13 +24,13 @@ class MinimalCover(ConsoleTask):
   the input targets without gaps.
   """
 
-  def console_output(self, targets):
+  def console_output(self, _):
     internal_deps = set()
-    for target in targets:
+    for target in self.context.target_roots:
       internal_deps.update(self._collect_internal_deps(target))
 
     minimal_cover = set()
-    for target in targets:
+    for target in self.context.target_roots:
       if target not in internal_deps and target not in minimal_cover:
         minimal_cover.add(target)
         yield str(target.address)

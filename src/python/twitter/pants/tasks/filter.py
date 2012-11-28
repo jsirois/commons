@@ -131,10 +131,13 @@ class Filter(ConsoleTask):
       return lambda target: parser.search(str(target.address))
     self._filters.extend(_create_filters(context.options.filter_regex, filter_for_regex))
 
-  def console_output(self, targets):
-    for target in targets:
-      for filter in self._filters:
-        if not filter(target):
-          break
-      else:
-        yield str(target.address)
+  def console_output(self, _):
+    filtered = set()
+    for target in self.context.target_roots:
+      if target not in filtered:
+        filtered.add(target)
+        for filter in self._filters:
+          if not filter(target):
+            break
+        else:
+          yield str(target.address)

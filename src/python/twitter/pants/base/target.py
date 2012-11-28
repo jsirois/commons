@@ -66,8 +66,8 @@ class Target(object):
     parses the buildfile to find all the addresses it contains and then returns them."""
 
     def lookup():
-      if buildfile in Target._addresses_by_buildfile:
-        return Target._addresses_by_buildfile[buildfile]
+      if buildfile in cls._addresses_by_buildfile:
+        return cls._addresses_by_buildfile[buildfile]
       else:
         return OrderedSet()
 
@@ -78,13 +78,18 @@ class Target(object):
       ParseContext(buildfile).parse()
       return lookup()
 
-  @staticmethod
-  def get(address):
+  @classmethod
+  def _clear_all_addresses(cls):
+    cls._targets_by_address = {}
+    cls._addresses_by_buildfile = collections.defaultdict(OrderedSet)
+
+  @classmethod
+  def get(cls, address):
     """Returns the specified module target if already parsed; otherwise, parses the buildfile in the
     context of its parent directory and returns the parsed target."""
 
     def lookup():
-      return Target._targets_by_address[address] if address in Target._targets_by_address else None
+      return cls._targets_by_address[address] if address in cls._targets_by_address else None
 
     target = lookup()
     if target:
@@ -131,15 +136,16 @@ class Target(object):
     return Address(parse_context.buildfile, self.name, self.is_meta)
 
   def register(self):
-    existing = Target._targets_by_address.get(self.address)
+    existing = self._targets_by_address.get(self.address)
     if existing and existing.address.buildfile != self.address.buildfile:
-      raise KeyError("%s already defined in a sibling BUILD file: %s" % (
+      raise KeyError("%s defined in %s already defined in a sibling BUILD file: %s" % (
         self.address,
-        existing.address,
+        self.address.buildfile.full_path,
+        existing.address.buildfile.full_path,
       ))
 
-    Target._targets_by_address[self.address] = self
-    Target._addresses_by_buildfile[self.address.buildfile].add(self.address)
+    self._targets_by_address[self.address] = self
+    self._addresses_by_buildfile[self.address.buildfile].add(self.address)
 
   def resolve(self):
     yield self
@@ -197,3 +203,5 @@ class Target(object):
 
   def __repr__(self):
     return "%s(%s)" % (type(self).__name__, self.address)
+
+Target._clear_all_addresses()

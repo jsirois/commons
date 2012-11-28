@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'jsirois'
-
 import daemon
 import inspect
 import os
@@ -48,6 +46,7 @@ from twitter.pants.tasks.nailgun_task import NailgunTask
 from twitter.pants.goal import Context, GoalError, Phase
 
 StringIO = Compatibility.StringIO
+
 
 class List(Task):
   @classmethod
@@ -402,7 +401,9 @@ class Goal(Command):
           try:
             for target, address in spec_parser.parse(spec):
               if target:
-                self.targets.extend(tgt for tgt in target.resolve() if isinstance(tgt, Target))
+                self.targets.append(target)
+                # Force early BUILD file loading if this target is an alias that expands to others.
+                unused = list(target.resolve())
               else:
                 siblings = Target.get_all_addresses(address.buildfile)
                 prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'

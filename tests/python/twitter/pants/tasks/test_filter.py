@@ -60,6 +60,26 @@ class FilterTest(BaseFilterTest):
     create_target('overlaps', 'two', 'common/a', 'common/c')
     create_target('overlaps', 'three', 'common/a', 'overlaps:one')
 
+  def test_roots(self):
+    self.assert_console_output(
+      'common/a/BUILD:a',
+      'common/a/BUILD:foo',
+      'common/b/BUILD:b',
+      'common/b/BUILD:foo',
+      'common/c/BUILD:c',
+      'common/c/BUILD:foo',
+      targets=self.targets('common/::'),
+      extra_targets=self.targets('overlaps/::')
+    )
+
+  def test_nodups(self):
+    targets = [self.target('common/b')] * 2
+    self.assertEqual(2, len(targets))
+    self.assert_console_output(
+      'common/b/BUILD:b',
+      targets=targets
+    )
+
   def test_no_filters(self):
     self.assert_console_output(
       'common/a/BUILD:a',
