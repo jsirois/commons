@@ -17,10 +17,12 @@
 __author__ = 'Brian Wickman'
 
 import logging
-from twitter.common.log.initialize import (
+
+from .initialize import (
   init,
   teardown_disk_logging,
   teardown_stderr_logging)
+from .tracer import Tracer
 
 try:
   from twitter.common import app
@@ -56,7 +58,7 @@ WARN = logging.WARN
 ERROR = logging.ERROR
 FATAL = logging.FATAL
 
-__all__ = [
+__all__ = (
   # directives
   'debug',
   'info',
@@ -81,5 +83,8 @@ __all__ = [
   'teardown_disk_logging',
 
   # ditto
-  'formatters'
-]
+  'formatters',
+
+  # other things
+  'Tracer'
+)
