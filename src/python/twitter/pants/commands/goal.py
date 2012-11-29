@@ -469,7 +469,6 @@ class Goal(Command):
         log.warn = colorwrapper(log.warn, yellow)
         log.debug = colorwrapper(log.debug, cyan)
 
-
     if self.options.recursive_directory:
       log.warn('--all-recursive is deprecated, use a target spec with the form [dir]:: instead')
       for dir in self.options.recursive_directory:
@@ -495,9 +494,9 @@ class Goal(Command):
         unknown.append(phase)
 
     if unknown:
-        print('Unknown goal(s): %s' % ' '.join(phase.name for phase in unknown))
-        print('')
-        return Phase.execute(context, 'goals')
+      print('Unknown goal(s): %s' % ' '.join(phase.name for phase in unknown))
+      print('')
+      return Phase.execute(context, 'goals')
 
     if logger:
       logger.debug('Operating on targets: %s' % self.targets)

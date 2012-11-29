@@ -130,8 +130,7 @@ class Phase(PhaseBase):
 
       context.log.debug('Executing goals in phases %s' % execution_phases)
 
-
-      if context.options.explain:
+      if getattr(context.options, 'explain', None):
         print("Phase Execution Order:\n\n%s\n" % execution_phases)
         print("Phase [Goal->Task] Order:\n")
 

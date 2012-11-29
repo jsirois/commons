@@ -16,7 +16,7 @@ class Group(object):
       try:
         # TODO (Senthil Kumaran):
         # Possible refactoring of the Task Execution Logic (AWESOME-1019)
-        if context.options.explain:
+        if getattr(context.options, 'explain', None):
           context.log.debug("Skipping execution of %s in explain mode" % name)
         else:
           task.execute(targets)
@@ -92,7 +92,7 @@ class Group(object):
                 execution_phases[phase].add((group_name, goal.name))
                 execute_task(goal.name, tasks_by_goal[goal], goal_chunk)
 
-      if context.options.explain:
+      if getattr(context.options, 'explain', None):
         for phase, goals in execution_phases.items():
           goal_to_task = ", ".join(expand_goal(goal) for goal in goals)
           print("%s [%s]" % (phase, goal_to_task))
