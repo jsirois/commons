@@ -50,9 +50,20 @@ class IdlResolve(IvyResolve):
   def _is_idl(self, path):
     return path.endswith('-idl.jar')
 
-  def _is_jar(self, path):
+  # Carve out the custom behavior we need in the base machinery with a few overrides:
+  # + only map idl jars: an idl dependency graph should be pure idl jars
+  # + warn about idl classpaths that have non-idl jars
+  # + only map idl jars when explicitly requested
+
+  def _mapfor_typename(self):
+    return 'idl_dependencies'
+
+  def _mapto_dir(self):
+    return os.path.join(self._work_dir, 'mapped-idls')
+
+  def _map_jar(self, path):
     is_idl = self._is_idl(path)
-    if not is_idl and super(IdlResolve, self)._is_jar(path):
+    if not is_idl and super(IdlResolve, self)._map_jar(path):
       self.context.log.warn('Ignoring invalid idl dependency: %s' % path)
     return is_idl
 

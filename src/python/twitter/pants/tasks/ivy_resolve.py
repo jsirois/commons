@@ -84,7 +84,6 @@ class IvyResolve(NailgunTask):
 
     self._work_dir = context.config.get('ivy-resolve', 'workdir')
     self._classpath_file = os.path.join(self._work_dir, 'classpath')
-    self._classpath_dir = os.path.join(self._work_dir, 'mapped')
 
     self._outdir = context.options.ivy_resolve_outdir or os.path.join(self._work_dir, 'reports')
     self._open = context.options.ivy_resolve_open
@@ -172,19 +171,19 @@ class IvyResolve(NailgunTask):
     with self._cachepath(self._classpath_file) as classpath:
       with self.context.state('classpath', []) as cp:
         for path in classpath:
-          if self._is_jar(path):
+          if self._map_jar(path):
             for conf in self._confs:
               cp.append((conf, path.strip()))
 
     if self._report:
       self._generate_ivy_report()
 
+    create_jardeps_for = self.context.products.isrequired(self._mapfor_typename())
     if self.context.products.isrequired("ivy_jar_products"):
       self._populate_ivy_jar_products()
 
-    create_jardeps_for = self.context.products.isrequired('jar_dependencies')
     if create_jardeps_for:
-      genmap = self.context.products.get('jar_dependencies')
+      genmap = self.context.products.get(self._mapfor_typename())
       for target in filter(create_jardeps_for, targets):
         self._mapjars(genmap, target)
 
@@ -329,7 +328,7 @@ class IvyResolve(NailgunTask):
       genmap: the jar_dependencies ProductMapping entry for the required products.
       target: the target whose jar dependencies are being retrieved.
     """
-    mapdir = os.path.join(self._classpath_dir, target.id)
+    mapdir = os.path.join(self._mapto_dir(), target.id)
     safe_mkdir(mapdir, clean=True)
     ivyargs = [
       '-retrieve', '%s/[organisation]/[artifact]/[conf]/'
@@ -349,7 +348,7 @@ class IvyResolve(NailgunTask):
             for conf in os.listdir(artifactdir):
               confdir = os.path.join(artifactdir, conf)
               for file in os.listdir(confdir):
-                if self._is_jar(file):
+                if self._map_jar(file):
                   # TODO(John Sirois): kill the org and (org, name) exclude mappings in favor of a
                   # conf whitelist
                   genmap.add(org, confdir).append(file)
@@ -359,7 +358,17 @@ class IvyResolve(NailgunTask):
                   genmap.add((target, conf), confdir).append(file)
                   genmap.add((org, name, conf), confdir).append(file)
 
-  def _is_jar(self, path):
+  def _mapfor_typename(self):
+    """Subclasses can override to identify the product map typename that should trigger jar mapping.
+    """
+    return 'jar_dependencies'
+
+  def _mapto_dir(self):
+    """Subclasses can override to establish an isolated jar mapping directory."""
+    return os.path.join(self._work_dir, 'mapped-jars')
+
+  def _map_jar(self, path):
+    """Subclasses can override to determine whether a given path represents a mappable artifact."""
     return path.endswith('.jar')
 
   def _exec_ivy(self, target_workdir, targets, args):
