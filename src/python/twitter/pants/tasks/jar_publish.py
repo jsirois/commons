@@ -455,6 +455,9 @@ class JarPublish(Task):
   def execute(self, targets):
     self.check_clean_master()
 
+    exported_targets = self.exported_targets()
+    self.check_targets(exported_targets)
+
     pushdbs = {}
     def get_db(target):
       if target.provides is None:
@@ -546,7 +549,7 @@ class JarPublish(Task):
     safe_rmtree(self.outdir)
     published = []
     skip = (self.restart_at is not None)
-    for target in self.exported_targets():
+    for target in exported_targets:
       synth_target = lookup_synthetic_target(target)
       pushdb, dbfile, repo = get_db(target)
       jar, semver, sha, fingerprint = pushdb.as_jar_with_version(target)
@@ -667,6 +670,21 @@ class JarPublish(Task):
           if self.commit:
             pushdb.dump(dbfile)
             self.commit_push(jar.org, jar.name, newver.version(), head_sha)
+
+  def check_targets(self, targets):
+    invalid = filter(lambda (t, reason): reason, zip(targets, map(self.is_invalid, targets)))
+    if invalid:
+      target_reasons = '\n\t'.join('%s: %s' % (tgt.address, reason) for tgt, reason in invalid)
+      params = dict(
+        roots=' '.join(str(t.address) for t in self.context.target_roots),
+        reasons=target_reasons
+      )
+      raise TaskError('The following targets must be fixed or removed in order to '
+                      'publish %(roots)s:\n\t%(reasons)s' % params)
+
+  def is_invalid(self, target):
+    if not target.sources:
+      return 'No sources'
 
   def exported_targets(self):
     candidates = set(self.context.targets() if self.transitive else self.context.target_roots)
