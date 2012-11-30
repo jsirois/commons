@@ -188,7 +188,8 @@ class PEXBuilder(object):
       'twitter.common.collections',
       'twitter.common.contextutil',
       'twitter.common.lang',
-      'twitter.common.python'
+      'twitter.common.python',
+      'twitter.common.python.http'
     )
     for name in libraries:
       dirname = name.replace('.', '/')

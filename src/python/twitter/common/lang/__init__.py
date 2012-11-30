@@ -20,6 +20,10 @@ from sys import version_info as sys_version_info
 from numbers import Integral, Real
 from .lockable import Lockable
 
+
+# StringIO / BytesIO
+# TODO(wickman)  Since the io package is available in 2.6.x, use that instead of
+# cStringIO/StringIO
 try:
   # CPython 2.x
   from cStringIO import StringIO
@@ -32,6 +36,8 @@ except ImportError:
     from io import StringIO
     from io import BytesIO
 
+
+# Singletons
 class SingletonMetaclass(type):
   """
     Singleton metaclass.
@@ -47,6 +53,8 @@ class SingletonMetaclass(type):
 
 Singleton = SingletonMetaclass('Singleton', (object,), {})
 
+
+# total_ordering
 try:
   from functools import total_ordering
 except ImportError:
@@ -77,6 +85,20 @@ except ImportError:
               opfunc.__doc__ = getattr(int, opname).__doc__
               setattr(cls, opname, opfunc)
       return cls
+
+
+# Abstract base classes w/o __metaclass__ or meta =
+from abc import ABCMeta
+AbstractClass = ABCMeta('AbstractClass', (object,), {})
+
+
+# Coroutine initialization
+def coroutine(func):
+  def start(*args, **kwargs):
+    cr = func(*args, **kwargs)
+    cr.next()
+    return cr
+  return start
 
 
 class Compatibility(object):
@@ -118,6 +140,7 @@ def exec_function(ast, globals_map):
 """, "<exec_function>", "exec"))
 
 __all__ = [
+  'AbstractClass',
   'Compatibility',
   'Lockable',
   'Singleton',

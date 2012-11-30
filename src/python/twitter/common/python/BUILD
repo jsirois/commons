@@ -16,7 +16,7 @@
 
 python_library(
   name = "python",
-  sources = globs('*.py'),
+  sources = rglobs('*.py'),
   dependencies = [
     python_requirement('pip'),
     python_requirement('distribute'),
