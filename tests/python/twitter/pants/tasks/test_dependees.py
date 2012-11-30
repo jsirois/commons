@@ -37,19 +37,26 @@ class ReverseDepmapTest(BaseReverseDepmapTest):
   def setUpClass(cls):
     super(ReverseDepmapTest, cls).setUpClass()
 
-    def create_target(path, name, *deps):
+    def create_target(path, name, alias=False, deps=()):
       cls.create_target(path, dedent('''
-          python_library(name='%s',
-            dependencies=[%s]
+          %(type)s(name='%(name)s',
+            dependencies=[%(deps)s]
           )
-          ''' % (name, ','.join("pants('%s')" % dep for dep in list(deps)))))
+          ''' % dict(
+        type='dependencies' if alias else 'python_library',
+        name=name,
+        deps=','.join("pants('%s')" % dep for dep in list(deps)))
+      ))
 
     create_target('common/a', 'a')
     create_target('common/b', 'b')
     create_target('common/c', 'c')
-    create_target('overlaps', 'one', 'common/a', 'common/b')
-    create_target('overlaps', 'two', 'common/a', 'common/c')
-    create_target('overlaps', 'three', 'common/a', 'overlaps:one')
+    create_target('common/d', 'd')
+    create_target('overlaps', 'one', deps=['common/a', 'common/b'])
+    create_target('overlaps', 'two', deps=['common/a', 'common/c'])
+    create_target('overlaps', 'three', deps=['common/a', 'overlaps:one'])
+    create_target('overlaps', 'four', alias=True, deps=['common/b'])
+    create_target('overlaps', 'five', deps=['overlaps:four'])
 
   def test_roots(self):
     self.assert_console_output(
@@ -76,6 +83,8 @@ class ReverseDepmapTest(BaseReverseDepmapTest):
     self.assert_console_output(
       'overlaps/BUILD:one',
       'overlaps/BUILD:three',
+      'overlaps/BUILD:four',
+      'overlaps/BUILD:five',
       args=['--test-transitive'],
       targets=[self.target('common/b')]
     )
@@ -98,4 +107,10 @@ class ReverseDepmapTest(BaseReverseDepmapTest):
       'common/c/BUILD:c',
       args=['--test-closed'],
       targets=targets
+    )
+
+  def test_aliasing(self):
+    self.assert_console_output(
+      'overlaps/BUILD:five',
+      targets=[self.target('overlaps:four')]
     )
