@@ -14,18 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
-from sys import version_info
-if version_info[0] == 2:
-  from .ordereddict import OrderedDict
-else:
-  from collections import OrderedDict
-from .orderedset import OrderedSet
-from .ringbuffer import RingBuffer
-
-__all__ = (
-  OrderedSet,
-  OrderedDict,
-  RingBuffer,
+python_tests(name = 'collections',
+  sources = globs('*.py'),
+  dependencies = [
+    pants('src/python/twitter/common/collections')
+  ]
 )

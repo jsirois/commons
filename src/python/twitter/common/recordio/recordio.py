@@ -81,7 +81,7 @@ class RecordIO(object):
       def validate_filehandle():
         if fp is None:
           raise RecordIO.InvalidFileHandle(
-            'Intialized with an invalid file handle: %s' % fp)
+            'Initialized with an invalid file handle: %s' % fp)
 
       def validate_codec():
         if not isinstance(codec, RecordIO.Codec):

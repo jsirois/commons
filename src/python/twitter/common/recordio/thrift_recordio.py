@@ -29,7 +29,7 @@ except ImportError:
   _HAS_THRIFT = False
   print("WARNING: Unable to load thrift in record_writer", file=sys.stderr)
 
-class ThriftRecordIO:
+class ThriftRecordIO(object):
   class ThriftUnavailableException(Exception): pass
   class ThriftUnsuppliedException(Exception): pass
   class InvalidThriftException(Exception): pass

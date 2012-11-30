@@ -145,3 +145,35 @@ __all__ = [
   'Lockable',
   'Singleton',
 ]
+
+
+class InheritDocstringsMetaclass(type):
+  """
+  For each method in a (sub)class without a defined docstring, inherit the docstring for the method
+  from a parent class, if it exists. Useful mostly for abstract class/interface definitions.
+
+    Example usage:
+       >>> class Foo(object):
+       ...   def my_method(self):
+       ...     '''This method has a nice docstring!'''
+       ...     print "In Foo"
+       ...
+       >>> class Bar(Foo):
+       ...   __metaclass__ = InheritDocstringsMetaclass
+       ...   def my_method(self):
+       ...     print "In Bar"
+       ...
+       >>> Bar().my_method.__doc__
+       'This method has a nice docstring!'
+       >>> Bar().my_method()
+       In Bar
+
+  """
+  def __new__(self, class_name, bases, namespace):
+    for key, value in namespace.iteritems():
+      if callable(value) and not value.__doc__:
+        for parent in bases:
+          if hasattr(parent, key) and getattr(parent, key).__doc__:
+            value.__doc__ = getattr(parent, key).__doc__
+            break
+    return type.__new__(self, class_name, bases, namespace)

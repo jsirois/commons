@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2011 Twitter, Inc.
+# Copyright 2012 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -14,18 +14,38 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
+import pytest
 
-from sys import version_info
-if version_info[0] == 2:
-  from .ordereddict import OrderedDict
-else:
-  from collections import OrderedDict
-from .orderedset import OrderedSet
-from .ringbuffer import RingBuffer
+from twitter.common.collections import RingBuffer
 
-__all__ = (
-  OrderedSet,
-  OrderedDict,
-  RingBuffer,
-)
+def test_append():
+  r = RingBuffer(5)
+  for i in xrange(0, 5):
+    r.append(i)
+  assert (r[0], r[1], r[2], r[3], r[4]) == (0, 1, 2, 3, 4)
+  for i in xrange(5, 10):
+    r.append(i)
+  assert (r[0], r[1], r[2], r[3], r[4]) == (5, 6, 7, 8, 9)
+
+def test_circularity():
+  r = RingBuffer(3)
+  r.append(1)
+  r.append(2)
+  r.append(3)
+  assert 1 in r
+  assert (r[0], r[3], r[6], r[-3]) == (1, 1, 1, 1)
+  r.append(4)
+  assert 1 not in r
+  assert (r[0], r[3], r[6], r[-3]) == (2, 2, 2, 2)
+
+def test_bad_operations():
+  with pytest.raises(ValueError):
+    RingBuffer(0)
+  r = RingBuffer()
+  with pytest.raises(IndexError):
+    r[1]
+  with pytest.raises(IndexError):
+    r[-1]
+  r.append(1)
+  with pytest.raises(RingBuffer.InvalidOperation):
+    del r[0]
