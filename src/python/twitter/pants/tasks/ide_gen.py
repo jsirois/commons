@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==================================================================================================
+
 import os
 import shutil
 
@@ -24,9 +25,8 @@ from twitter.pants import (
   extract_jvm_targets,
   get_buildroot,
   has_sources,
-  is_codegen,
-  is_java,
-  is_scala,
+  is_java as _is_java,
+  is_scala as _is_scala,
   is_test,
   is_apt)
 from twitter.pants.base.target import Target
@@ -40,7 +40,21 @@ from twitter.pants.tasks.binary_utils import profile_classpath
 from twitter.pants.tasks.checkstyle import Checkstyle
 from twitter.pants.tasks.jvm_binary_task import JvmBinaryTask
 
-__author__ = 'John Sirois'
+
+# We use custom checks for scala and java targets here for 2 reasons:
+# 1.) jvm_binary could have either a scala or java source file attached so we can't do a pure
+#     target type test
+# 2.) the target may be under development in which case it may not have sources yet - its pretty
+#     common to write a BUILD and ./pants goal idea the target inside to start development at which
+#     point there are no source files yet - and the developer intents to add them using the ide.
+
+def is_scala(target):
+  return has_sources(target, '.scala') or _is_scala(target)
+
+
+def is_java(target):
+  return has_sources(target, '.java') or _is_java(target)
+
 
 class IdeGen(JvmBinaryTask):
   @classmethod

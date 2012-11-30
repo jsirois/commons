@@ -63,6 +63,18 @@ class JvmRun(JvmTask):
     self.only_write_cmd_line = context.options.only_write_cmd_line
 
   def execute(self, targets):
+    # The called binary may block for a while, allow concurrent pants activity during this pants
+    # idle period.
+    #
+    # TODO(John Sirois): refactor lock so that I can do:
+    # with self.context.lock.yield():
+    #   - blocking code
+    #
+    # Currently re-acquiring the lock requires a path argument that was set up by the goal
+    # execution engine.  I do not want task code to learn the lock location.
+    # http://jira.local.twitter.com/browse/AWESOME-1317
+
+    self.context.lock.release()
     # Run the first target that is a binary.
     self.context.lock.release()
     binaries = filter(is_binary, targets)

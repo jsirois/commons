@@ -47,6 +47,10 @@ class ScalaRepl(JvmTask):
         self.args.extend(shlex.split(arg))
 
   def execute(self, targets):
+    # The repl session may last a while, allow concurrent pants activity during this pants idle
+    # period.
+    self.context.lock.release()
+
     self.save_stty_options()
     try:
       runjava(
@@ -56,11 +60,14 @@ class ScalaRepl(JvmTask):
         args=[]
       )
     except KeyboardInterrupt:
-      self.restore_ssty_options()
+      # TODO(John Sirois): Confirm with Steve Gury that finally does not work on mac and an
+      # explicit catch of KeyboardInterrupt is required.
+      pass
+    self.restore_ssty_options()
 
   def save_stty_options(self):
     """
-    The scala REPL change some stty parameters and don't save/restore it after
+    The scala REPL changes some stty parameters and doesn't save/restore them after
     execution, so if you have a terminal with non-default stty options, you end
     up to a broken terminal (need to do a 'reset').
     """
