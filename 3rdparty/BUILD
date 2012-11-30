@@ -177,11 +177,10 @@ jar_library(name = 'dnsjava',
             ])
 
 # common rev for all com.twitter%finagle* artifacts
-FINAGLE_REV = '5.3.17'
+FINAGLE_REV = '5.3.23'
 
 jar_library(name = 'finagle-zipkin',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV),
-            ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
 jar_library(name = 'finagle-core',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV),
                              pants(':util-core'),
@@ -473,7 +472,7 @@ jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
 # common rev for all com.twitter%util* artifacts
-UTIL_REV = '5.3.11'
+UTIL_REV = '5.3.14'
 jar_library(name = 'util',
             dependencies = [
               jar(org = 'com.twitter', name = 'util', rev = UTIL_REV)
