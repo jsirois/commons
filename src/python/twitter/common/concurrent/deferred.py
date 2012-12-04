@@ -14,18 +14,19 @@
 # limitations under the License.
 # ==================================================================================================
 
-import threading
 import time
 
-from twitter.common.quantity import Amount, Time
+from twitter.common.exceptions import ExceptionalThread
 from twitter.common.lang import Compatibility
+from twitter.common.quantity import Amount, Time
 
 
-class Deferred(threading.Thread):
+class Deferred(ExceptionalThread):
   """
     Wrapper for a delayed closure.
   """
   def __init__(self, closure, delay=Amount(0, Time.SECONDS), clock=time):
+    super(Deferred, self).__init__()
     self._closure = closure
     if isinstance(delay, Compatibility.numeric):
       self._delay = delay
@@ -35,8 +36,7 @@ class Deferred(threading.Thread):
       raise ValueError('Deferred must take a numeric or Amount of Time.')
     self._clock = clock
     self._initialized = clock.time()
-    threading.Thread.__init__(self)
-    threading.daemon = True
+    self.daemon = True
 
   def run(self):
     self._clock.sleep(self._delay)

@@ -19,6 +19,7 @@ python_library(
   sources = globs('*.py'),
   dependencies = [
     pants('3rdparty/python:futures'),
+    pants('src/python/twitter/common/exceptions'),
     pants('src/python/twitter/common/lang'),
     pants('src/python/twitter/common/quantity')
   ]
