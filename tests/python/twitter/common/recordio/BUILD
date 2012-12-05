@@ -26,7 +26,8 @@ python_tests(name = 'recordio',
   dependencies = [
     pants('src/python/twitter/common/recordio'),
     pants('src/thrift/com/twitter/test:py-thrift')
-  ]
+  ],
+  coverage = 'twitter.common.recordio'
 )
 
 python_tests(name = 'recordio-thrift',
@@ -34,5 +35,6 @@ python_tests(name = 'recordio-thrift',
   dependencies = [
     pants('src/python/twitter/common/recordio:recordio-thrift'),
     pants('src/thrift/com/twitter/test:py-thrift')
-  ]
+  ],
+  coverage = 'twitter.common.recordio'
 )

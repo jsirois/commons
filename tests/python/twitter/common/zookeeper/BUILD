@@ -17,4 +17,5 @@ python_tests(
     pants('src/python/twitter/common/zookeeper:testing'),
   ],
   sources = ['client_test.py'],
+  coverage = 'twitter.common.zookeeper.client'
 )

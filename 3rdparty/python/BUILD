@@ -55,10 +55,6 @@ python_library(
 )
 
 python_library(
-  name = 'py',
-  dependencies = [egg("py-1.4.5-py2.6.egg")])
-
-python_library(
   name = 'pycrypto',
   dependencies = [egg('pycrypto-2.3-*.egg')])
 

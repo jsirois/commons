@@ -4,6 +4,7 @@ import contextlib
 import sys
 import time
 from types import GeneratorType
+from zipimport import zipimporter
 
 from pkg_resources import (
   find_distributions,
@@ -17,7 +18,6 @@ from pkg_resources import (
 from twitter.common.collections import OrderedSet
 from twitter.common.python.distiller import Distiller
 from twitter.common.python.installer import Installer
-from twitter.common.python.importer import EggZipImporter
 from twitter.common.python.platforms import Platform
 
 
@@ -179,7 +179,7 @@ class Resolver(Environment):
       with self.timed('Distilling %s' % req):
         distilled = Distiller(dist).distill(into=self._install_cache)
       with self.timed('Constructing distribution %s' % req):
-        metadata = EggMetadata(EggZipImporter(distilled))
+        metadata = EggMetadata(zipimporter(distilled))
         dist = Distribution.from_filename(distilled, metadata)
     self.add(dist)
     return dist

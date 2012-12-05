@@ -13,4 +13,5 @@ python_tests(
     'src/python/twitter/common/zookeeper:testing',
   ],
   sources = globs('test_serverset.py'),
+  coverage = 'twitter.common.zookeeper.serverset'
 )

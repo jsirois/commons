@@ -23,6 +23,7 @@ from twitter.pants.base.address import Address
 from twitter.pants.base.hash_utils import hash_all
 from twitter.pants.base.parse_context import ParseContext
 
+
 class TargetDefinitionException(Exception):
   """Thrown on errors in target definitions."""
   def __init__(self, target, msg):

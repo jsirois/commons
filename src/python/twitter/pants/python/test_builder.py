@@ -18,6 +18,10 @@ from __future__ import print_function
 
 __author__ = 'Brian Wickman'
 
+try:
+  import configparser
+except ImportError:
+  import ConfigParser as configparser
 import errno
 import os
 import time
@@ -25,13 +29,20 @@ import signal
 import sys
 
 from twitter.common.collections import OrderedSet
+from twitter.common.contextutil import temporary_file
+from twitter.common.dirutil import safe_mkdir
+from twitter.common.lang import Compatibility
 from twitter.common.quantity import Amount, Time
 from twitter.common.python.pex import PEX
 from twitter.common.python.pex_builder import PEXBuilder
 
-from twitter.pants.base import ParseContext
+from twitter.pants.base import Config, ParseContext
 from twitter.pants.python.python_chroot import PythonChroot
-from twitter.pants.targets import PythonTests, PythonTestSuite, PythonRequirement
+from twitter.pants.targets import (
+    PythonRequirement,
+    PythonTarget,
+    PythonTestSuite,
+    PythonTests)
 
 
 class PythonTestResult(object):
@@ -58,6 +69,30 @@ class PythonTestResult(object):
   @property
   def success(self):
     return self._rc == 0
+
+
+DEFAULT_COVERAGE_CONFIG = """
+[run]
+branch = True
+timid = True
+
+[report]
+exclude_lines =
+    def __repr__
+    raise NotImplementedError
+
+ignore_errors = True
+"""
+
+def generate_coverage_config(target):
+  cp = configparser.ConfigParser()
+  cp.readfp(Compatibility.StringIO(DEFAULT_COVERAGE_CONFIG))
+  cp.add_section('html')
+  target_dir = os.path.join(Config.load().getdefault('pants_distdir'), 'coverage',
+      os.path.dirname(target.address.buildfile.relpath), target.name)
+  safe_mkdir(target_dir)
+  cp.set('html', 'directory', target_dir)
+  return cp
 
 
 class PythonTestBuilder(object):
@@ -88,6 +123,8 @@ class PythonTestBuilder(object):
       with ParseContext.temp():
         PythonTestBuilder.TESTING_TARGETS = [
           PythonRequirement('pytest'),
+          PythonRequirement('pytest-cov'),
+          PythonRequirement('coverage'),
           PythonRequirement('unittest2', version_filter=lambda:sys.version_info[0]==2),
           PythonRequirement('unittest2py3k', version_filter=lambda:sys.version_info[0]==3)
         ]
@@ -111,6 +148,27 @@ class PythonTestBuilder(object):
     return args
 
   @staticmethod
+  def cov_setup(target, chroot):
+    cp = generate_coverage_config(target)
+    with temporary_file(cleanup=False) as fp:
+      cp.write(fp)
+      filename = fp.name
+    if target.coverage:
+      source = target.coverage
+    else:
+      # This technically makes the assumption that tests/python/<target> will be testing
+      # src/python/<target>.  To change to honest measurements, do target.walk() here insead,
+      # however this results in very useless and noisy coverage reports.
+      source = set(os.path.dirname(source).replace(os.sep, '.') for source in target.sources)
+    args = ['-p', 'pytest_cov',
+            '--cov-config', filename,
+            '--cov-report', 'html',
+            '--cov-report', 'term']
+    for module in source:
+      args.extend(['--cov', module])
+    return filename, args
+
+  @staticmethod
   def wait_on(popen, timeout=TEST_TIMEOUT):
     total_wait = Amount(0, Time.SECONDS)
     while total_wait < timeout:
@@ -125,6 +183,9 @@ class PythonTestBuilder(object):
   def _run_python_test(self, target):
     po = None
     rv = PythonTestResult.exception()
+    coverage_rc = None
+    coverage_enabled = 'PANTS_PY_COVERAGE' in os.environ
+
     try:
       builder = PEXBuilder()
       builder.info().entry_point = 'pytest'
@@ -135,8 +196,13 @@ class PythonTestBuilder(object):
       builder.freeze()
       test_args = PythonTestBuilder.generate_junit_args(target)
       test_args.extend(self.args)
+      if coverage_enabled:
+        coverage_rc, args = self.cov_setup(target, builder.chroot())
+        test_args.extend(args)
       sources = [os.path.join(target.target_base, source) for source in target.sources]
       po = PEX(builder.path()).run(args=test_args + sources, blocking=False, setsid=True)
+      # TODO(wickman)  If coverage is enabled, write an intermediate .html that points to
+      # each of the coverage reports generated and webbrowser.open to that page.
       rv = PythonTestBuilder.wait_on(po, timeout=target.timeout)
     except Exception as e:
       import traceback
@@ -144,6 +210,8 @@ class PythonTestBuilder(object):
       traceback.print_exc()
       rv = PythonTestResult.exception()
     finally:
+      if coverage_rc:
+        os.unlink(coverage_rc)
       if po and po.returncode != 0:
         try:
           os.killpg(po.pid, signal.SIGTERM)
@@ -177,6 +245,10 @@ class PythonTestBuilder(object):
 
   def _run_tests(self, targets):
     fail_hard = 'PANTS_PYTHON_TEST_FAILSOFT' not in os.environ
+    if 'PANTS_PY_COVERAGE' in os.environ:
+      # Coverage often throws errors despite tests succeeding, so make PANTS_PY_COVERAGE
+      # force FAILSOFT.
+      fail_hard = False
     failed = False
     for target in targets:
       if isinstance(target, PythonTests):

@@ -19,20 +19,22 @@ import os
 import pkg_resources
 import sys
 import tempfile
-from pkg_resources import (
-  Distribution,
-  DistributionNotFound,
-  EggMetadata)
+from zipimport import zipimporter
 
 from twitter.common.lang import Compatibility
 from twitter.common.dirutil import chmod_plus_x
 from twitter.common.dirutil.chroot import Chroot
-from twitter.common.python.importer import EggZipImporter
 from twitter.common.python.interpreter import PythonIdentity
 from twitter.common.python.marshaller import CodeMarshaller
 from twitter.common.python.pex_info import PexInfo
 from twitter.common.python.pex import PEX
 from twitter.common.python.util import DistributionHelper
+
+from pkg_resources import (
+  Distribution,
+  DistributionNotFound,
+  EggMetadata)
+
 
 BOOTSTRAP_ENVIRONMENT = b"""
 import os
@@ -112,7 +114,7 @@ class PEXBuilder(object):
     """
       helper for add_distribution
     """
-    metadata = EggMetadata(EggZipImporter(egg))
+    metadata = EggMetadata(zipimporter(egg))
     dist = Distribution.from_filename(egg, metadata)
     self.add_distribution(dist)
     self.add_requirement(dist.as_requirement(), dynamic=False, repo=None)
