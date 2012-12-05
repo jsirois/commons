@@ -29,7 +29,6 @@ python_test_suite(name = 'all',
     pants('tests/python/twitter/pants/commands'),
     pants('tests/python/twitter/pants/java'),
     pants('tests/python/twitter/pants/python:all'),
-    pants('tests/python/twitter/pants/scm'),
     pants('tests/python/twitter/pants/targets'),
     pants('tests/python/twitter/pants/tasks'),
   ]
