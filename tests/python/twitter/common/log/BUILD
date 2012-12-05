@@ -20,6 +20,5 @@ python_tests(name = 'log',
     pants('src/python/twitter/common/lang'),
     pants('src/python/twitter/common/log'),
     pants('src/python/twitter/common/testing'),
-  ],
-  coverage = 'twitter.common.log'
+  ]
 )

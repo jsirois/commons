@@ -12,6 +12,5 @@ python_tests(
   dependencies = [
     pants('src/python/twitter/common/zookeeper/group'),
     pants('src/python/twitter/common/zookeeper:testing'),
-  ],
-  coverage = 'twitter.common.zookeeper.group'
+  ]
 )
