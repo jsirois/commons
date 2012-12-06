@@ -22,7 +22,6 @@ from zipimport import zipimporter
 
 from pkg_resources import Distribution, EggMetadata, PathMetadata
 
-from twitter.common.python.importer import EggZipImporter
 from twitter.pants.targets.python_requirement import PythonRequirement
 
 
