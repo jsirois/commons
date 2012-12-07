@@ -385,6 +385,14 @@ jar_library(name = 'scalatest',
             ]
            )
 
+jar_library(name = 'scrooge-runtime',
+            dependencies = [
+              # used by scrooge-generator with the identical rev
+              # described in build-support/profiles/scrooge-gen.ivy.xml
+              jar(org='com.twitter', name='scrooge-runtime', rev='3.1-SNAPSHOT').with_sources()
+            ]
+          )
+
 jar_library(name = 'jerkson',
             dependencies = [
               jar(org='com.codahale', name='jerkson_2.9.2', rev='0.5.0').with_sources()

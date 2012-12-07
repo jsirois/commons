@@ -102,7 +102,7 @@ class ThriftGen(CodeGen):
     return [self.thrift_binary]
 
   def is_gentarget(self, target):
-    return isinstance(target, JavaThriftLibrary) or isinstance(target, PythonThriftLibrary)
+    return (isinstance(target, JavaThriftLibrary) and target.compiler == 'thrift') or isinstance(target, PythonThriftLibrary)
 
   def is_forced(self, lang):
     return lang in self.gen_langs

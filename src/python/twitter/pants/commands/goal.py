@@ -547,6 +547,7 @@ from twitter.pants.tasks.scala_compile import ScalaCompile
 from twitter.pants.tasks.scala_repl import ScalaRepl
 from twitter.pants.tasks.specs_run import SpecsRun
 from twitter.pants.tasks.thrift_gen import ThriftGen
+from twitter.pants.tasks.scrooge_gen import ScroogeGen
 
 
 class Invalidator(Task):
@@ -623,6 +624,8 @@ goal(
 # recognize flags to narrow the gen set
 goal(name='thrift', action=ThriftGen,
   dependencies=['resolve-idl']).install('gen').with_description('Generate code.')
+goal(name='scrooge', action=ScroogeGen,
+  dependencies=['resolve-idl']).install('gen')
 goal(name='protoc', action=ProtobufGen,
   dependencies=['resolve-idl']).install('gen')
 goal(name='antlr', action=AntlrGen,

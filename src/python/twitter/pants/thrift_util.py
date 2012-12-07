@@ -36,16 +36,18 @@ def find_root_thrifts(basedirs, sources, log=None):
   :sources: Seed thrift files to examine.
   :log: An optional logger.
   """
+
   root_sources = set(sources)
   for source in sources:
     root_sources.difference_update(find_includes(basedirs, source, log=log))
   return root_sources
 
 
-def calculate_compile_roots(targets, is_thrift_target):
-  """Calculates the minimal set of thrift source files that need to be compiled.
+def calculate_compile_sources(targets, is_thrift_target):
+  """Calculates the set of thrift source files that need to be compiled.
+  It does not exclude sources that are included in other sources.
 
-  A tuple of (include basedirs, root thrift sources) is returned.
+  A tuple of (include basedirs, thrift sources) is returned.
 
   :targets: The targets to examine.
   :is_thrift_target: A predicate to pick out thrift targets for consideration in the analysis.
@@ -58,6 +60,19 @@ def calculate_compile_roots(targets, is_thrift_target):
     sources.update(os.path.join(target.target_base, source) for source in target.sources)
   for target in targets:
     target.walk(collect_sources, predicate=is_thrift_target)
+  return basedirs, sources
+
+
+def calculate_compile_roots(targets, is_thrift_target):
+  """Calculates the minimal set of thrift source files that need to be compiled.
+
+  A tuple of (include basedirs, root thrift sources) is returned.
+
+  :targets: The targets to examine.
+  :is_thrift_target: A predicate to pick out thrift targets for consideration in the analysis.
+  """
+
+  basedirs, sources = calculate_compile_sources(targets, is_thrift_target)
   sources = find_root_thrifts(basedirs, sources)
   return basedirs, sources
 
