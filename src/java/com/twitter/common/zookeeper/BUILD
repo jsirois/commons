@@ -161,6 +161,10 @@ jar_library(name = 'zookeeper',
   ]
 )
 
+# See http://jira.local.twitter.com/browse/AWESOME-1385 re using the force
+zk34=pants('3rdparty:zookeeper-3.4').get()
+zk34.force=True
+
 java_library(name = 'testing',
   provides = artifact(
     org = 'com.twitter.common',
@@ -168,17 +172,17 @@ java_library(name = 'testing',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:commons-io',
-    '3rdparty:guava',
-    '3rdparty:junit',
-    '3rdparty:tl4j',
-    '3rdparty:zookeeper',
-    'src/java/com/twitter/common/application:action',
-    'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/collections',
-    'src/java/com/twitter/common/io',
-    'src/java/com/twitter/common/quantity',
-    ':client',
+    pants('3rdparty:commons-io'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:junit'),
+    pants('3rdparty:tl4j'),
+    zk34,
+    pants(':client'),
+    pants('src/java/com/twitter/common/application:action'),
+    pants('src/java/com/twitter/common/base'),
+    pants('src/java/com/twitter/common/collections'),
+    pants('src/java/com/twitter/common/io'),
+    pants('src/java/com/twitter/common/quantity'),
   ],
   sources = globs('testing/*.java'),
 )
