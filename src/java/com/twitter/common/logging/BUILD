@@ -36,6 +36,11 @@ java_library(name='logging',
 )
 
 java_library(name='buffered',
+  provides=artifact(
+    org='com.twitter.common',
+    name='logging-buffered',
+    repo=pants('build-support/commons/ivy:public'),
+  ),
   dependencies=[
     pants('3rdparty:guava'),
     pants(':logging'),
