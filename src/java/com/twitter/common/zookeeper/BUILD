@@ -161,10 +161,6 @@ jar_library(name = 'zookeeper',
   ]
 )
 
-# See http://jira.local.twitter.com/browse/AWESOME-1385 re using the force
-zk34=pants('3rdparty:zookeeper-3.4').get()
-zk34.force=True
-
 java_library(name = 'testing',
   provides = artifact(
     org = 'com.twitter.common',
@@ -176,7 +172,7 @@ java_library(name = 'testing',
     pants('3rdparty:guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:tl4j'),
-    zk34,
+    pants('3rdparty:zookeeper'),
     pants(':client'),
     pants('src/java/com/twitter/common/application:action'),
     pants('src/java/com/twitter/common/base'),
