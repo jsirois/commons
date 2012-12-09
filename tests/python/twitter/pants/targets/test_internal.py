@@ -14,16 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
+import unittest
 
 from twitter.pants.targets import InternalTarget
 from twitter.pants.testutils import MockTarget
 
-import unittest
-
 
 class InternalTargetTest(unittest.TestCase):
-  def testDetectCycleDirect(self):
+  def test_detect_cycle_direct(self):
     a = MockTarget('a')
 
     # no cycles yet
@@ -36,7 +34,7 @@ class InternalTargetTest(unittest.TestCase):
       # expected
       pass
 
-  def testDetectIndirect(self):
+  def test_detect_cycle_indirect(self):
     c = MockTarget('c')
     b = MockTarget('b', [ c ])
     a = MockTarget('a', [ c, b ])
@@ -62,4 +60,3 @@ class InternalTargetTest(unittest.TestCase):
     self.assertEquals(InternalTarget.sort_targets([a,b,c,d,e]), [e,d,c,b,a])
     self.assertEquals(InternalTarget.sort_targets([b,d,a,e,c]), [e,d,c,b,a])
     self.assertEquals(InternalTarget.sort_targets([e,d,c,b,a]), [e,d,c,b,a])
-

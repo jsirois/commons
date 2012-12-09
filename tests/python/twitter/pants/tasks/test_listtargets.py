@@ -18,6 +18,7 @@ import os
 
 from textwrap import dedent
 
+from twitter.pants import is_concrete
 from twitter.pants.base.target import Target
 from twitter.pants.tasks.listtargets import ListTargets
 
@@ -172,6 +173,22 @@ class ListTargetsTest(BaseListTargetsTest):
       'a/b/c/BUILD:c3',
       'a/b/d/BUILD:d',
       targets=targets
+    )
+
+  def test_list_documented(self):
+    self.assert_console_output(
+      # Confirm empty listing
+      args=['--test-documented'],
+      targets=[self.target('a/b')]
+    )
+
+    self.assert_console_output(
+      dedent('''
+      f/BUILD:alias
+        Exercises alias resolution.
+        Further description.
+      ''').strip(),
+      args=['--test-documented']
     )
 
   def assert_entries(self, sep, *output, **kwargs):

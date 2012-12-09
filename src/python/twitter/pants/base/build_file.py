@@ -41,7 +41,7 @@ class BuildFile(object):
 
     buildfiles = OrderedSet()
     for root, dirs, files in os.walk(base_path if base_path else root_dir):
-      for filename in files:
+      for filename in sorted(files):
         if BuildFile._is_buildfile_name(filename):
           buildfile_relpath = os.path.relpath(os.path.join(root, filename), root_dir)
           buildfiles.add(BuildFile(root_dir, buildfile_relpath))

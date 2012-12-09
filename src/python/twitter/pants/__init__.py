@@ -131,7 +131,7 @@ def has_sources(target, extension=None):
   """
   return (target.has_label('sources')
           and (not extension
-               or any(filter(lambda source: source.endswith(extension), target.sources)))
+               or any(filter(lambda source: source.endswith(extension), target.sources))))
 
 
 def is_exported(target):

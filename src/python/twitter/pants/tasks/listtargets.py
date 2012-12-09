@@ -31,29 +31,34 @@ class ListTargets(ConsoleTask):
   """
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
-      super(ListTargets, cls).setup_parser(option_group, args, mkflag)
-      option_group.add_option(mkflag("provides"), action="store_true",
-          dest="list_only_provides", default=False,
-          help="Specifies only targets that provide an artifact should be "
-          "listed. The output will be 2 columns in this case: "
-          "[target address] [artifact id]")
+    super(ListTargets, cls).setup_parser(option_group, args, mkflag)
+    option_group.add_option(mkflag("provides"), action="store_true",
+        dest="list_only_provides", default=False,
+        help="Specifies only targets that provide an artifact should be "
+        "listed. The output will be 2 columns in this case: "
+        "[target address] [artifact id]")
 
-      option_group.add_option(mkflag("provides-columns"),
-          dest="list_provides_columns",
-          default='address,artifact_id',
-          help="Specifies the columns to include in listing output when "
-          "restricting the listing to targets that provide an artifact. "
-          "Available columns are: address, artifact_id, repo_name, repo_url "
-          "and repo_db")
+    option_group.add_option(mkflag("provides-columns"),
+        dest="list_provides_columns",
+        default='address,artifact_id',
+        help="Specifies the columns to include in listing output when "
+        "restricting the listing to targets that provide an artifact. "
+        "Available columns are: address, artifact_id, repo_name, repo_url "
+        "and repo_db")
 
-  def __init__(self, context):
-      super(ListTargets, self).__init__(context)
-      self.provides = context.options.list_only_provides
-      self.provides_columns = context.options.list_provides_columns
-      self.root_dir = get_buildroot()
+    option_group.add_option(mkflag("documented"), action="store_true", dest="list_documented",
+        default=False, help="Prints only targets that are documented with a description.")
+
+
+  def __init__(self, context, **kwargs):
+    super(ListTargets, self).__init__(context, **kwargs)
+
+    self._provides = context.options.list_provides
+    self._provides_columns = context.options.list_provides_columns
+    self._documented = context.options.list_documented
+    self._root_dir = get_buildroot()
 
   def console_output(self, targets):
-
     if self.provides:
       def extract_artifact_id(target):
         provided_jar = target._as_jar_dependency()
@@ -80,6 +85,12 @@ class ListTargets(ConsoleTask):
             % self.provides_columns)
 
       print_fn = lambda address: print_provides(column_extractors, address)
+    elif self._documented:
+      def print_documented(address):
+        target = Target.get(address)
+        if target.description:
+          return '%s\n  %s' % (address, '\n  '.join(target.description.strip().split('\n')))
+      print_fn = print_documented
     else:
       print_fn = lambda address: str(address)
 

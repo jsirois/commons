@@ -25,6 +25,7 @@ from . import Command
 
 from twitter.common.python.pex import PEX
 
+from twitter.pants import is_concrete
 from twitter.pants.base import Address, Target
 from twitter.pants.targets import PythonBinary
 from twitter.pants.python.python_chroot import PythonChroot
@@ -53,35 +54,57 @@ class Py(Command):
     if not self.args:
       self.error("A spec argument is required")
 
-    targets = []
+    self.target = None
+    self.extra_targets = []
 
-    # TODO(wickman)  Ignore the -- crap
+    # We parse each arg in the context of the cli usage:
+    #   ./pants command (options) [spec] (build args)
+    #   ./pants command (options) [spec]... -- (build args)
+    # Our command token and our options are parsed out so we see args of the form:
+    #   [spec] (build args)
+    #   [spec]... -- (build args)
     for k in range(len(self.args)):
-      arg = self.args[0]
+      arg = self.args.pop(0)
       if arg == '--':
-        self.args.pop(0)
         break
 
+      target = None
       try:
         address = Address.parse(root_dir, arg)
         target = Target.get(address)
-      except Exception as e:
-        break
+      except Exception:
+        pass
+
       if not target:
+        # We failed to parse the arg as a target or else it was in valid address format but did not
+        # correspond to a real target.  Assume this is the 1st of the build args and terminate
+        # processing args for target addresses.
         break
 
-      targets.append(target)
-      self.args.pop(0)
+      binaries = []
+      for resolved in filter(is_concrete, target.resolve()):
+        if isinstance(resolved, PythonBinary):
+          binaries.append(resolved)
+        else:
+          self.extra_targets.append(resolved)
 
-      # stop at PythonBinary target
-      if isinstance(target, PythonBinary):
+      if not binaries:
+        # No binary encountered yet so move on to the next spec to find one or else accumulate more
+        # libraries for ./pants py -> interpreter mode.
+        pass
+      elif len(binaries) == 1:
+        # We found a binary and are done, the rest of the args get passed to it
+        self.target = binaries[0]
         break
-
-    self.target = targets.pop(0) if targets else None
-    self.extra_targets = targets
+      else:
+        self.error('Can only process 1 binary target, %s contains %d:\n\t%s' % (
+          arg, len(binaries), '\n\t'.join(str(binary.address) for binary in binaries)
+        ))
 
     if self.target is None:
-      self.error('No valid target specified!')
+      if not self.extra_targets:
+        self.error('No valid target specified!')
+      self.target = self.extra_targets.pop(0)
 
   def execute(self):
     if self.options.verbose:
@@ -89,7 +112,7 @@ class Py(Command):
         'Extra targets: %s' % ' '.join(map(str, self.extra_targets)) if self.extra_targets else ''))
 
     if self.options.resolve:
-      executor = PythonResolver(self.target, self.root_dir, extra_targets=self.extra_targets)
+      executor = PythonResolver([self.target] + self.extra_targets)
       executor.dump()
       return 0
 

@@ -14,15 +14,13 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'Joe Smith'
-
-from twitter.pants.base import Config
-from twitter.common.contextutil import temporary_file
-from twitter.common.python.platforms import Platform
-from twitter.pants.python.python_chroot import get_platforms
-
 import unittest
 
+from twitter.common.contextutil import temporary_file
+from twitter.common.python.platforms import Platform
+
+from twitter.pants.base import Config
+from twitter.pants.python.python_chroot import get_platforms
 
 class PythonChrootTest(unittest.TestCase):
   def setUp(self):
@@ -37,6 +35,8 @@ platforms: [
       ini.close()
       self.config = Config.load(configpath=ini.name)
 
-  def testGetCurrentPlatform(self):
+  def test_get_current_platform(self):
     expected_platforms = [Platform.current(), 'linux-x86_64']
-    self.assertEqual(expected_platforms, get_platforms(self.config))
+    self.assertEqual(expected_platforms,
+                     list(get_platforms(self.config.getlist('python-setup', 'platforms'))))
+

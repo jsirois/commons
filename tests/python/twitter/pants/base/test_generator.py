@@ -14,11 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
+import unittest
 
 from twitter.pants.base.generator import TemplateData
-
-import unittest
 
 class TemplateDataTest(unittest.TestCase):
   def setUp(self):

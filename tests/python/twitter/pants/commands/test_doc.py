@@ -14,20 +14,19 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'Mark McBride'
-
-from twitter.pants import get_buildroot
-from twitter.pants.commands.doc import Doc
-from twitter.common.contextutil import temporary_dir
-
 import optparse
 import os
 import shutil
-import unittest
 import tempfile
+import unittest
+
+from twitter.common.contextutil import temporary_dir
+
+from twitter.pants import get_buildroot
+from twitter.pants.commands.doc import Doc
 
 class DocTargetTest(unittest.TestCase):
-  def testLoads(self):
+  def test_loads(self):
     build_root = get_buildroot()
     with temporary_dir() as target_path:
       target_base = os.path.join(target_path, "tests.python.twitter.pants.commands.pants_doc.pants_doc")
