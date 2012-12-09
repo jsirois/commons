@@ -21,7 +21,7 @@ import traceback
 from . import Command
 
 from twitter.common.collections import OrderedSet
-from twitter.pants import is_python
+from twitter.pants import is_concrete, is_python
 from twitter.pants.base import Address, Target
 from twitter.pants.python import PythonBuilder
 
@@ -69,7 +69,7 @@ class Build(Command):
 
       if not target:
         self.error("Target %s does not exist" % address)
-      self.targets.add(target)
+      self.targets.update(tgt for tgt in target.resolve() if is_concrete(tgt))
 
   def execute(self):
     print("Build operating on targets: %s" % self.targets)
@@ -87,7 +87,6 @@ class Build(Command):
       status = -1
 
     return status
-
 
   def _python_build(self, targets):
     try:
