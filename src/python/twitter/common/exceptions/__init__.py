@@ -118,14 +118,13 @@ class ExceptionalThread(threading.Thread):
 
   def __init__(self, *args, **kw):
     super(ExceptionalThread, self).__init__(*args, **kw)
+    self.__real_run, self.run = self.run, self._excepting_run
 
-    run_old = self.run
-    @identify_thread
-    def excepting_run(*args, **kw):
-      try:
-        run_old(*args, **kw)
-      except (KeyboardInterrupt, SystemExit):
-        raise
-      except:
-        sys.excepthook(*sys.exc_info())
-    self.run = excepting_run
+  @identify_thread
+  def _excepting_run(self, *args, **kw):
+    try:
+      self.__real_run(*args, **kw)
+    except (KeyboardInterrupt, SystemExit):
+      raise
+    except:
+      sys.excepthook(*sys.exc_info())
