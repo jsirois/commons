@@ -42,6 +42,18 @@ class TestThread(threading.Thread):
     self.stop_event.wait()
 
 
+class TestNonthreadObject(object):
+  @identify_thread
+  def __init__(self):
+    pass
+
+
+def test_identified_nonthread_object():
+  obj = TestNonthreadObject()
+  assert hasattr(obj, '__thread_id')
+  assert isinstance(obj.__thread_id, int) or obj.__thread_id == 'UNKNOWN'
+
+
 @pytest.mark.skipif("not PLATFORM_SUPPORTED")
 def test_gettid_supported_platform():
   assert __gettid() != -1

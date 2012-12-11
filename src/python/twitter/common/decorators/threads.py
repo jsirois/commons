@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
+import threading
 from functools import wraps
 
 
@@ -109,7 +110,8 @@ def identify_thread(instancemethod):
       self.__thread_id = 'UNKNOWN'
     else:
       self.__thread_id = tid
-      self.setName('%s [TID=%d]' % (self.name, self.__thread_id))
+      if isinstance(self, threading.Thread):
+        self.setName('%s [TID=%d]' % (self.name, self.__thread_id))
     return instancemethod(self, *args, **kwargs)
 
   return identified
