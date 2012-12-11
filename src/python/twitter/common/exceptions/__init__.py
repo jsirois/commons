@@ -21,6 +21,7 @@ import sys
 import threading
 import traceback
 
+from twitter.common.decorators import identify_thread
 from twitter.common.lang import Compatibility
 
 try:
@@ -119,6 +120,7 @@ class ExceptionalThread(threading.Thread):
     super(ExceptionalThread, self).__init__(*args, **kw)
 
     run_old = self.run
+    @identify_thread
     def excepting_run(*args, **kw):
       try:
         run_old(*args, **kw)
