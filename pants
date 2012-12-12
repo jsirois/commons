@@ -28,7 +28,7 @@ PYTHON_DAEMON_EGG=$MY_DIR/3rdparty/python/python_daemon-1.6-py2.6.egg
 function run_pants_bare() {
   source $VIRTUAL_PYTHON/bin/activate
   PYTHONPATH=$MAKO_EGG:$MARKDOWN_EGG:$PYGMENTS_EGG:$PYSTACHE_EGG:$PYTHON_DAEMON_EGG:$MY_DIR/src/python python $PANTS_EXE "$@"
-  ret=$?
+  result=$?
   deactivate
   return $((result))
 }
