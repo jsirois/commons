@@ -47,9 +47,9 @@ jar_library(name = 'small',
 
     # No tests for these, adding deps to support a single target for --ide builds with comprehensive
     # deps
-    'src/java/com/twitter/common/checkstyle',
-    'src/java/com/twitter/common/logging:scribe',
-    'src/java/com/twitter/common/net/http',
+    pants('src/java/com/twitter/common/checkstyle'),
+    pants('src/java/com/twitter/common/logging/scribe'),
+    pants('src/java/com/twitter/common/net/http'),
   ],
 )
 

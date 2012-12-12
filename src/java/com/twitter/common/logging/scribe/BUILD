@@ -14,38 +14,19 @@
 # limitations under the License.
 # ==================================================================================================
 
-java_library(name='logging',
+java_library(name='scribe',
   provides=artifact(
     org='com.twitter.common',
-    name='logging',
-    repo=pants('build-support/commons/ivy:public'),
-  ),
-  dependencies=[
-    pants('3rdparty:commons-lang'),
-    pants('3rdparty:guava'),
-    pants('3rdparty:joda-time'),
-    pants('src/java/com/twitter/common/args'),
-  ],
-  sources=[
-    'Glog.java',
-    'Log.java',
-    'LogUtil.java',
-    'LogFormatter.java',
-    'RootLogConfig.java'
-  ]
-)
-
-java_library(name='buffered',
-  provides=artifact(
-    org='com.twitter.common',
-    name='logging-buffered',
+    name='logging-scribe',
     repo=pants('build-support/commons/ivy:public'),
   ),
   dependencies=[
     pants('3rdparty:guava'),
-    pants(':logging'),
+    pants('3rdparty:thrift'),
+    pants('src/java/com/twitter/common/logging'),
     pants('src/java/com/twitter/common/quantity'),
-    pants('src/java/com/twitter/common/stats'),
+    pants('src/java/com/twitter/common/thrift'),
+    pants('src/thrift/org/apache/scribe:scribe_client-0.1.2'),
   ],
-  sources=[ 'BufferedLog.java' ]
+  sources=[ 'ScribeLog.java' ]
 )

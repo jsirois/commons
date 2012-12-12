@@ -14,7 +14,7 @@
 // limitations under the License.
 // =================================================================================================
 
-package com.twitter.common.logging;
+package com.twitter.common.logging.scribe;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -31,6 +31,7 @@ import org.apache.scribe.ResultCode;
 import org.apache.scribe.scribe;
 import org.apache.thrift.TException;
 
+import com.twitter.common.logging.Log;
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Time;
 import com.twitter.common.thrift.Thrift;
