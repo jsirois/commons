@@ -39,13 +39,13 @@ class BuildFile(object):
   def scan_buildfiles(root_dir, base_path = None):
     """Looks for all BUILD files under base_path"""
 
-    buildfiles = OrderedSet()
+    buildfiles = []
     for root, dirs, files in os.walk(base_path if base_path else root_dir):
-      for filename in sorted(files):
+      for filename in files:
         if BuildFile._is_buildfile_name(filename):
           buildfile_relpath = os.path.relpath(os.path.join(root, filename), root_dir)
-          buildfiles.add(BuildFile(root_dir, buildfile_relpath))
-    return buildfiles
+          buildfiles.append(BuildFile(root_dir, buildfile_relpath))
+    return OrderedSet(sorted(buildfiles, key=lambda buildfile: buildfile.full_path))
 
   def __init__(self, root_dir, relpath, must_exist=True):
     """Creates a BuildFile object representing the BUILD file set at the specified path.
