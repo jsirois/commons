@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import hashlib
 import os
 import pkgutil
@@ -28,6 +26,7 @@ from twitter.common.dirutil import safe_mkdir, safe_open
 
 from twitter.pants import get_buildroot, is_internal, is_jar, is_jvm
 from twitter.pants.base.generator import Generator, TemplateData
+from twitter.pants.base.revision import Revision
 from twitter.pants.tasks import binary_utils, TaskError
 from twitter.pants.tasks.ivy_utils import IvyUtils
 from twitter.pants.tasks.nailgun_task import NailgunTask
@@ -261,23 +260,9 @@ class IvyResolve(NailgunTask):
     def add_jar(jar):
       coordinate = (jar.org, jar.name)
       existing = jars.get(coordinate)
-      if not existing:
-        jars[coordinate] = jar
-      elif jar != existing:
-        if existing.force:
-          if jar.force:
-            raise TaskError('Cannot force %s#%s to both rev %s and %s' % (
-              jar.org, jar.name, existing.rev, jar.rev
-            ))
-          else:
-            self.context.log.debug('Ignoring rev %s for %s#%s already forced to %s' % (
-              jar.rev, jar.org, jar.name, existing.rev
-            ))
-        elif jar.force:
-          self.context.log.debug(
-            'Forcing %s#%s from %s to %s' % (jar.org, jar.name, existing.rev, jar.rev)
-          )
-          jars[coordinate] = jar
+      jars[coordinate] = jar if not existing else (
+        self._resolve_conflict(existing=existing, proposed=jar)
+      )
 
     def collect_jars(target):
       if is_jar(target):
@@ -293,6 +278,35 @@ class IvyResolve(NailgunTask):
       target.walk(collect_jars, is_jardependant)
 
     return jars.values(), excludes
+
+  def _resolve_conflict(self, existing, proposed):
+    if proposed == existing:
+      return existing
+    elif existing.force and proposed.force:
+      raise TaskError('Cannot force %s#%s to both rev %s and %s' % (
+        proposed.org, proposed.name, existing.rev, proposed.rev
+      ))
+    elif existing.force:
+      self.context.log.debug('Ignoring rev %s for %s#%s already forced to %s' % (
+        proposed.rev, proposed.org, proposed.name, existing.rev
+      ))
+      return existing
+    elif proposed.force:
+      self.context.log.debug('Forcing %s#%s from %s to %s' % (
+        proposed.org, proposed.name, existing.rev, proposed.rev
+      ))
+      return proposed
+    else:
+      try:
+        if Revision.lenient(proposed.rev) > Revision.lenient(existing.rev):
+          self.context.log.debug('Upgrading %s#%s from rev %s  to %s' % (
+            proposed.org, proposed.name, existing.rev, proposed.rev,
+          ))
+          return proposed
+        else:
+          return existing
+      except Revision.BadRevision as e:
+        raise TaskError('Failed to parse jar revision', e)
 
   def _generate_jar_template(self, jar):
     template = TemplateData(
