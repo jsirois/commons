@@ -16,9 +16,8 @@
 
 __author__ = 'Brian Larson'
 
-import os
-
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
+
 
 class JavaAntlrLibrary(ExportableJvmLibrary):
   """Defines a target that builds java stubs from an Antlr grammar file."""
@@ -45,16 +44,8 @@ class JavaAntlrLibrary(ExportableJvmLibrary):
                                   provides,
                                   dependencies,
                                   excludes)
+
     self.is_codegen = True
 
   def _as_jar_dependency(self):
     return ExportableJvmLibrary._as_jar_dependency(self).with_sources()
-
-  def _create_template_data(self):
-    allsources = []
-    if self.sources:
-      allsources += list(os.path.join(self.target_base, src) for src in self.sources)
-
-    return ExportableJvmLibrary._create_template_data(self).extend(
-      allsources = allsources,
-    )

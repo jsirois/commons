@@ -14,8 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.base.generator import TemplateData
-from twitter.pants.targets.jvm_target import JvmTarget
+from .jvm_target import JvmTarget
+from .resources import Resources
+
 
 class JavaTests(JvmTarget):
   """Defines a target that tests a java library."""
@@ -25,6 +26,7 @@ class JavaTests(JvmTarget):
                sources = None,
                dependencies = None,
                excludes = None,
+               resources = None,
                buildflags = None,
                is_meta = False):
 
@@ -40,27 +42,7 @@ class JavaTests(JvmTarget):
         for this target"""
 
     JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags, is_meta)
+
+    self.resources = list(self.resolve_all(resources, Resources))
     self.add_label('java')
     self.add_label('tests')
-
-  def _create_template_data(self):
-    jar_dependency, id, exported = self._get_artifact_info()
-
-    if self.excludes:
-      exclude_template_datas = [exclude._create_template_data() for exclude in self.excludes]
-    else:
-      exclude_template_datas = None
-
-    return TemplateData(
-      id = id,
-      name = self.name,
-      template_base = self.target_base,
-      exported = exported,
-      org = jar_dependency.org,
-      module = jar_dependency.name,
-      version = jar_dependency.rev,
-      sources = self.sources,
-      dependencies = [dep._create_template_data() for dep in self.jar_dependencies],
-      excludes = exclude_template_datas,
-      buildflags = self.buildflags,
-    )

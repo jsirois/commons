@@ -14,11 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-import os
-
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
+from twitter.pants.targets.resources import WithLegacyResources
 
-class JavaLibrary(ExportableJvmLibrary):
+
+class JavaLibrary(ExportableJvmLibrary, WithLegacyResources):
   """Defines a target that produces a java library."""
 
   def __init__(self, name,
@@ -54,21 +54,7 @@ class JavaLibrary(ExportableJvmLibrary):
                                   buildflags,
                                   is_meta)
 
-    self.add_label('java')
-    self.sibling_resources_base = os.path.join(os.path.dirname(self.target_base), 'resources')
-    self.resources = self._resolve_paths(self.sibling_resources_base, resources)
+    WithLegacyResources.__init__(self, name, is_meta=is_meta, sources=sources, resources=resources)
+
     self.deployjar = deployjar
-
-  def _create_template_data(self):
-    allsources = []
-    if self.sources:
-      allsources += list(os.path.join(self.target_base, source) for source in self.sources)
-    if self.resources:
-      allsources += list(os.path.join(self.sibling_resources_base, res) for res in self.resources)
-
-    return ExportableJvmLibrary._create_template_data(self).extend(
-      resources = self.resources,
-      deploy_jar = self.deployjar,
-      allsources = allsources,
-      processors = []
-    )
+    self.add_label('java')

@@ -15,8 +15,8 @@
 # ==================================================================================================
 
 from twitter.pants.base import Target
-from twitter.pants.base.generator import TemplateData
 from twitter.pants.targets.util import resolve
+
 
 class JarLibrary(Target):
   """Serves as a proxy for one or more JarDependencies or JavaTargets."""
@@ -39,10 +39,3 @@ class JarLibrary(Target):
     for dependency in self.dependencies:
       for resolved_dependency in dependency.resolve():
         yield resolved_dependency
-
-  def _create_template_data(self):
-    return TemplateData(
-      org = 'internal',
-      module = self.id,
-      version = None
-    )

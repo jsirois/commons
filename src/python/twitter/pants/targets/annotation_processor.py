@@ -14,11 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-import os
-
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
+from twitter.pants.targets.resources import WithLegacyResources
 
-class AnnotationProcessor(ExportableJvmLibrary):
+
+class AnnotationProcessor(ExportableJvmLibrary, WithLegacyResources):
   """Defines a target that produces a java library containing one or more annotation processors."""
 
   def __init__(self, name, sources,
@@ -51,22 +51,8 @@ class AnnotationProcessor(ExportableJvmLibrary):
                                   (),
                                   is_meta)
 
+    WithLegacyResources.__init__(self, name, is_meta=is_meta, sources=sources, resources=resources)
+
     self.add_label('java')
     self.add_label('apt')
-    self.sibling_resources_base = os.path.join(os.path.dirname(self.target_base), 'resources')
-    self.resources = self._resolve_paths(self.sibling_resources_base, resources)
     self.processors = processors
-
-  def _create_template_data(self):
-    allsources = []
-    if self.sources:
-      allsources += [ os.path.join(self.target_base, source) for source in self.sources ]
-    if self.resources:
-      allsources += [ os.path.join(self.sibling_resources_base, res) for res in self.resources ]
-
-    return ExportableJvmLibrary._create_template_data(self).extend(
-      resources = self.resources,
-      deploy_jar = False,
-      allsources = allsources,
-      processors = self.processors
-    )

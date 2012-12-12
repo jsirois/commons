@@ -14,12 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-import os
-
-from twitter.pants.targets import resolve_target_sources
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
+from twitter.pants.targets.resources import WithLegacyResources
 
-class ScalaLibrary(ExportableJvmLibrary):
+
+class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
   """Defines a target that produces a scala library."""
 
   def __init__(self, name,
@@ -58,31 +57,8 @@ class ScalaLibrary(ExportableJvmLibrary):
                                   buildflags,
                                   is_meta)
 
+    WithLegacyResources.__init__(self, name, is_meta=is_meta, sources=sources, resources=resources)
+
     self.add_label('scala')
     self.java_sources = java_sources
-
-    base_parent = os.path.dirname(self.target_base)
-    self.sibling_resources_base = os.path.join(base_parent, 'resources')
-    self.resources = self._resolve_paths(self.sibling_resources_base, resources)
-
     self.deployjar = deployjar
-
-    # All scala targets implicitly depend on the selected scala runtime.
-    for spec in self._config.getlist('scala-compile', 'scaladeps'):
-      self.add_injected_dependency(spec)
-
-
-  def _create_template_data(self):
-    allsources = []
-    if self.sources:
-      allsources += list(os.path.join(self.target_base, source) for source in self.sources)
-    if self.resources:
-      allsources += list(os.path.join(self.sibling_resources_base, res) for res in self.resources)
-
-    return ExportableJvmLibrary._create_template_data(self).extend(
-      java_sources = resolve_target_sources(self.java_sources, '.java'),
-      resources = self.resources,
-      deploy_jar = self.deployjar,
-      allsources = allsources,
-    )
-

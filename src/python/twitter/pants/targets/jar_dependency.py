@@ -14,8 +14,8 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.base.generator import TemplateData
 from twitter.pants.targets.exclude import Exclude
+
 
 class JarDependency(object):
   """Represents a binary jar dependency ala maven or ivy.  For the ivy dependency defined by:
@@ -127,34 +127,3 @@ class JarDependency(object):
 
   def _as_jar_dependencies(self):
     yield self
-
-  def _create_template_data(self):
-    return TemplateData(
-      org = self.org,
-      module = self.name,
-      version = self.rev,
-      force = self.force,
-      excludes = self.excludes,
-      transitive = self.transitive,
-      artifacts = self.artifacts,
-      configurations = ';'.join(self._configurations),
-    )
-
-class Artifact(object):
-  """
-  Specification for an Ivy Artifact for this jar dependency.
-
-  http://ant.apache.org/ivy/history/latest-milestone/ivyfile/artifact.html
-  """
-
-  def __init__(self, name = None, ext = None, url = None, type_ = None,
-               classifier = None, conf = None):
-    self.name = name
-    self.ext = ext
-    self.url = url
-    self.type_ = type_
-    self.classifier = classifier
-    self.conf = conf
-
-  def __repr__(self):
-    return '%s:%s:%s:%s:%s:%s' % (self.name, self.ext, self.url, self.type_, self.classifier, self.conf)

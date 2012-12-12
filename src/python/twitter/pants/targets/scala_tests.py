@@ -14,9 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.base.generator import TemplateData
-from twitter.pants.targets import resolve_target_sources
-from twitter.pants.targets.jvm_target import JvmTarget
+from .jvm_target import JvmTarget
+from .resources import Resources
+
 
 class ScalaTests(JvmTarget):
   """Defines a target that tests a scala library."""
@@ -27,6 +27,7 @@ class ScalaTests(JvmTarget):
                java_sources = None,
                dependencies = None,
                excludes = None,
+               resources = None,
                buildflags = None,
                is_meta = False):
 
@@ -38,6 +39,7 @@ class ScalaTests(JvmTarget):
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
+    resources: An optional list of Resources that should be in this target's classpath.
     buildflags: A list of additional command line arguments to pass to the underlying build system
         for this target"""
 
@@ -51,26 +53,4 @@ class ScalaTests(JvmTarget):
     self.add_label('scala')
     self.add_label('tests')
     self.java_sources = java_sources
-
-  def _create_template_data(self):
-    jar_dependency, id, exported = self._get_artifact_info()
-
-    if self.excludes:
-      exclude_template_datas = [exclude._create_template_data() for exclude in self.excludes]
-    else:
-      exclude_template_datas = None
-
-    return TemplateData(
-      id = id,
-      name = self.name,
-      template_base = self.target_base,
-      exported = exported,
-      org = jar_dependency.org,
-      module = jar_dependency.name,
-      version = jar_dependency.rev,
-      sources = self.sources,
-      java_sources = resolve_target_sources(self.java_sources, '.java'),
-      dependencies = [dep._create_template_data() for dep in self.jar_dependencies],
-      excludes = exclude_template_datas,
-      buildflags = self.buildflags,
-    )
+    self.resources = list(self.resolve_all(resources, Resources))
