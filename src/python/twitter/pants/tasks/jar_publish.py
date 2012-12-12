@@ -528,10 +528,9 @@ class JarPublish(Task):
             shutil.copy(os.path.join(basedir, artifact), path)
 
       copy(target, typename='jars')
+      copy(target, typename='source_jars', suffix='-sources')
       if (synth_target):
         copy(synth_target, typename='idl_jars', suffix='-idl', artifact_ext='-only')
-      else:
-        copy(target, typename='source_jars', suffix='-sources')
 
       if is_java(target):
         copy(target, typename='javadoc_jars', suffix='-javadoc')
