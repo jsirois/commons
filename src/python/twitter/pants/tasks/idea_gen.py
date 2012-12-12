@@ -27,16 +27,23 @@ from twitter.pants.base.generator import TemplateData, Generator
 from twitter.pants.tasks.ide_gen import IdeGen, Project
 
 
-__author__ = 'John Sirois'
-
-
 _TEMPLATE_BASEDIR = 'idea/templates'
 
 
 _VERSIONS = {
-  '9': '11', # 9 and 11 are ipr/iml compatible
-  '10': '11', # 9 and 11 are ipr/iml compatible
-  '11': '11'
+  '9': '12', # 9 and 12 are ipr/iml compatible
+  '10': '12', # 10 and 12 are ipr/iml compatible
+  '11': '12', # 11 and 12 are ipr/iml compatible
+  '12': '12'
+}
+
+
+_SCALA_VERSION_DEFAULT = '2.9'
+_SCALA_VERSIONS = {
+  '2.8':                  'Scala 2.8',
+  _SCALA_VERSION_DEFAULT: 'Scala 2.9',
+  '2.10':                 'Scala 2.10',
+  '2.10-virt':            'Scala 2.10 virtualized'
 }
 
 
@@ -65,10 +72,19 @@ class IdeaGen(IdeGen):
     option_group.add_option(mkflag("bash"), mkflag("bash", negate=True), default=False,
                             action="callback", callback=mkflag.set_bool, dest="idea_gen_bash",
                             help="Adds a bash facet to the generated project configuration.")
+
+    option_group.add_option(mkflag("scala-language-level"), default=_SCALA_VERSION_DEFAULT,
+                            type="choice", choices=_SCALA_VERSIONS.keys(),
+                            dest="idea_scala_language_level",
+                            help="[%default] Set the scala language level used for IDEA linting.")
+    option_group.add_option(mkflag("scala-maximum-heap-size"), default="512",
+                            dest="idea_gen_scala_maximum_heap_size",
+                            help="[%default] Sets the maximum heap size (in megabytes) for scalac.")
     option_group.add_option(mkflag("fsc"), mkflag("fsc", negate=True), default=False,
                             action="callback", callback=mkflag.set_bool, dest="idea_gen_fsc",
                             help="If the project contains any scala targets this specifies the "
                                    "fsc compiler should be enabled.")
+
     option_group.add_option(mkflag("java-encoding"), default="UTF-8",
                             dest="idea_gen_java_encoding",
                             help="[%default] Sets the file encoding for java files in this "
@@ -85,6 +101,9 @@ class IdeaGen(IdeGen):
     self.nomerge = not context.options.idea_gen_merge
     self.open = context.options.idea_gen_open
     self.bash = context.options.idea_gen_bash
+
+    self.scala_language_level = _SCALA_VERSIONS.get(context.options.idea_scala_language_level, None)
+    self.scala_maximum_heap_size = context.options.idea_gen_scala_maximum_heap_size
     self.fsc = context.options.idea_gen_fsc
 
     self.java_encoding = context.options.idea_gen_java_encoding
@@ -115,14 +134,23 @@ class IdeaGen(IdeGen):
     if project.has_python:
       content_roots.extend(create_content_root(source_set) for source_set in project.py_sources)
 
+    scala = None
+    if project.has_scala:
+      scala = TemplateData(
+        language_level=self.scala_language_level,
+        maximum_heap_size=self.scala_maximum_heap_size,
+        fsc=self.fsc,
+        compiler_classpath=project.scala_compiler_classpath
+      )
+
     configured_module = TemplateData(
       root_dir=get_buildroot(),
       path=self.module_filename,
       content_roots=content_roots,
       has_bash=self.bash,
       has_python=project.has_python,
-      has_scala=project.has_scala,
       has_tests=project.has_tests,
+      scala=scala,
       internal_jars=[cp_entry.jar for cp_entry in project.internal_jars],
       internal_source_jars=[cp_entry.source_jar for cp_entry in project.internal_jars
                             if cp_entry.source_jar],
@@ -146,10 +174,8 @@ class IdeaGen(IdeGen):
         jdk=self.java_jdk,
         language_level = 'JDK_1_%d' % self.java_language_level
       ),
-      resource_extensions=self._get_resource_extensions(project),
-      has_scala=project.has_scala,
-      scala_compiler_classpath=project.scala_compiler_classpath,
-      scala=TemplateData(fsc=self.fsc) if project.has_scala else None,
+      resource_extensions=project.resource_extensions,
+      scala=scala,
       checkstyle_suppression_files=','.join(project.checkstyle_suppression_files),
       checkstyle_classpath=';'.join(project.checkstyle_classpath),
       debug_port=project.debug_port,
