@@ -21,6 +21,7 @@ import os
 import shutil
 import tarfile
 import tempfile
+import time
 import sys
 import zipfile
 
@@ -186,3 +187,24 @@ def open_tar(path_or_file, *args, **kwargs):
   (path, fileobj) = (path_or_file, None) if isinstance(path_or_file, basestring) else (None, path_or_file)
   with closing(tarfile.open(path, *args, fileobj=fileobj, **kwargs)) as tar:
     yield tar
+
+
+class Timer(object):
+  """Very basic with-context to time operations
+
+  Example usage:
+    >>> from twitter.common.contextutil import Timer
+    >>> with Timer() as timer:
+    ...   time.sleep(2)
+    ...
+    >>> timer.elapsed
+    2.0020849704742432
+
+  """
+  def __enter__(self):
+    self.start = time.time()
+    return self
+
+  def __exit__(self, typ, val, traceback):
+    self.finish = time.time()
+    self.elapsed = self.finish - self.start
