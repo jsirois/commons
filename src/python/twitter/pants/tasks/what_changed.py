@@ -15,15 +15,17 @@
 # ==================================================================================================
 
 import os
-import subprocess
 import sys
 
+from abc import abstractmethod
 from collections import defaultdict
 
-from twitter.pants import get_buildroot, has_sources
+from twitter.common.lang import AbstractClass
+
+from twitter.pants import get_buildroot, has_sources, TaskError, get_scm
 from twitter.pants.base.build_file import BuildFile
 from twitter.pants.base.target import Target
-from twitter.pants.tasks import TaskError
+from twitter.pants.scm import Scm
 from twitter.pants.tasks.console_task import ConsoleTask
 
 
@@ -44,21 +46,21 @@ class WhatChanged(ConsoleTask):
                             help='[%default] Shows changed files instead of the targets that own '
                                  'them.')
 
-  def __init__(self, context, outstream=sys.stdout, workspace=None):
+  def __init__(self, context, workspace, outstream=sys.stdout):
+    if not isinstance(workspace, Workspace):
+      raise ValueError('WhatChanged requires a Workspace, given %s' % workspace)
+
     super(WhatChanged, self).__init__(context, outstream)
+
+    self._workspace = workspace
 
     self._parent = context.options.what_changed_create_prefix
     self._show_files = context.options.what_changed_show_files
 
-    try:
-      self._workspace = workspace or Workspace()
-    except Workspace.WorkspaceError as e:
-      raise TaskError('Failed to initialize workspace for change detection.', e)
-
     self._filemap = defaultdict(set)
 
   def console_output(self, _):
-    touched_files = self._workspace.touched_files(self._parent)
+    touched_files = self._get_touched_files()
     if self._show_files:
       for file in touched_files:
         yield file
@@ -69,6 +71,12 @@ class WhatChanged(ConsoleTask):
           if touched_target not in touched_targets:
             touched_targets.add(touched_target)
             yield str(touched_target.address)
+
+  def _get_touched_files(self):
+    try:
+      return self._workspace.touched_files(self._parent)
+    except Workspace.WorkspaceError as e:
+      raise TaskError(e)
 
   def _owning_targets(self, file):
     for build_file in self._candidate_owners(file):
@@ -96,27 +104,40 @@ class WhatChanged(ConsoleTask):
     return file in self._filemap[target]
 
 
-# TODO(John Sirois): plumb get_buildroot and buildinfo to interact with an SCM interface instead of
-# relying upon git and use that interface here as well.
-
-class Workspace(object):
+class Workspace(AbstractClass):
   """Tracks the state of the current workspace."""
 
   class WorkspaceError(Exception):
     """Indicates a problem reading the local workspace."""
 
+  @abstractmethod
   def touched_files(self, parent):
     """Returns the set of paths modified between the given parent commit and the current local
     workspace state.
     """
-    changes = ['git', 'diff', '--name-only', parent or 'HEAD']
-    untracked = ['git', 'ls-files', '--other', '--exclude-standard']
-    return self._collect_files(changes).union(self._collect_files(untracked))
 
-  def _collect_files(self, cmd):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, _ = proc.communicate()
-    if proc.returncode != 0:
-      raise TaskError('Failed to determine changes: %s returned %d' % (cmd, proc.returncode))
-    return set(stdout.split())
 
+class ScmWorkspace(Workspace):
+  """A workspace that uses an Scm to determine the touched files."""
+
+  def __init__(self, scm):
+    super(ScmWorkspace, self).__init()
+
+    self._scm = scm or get_scm()
+
+  def touched_files(self, parent):
+    try:
+      return self._scm.changed_files(from_commit=parent, include_untracked=True)
+    except Scm.ScmException as e:
+      raise self.WorkspaceError("Problem detecting changed files.", e)
+
+
+class ScmWhatChanged(WhatChanged):
+  def __init__(self, context, scm=None, outstream=sys.stdout):
+    """Creates a WhatChanged task that uses an Scm to determine changed files.
+
+    context:    The pants execution context.
+    scm:        The scm to use, taken from the globally configured scm if None.
+    outstream:  The stream to write changed files or targets to.
+    """
+    super(ScmWhatChanged, self).__init__(context, ScmWorkspace(scm or get_scm()), outstream)

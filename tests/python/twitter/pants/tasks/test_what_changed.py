@@ -16,7 +16,7 @@
 
 from textwrap import dedent
 
-from twitter.pants.tasks.what_changed import WhatChanged
+from twitter.pants.tasks.what_changed import WhatChanged, Workspace
 
 from . import ConsoleTaskTest
 
@@ -27,7 +27,7 @@ class BaseWhatChangedTest(ConsoleTaskTest):
     return WhatChanged
 
   def workspace(self, files=None, parent=None):
-    class MockWorkspace(object):
+    class MockWorkspace(Workspace):
       @staticmethod
       def touched_files(p):
         self.assertEqual(parent or 'HEAD', p)

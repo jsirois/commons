@@ -19,37 +19,66 @@ from __future__ import print_function
 import os
 import sys
 
+
 _VERSION = '0.0.3'
+
 
 def get_version():
   return _VERSION
 
 
-_BUILD_ROOT = None
+_BUILDROOT = None
 
 def get_buildroot():
-  global _BUILD_ROOT
-  if not _BUILD_ROOT:
+  """Returns the pants ROOT_DIR, calculating it if needed."""
+
+  global _BUILDROOT
+  if not _BUILDROOT:
     if 'PANTS_BUILD_ROOT' in os.environ:
-      _BUILD_ROOT = os.path.realpath(os.environ['PANTS_BUILD_ROOT'])
+      set_buildroot(os.environ['PANTS_BUILD_ROOT'])
     else:
-      build_root = os.path.abspath(os.getcwd())
-      while not os.path.exists(os.path.join(build_root, '.git')):
-        if build_root != os.path.dirname(build_root):
-          build_root = os.path.dirname(build_root)
+      buildroot = os.path.abspath(os.getcwd())
+      while not os.path.exists(os.path.join(buildroot, 'pants.ini')):
+        if buildroot != os.path.dirname(buildroot):
+          buildroot = os.path.dirname(buildroot)
         else:
-          print('Could not find .git root!', file=sys.stderr)
+          print('Could not find pants.ini!', file=sys.stderr)
           sys.exit(1)
-      _BUILD_ROOT = os.path.realpath(build_root)
-  return _BUILD_ROOT
+      set_buildroot(buildroot)
+  return _BUILDROOT
 
 
-import fnmatch
-import glob
+def set_buildroot(path):
+  """Sets the pants ROOT_DIR.
+
+  Generally only useful for tests.
+  """
+  if not os.path.exists(path):
+    raise ValueError('Build root does not exist: %s' % path)
+  global _BUILDROOT
+  _BUILDROOT = os.path.realpath(path)
 
 from functools import reduce
 
-from twitter.pants.base import Fileset
+from twitter.pants.scm import Scm
+
+_SCM = None
+
+def get_scm():
+  """Returns the pants Scm if any."""
+  return _SCM
+
+
+def set_scm(scm):
+  """Sets the pants Scm."""
+  if scm is not None:
+    if not isinstance(scm, Scm):
+      raise ValueError('The scm must be an instance of Scm, given %s' % scm)
+    global _SCM
+    _SCM = scm
+
+
+from twitter.common.dirutil import Fileset
 
 
 def globs(*globspecs):
@@ -242,6 +271,7 @@ __all__ = (
   'exclude',
   'egg',
   'get_buildroot',
+  'get_scm',
   'get_version',
   'globs',
   'goal',

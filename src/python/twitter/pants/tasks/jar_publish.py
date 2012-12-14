@@ -32,6 +32,7 @@ from twitter.common.dirutil import safe_open, safe_rmtree
 
 from twitter.pants import (
   get_buildroot,
+  get_scm,
   is_exported as provides,
   is_internal,
   is_java,
@@ -369,9 +370,11 @@ class JarPublish(Task):
                             %(flag)s=src/java/com/twitter/common/base
                             ''' % dict(flag=flag))
 
-  def __init__(self, context):
+  def __init__(self, context, scm=None, restrict_push_branches=None):
     Task.__init__(self, context)
 
+    self.scm = scm or get_scm()
+    self.restrict_push_branches = frozenset(restrict_push_branches or ())
     self.outdir = context.config.get('jar-publish', 'workdir')
     self.cachedir = os.path.join(self.outdir, 'cache')
 
@@ -543,7 +546,7 @@ class JarPublish(Task):
         '%s=%s' % (coordinate(org, name), rev) for (org, name), rev in self.overrides.items()
       ))
 
-    head_sha = self.check_output(['git', 'rev-parse', 'HEAD']).strip()
+    head_sha = self.scm.commit_id
 
     safe_rmtree(self.outdir)
     published = []
@@ -714,26 +717,24 @@ class JarPublish(Task):
     return sha.hexdigest()
 
   def changelog(self, target, sha):
-    cmd = ['git', 'whatchanged', '--stat', '-M', '-C']
-    if sha:
-      cmd.append('%s..HEAD' % sha)
-    cmd.append('--')
-    cmd.extend(os.path.join(target.target_base, source) for source in target.sources)
-    return self.check_output(cmd)
+    return self.scm.changelog(from_commit=sha,
+                              files=[os.path.join(target.target_base, source)
+                                     for source in target.sources])
 
   def check_clean_master(self):
     if self.dryrun or not self.commit:
       print('Skipping check for a clean master in test mode.')
     else:
-      branch = self.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).strip()
-      if branch != 'master':
-        raise TaskError('Can only push from master, currently on branch: %s' % branch)
+      if self.restrict_push_branches:
+        branch = self.scm.branch_name
+        if branch not in self.restrict_push_branches:
+          raise TaskError('Can only push from %s, currently on branch: %s' % (
+            ' '.join(sorted(self.restrict_push_branches)), branch
+          ))
 
-      self.check_call(['git', 'diff', '--exit-code', '--quiet'],
-                      failuremsg='Can only push from a clean master, workspace is dirty')
-
-      self.check_call(['git', 'diff', '--exit-code', '--cached', '--quiet'],
-                      failuremsg='Can only push from a clean master, index is dirty')
+      changed_files = self.scm.changed_files()
+      if changed_files:
+        raise TaskError('Can only push from a clean branch, found : %s' % ' '.join(changed_files))
 
   def commit_push(self, org, name, rev, sha):
     args = dict(
@@ -744,20 +745,13 @@ class JarPublish(Task):
       user=getpass.getuser(),
       cause='with forced revision' if (org, name) in self.overrides else '(autoinc)'
     )
-    # Note: we do a separate fetch and merge, because git pull may be a fetch+rebase,
-    # which won't work with fast-forwarding.
-    self.check_call(['git', 'fetch', '--tags', 'origin', 'master'])
-    self.check_call(['git', 'merge', '--ff-only', 'origin', 'master'])
-    self.check_call(['git', 'tag' , '-a',
-                     '-m', 'Publish of %(coordinate)s initiated by %(user)s %(cause)s' % args,
-                     '%(org)s-%(name)s-%(rev)s' % args, sha])
 
-    self.check_call(['git', 'commit' , '--no-verify', '-a',
-                     '-m', 'pants build committing publish data for push of '
-                           '%(coordinate)s' % args])
+    self.scm.refresh()
+    self.scm.commit('pants build committing publish data for push of %(coordinate)s' % args)
 
-    self.check_call(['git', 'push' , 'origin', 'master',
-                     'refs/tags/%(org)s-%(name)s-%(rev)s' % args])
+    self.scm.refresh()
+    self.scm.tag('%(org)s-%(name)s-%(rev)s' % args,
+                 message='Publish of %(coordinate)s initiated by %(user)s %(cause)s' % args)
 
   def check_call(self, cmd, failuremsg=None):
     self.log_call(cmd)

@@ -14,8 +14,8 @@
 # limitations under the License.
 # ==================================================================================================
 
-import pytest
 import os
+import pytest
 import subprocess
 import unittest
 

@@ -683,13 +683,6 @@ goal(name='jar',
      action=JarCreate,
      dependencies=['compile']).install('jar').with_description('Create one or more jars.')
 
-# TODO(John Sirois): Publish eggs in the publish phase
-goal(name='publish',
-     action=JarPublish,
-     dependencies=[
-       'javadoc',
-       'jar'
-     ]).install().with_description('Publish one or more artifacts.')
 
 goal(name='junit',
      action=JUnitRun,

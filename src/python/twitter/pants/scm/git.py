@@ -16,6 +16,7 @@
 
 import os
 import subprocess
+import sys
 
 from . import Scm
 
@@ -60,18 +61,18 @@ class Git(Scm):
   @property
   def branch_name(self):
     branch = self._check_output(['rev-parse', '--abbrev-ref', 'HEAD'],
-                                raise_type=Scm.LocalException)
+                                           raise_type=Scm.LocalException)
     branch = self._cleanse(branch)
     return None if branch == 'HEAD' else branch
 
   def changed_files(self, from_commit=None, include_untracked=False):
     changes = self._check_output(['diff', '--name-only', from_commit or 'HEAD'],
-                                 raise_type=Scm.LocalException)
+                                            raise_type=Scm.LocalException)
 
     files = set(changes.split())
     if include_untracked:
       untracked = self._check_output(['ls-files', '--other', '--exclude-standard'],
-                                     raise_type=Scm.LocalException)
+                                                raise_type=Scm.LocalException)
       files.update(untracked.split())
     return files
 
@@ -86,15 +87,17 @@ class Git(Scm):
 
   def refresh(self):
     remote, merge = self._get_remote()
-    self._check_call(['pull', '--ff-only', '--tags', remote, merge], raise_type=Scm.RemoteException)
+    self._check_call(['pull', '--ff-only', '--tags', remote, merge],
+                        raise_type=Scm.RemoteException)
 
   def tag(self, name, message=None):
     self._check_call(['tag' , '--annotate', '--message=%s' % (message or ''), name],
-                     raise_type=Scm.LocalException)
+                        raise_type=Scm.LocalException)
     self._push('refs/tags/%s' % name)
 
   def commit(self, message):
-    self._check_call(['commit' , '--all', '--message=%s' % message], raise_type=Scm.LocalException)
+    self._check_call(['commit' , '--all', '--message=%s' % message],
+                        raise_type=Scm.LocalException)
     self._push()
 
   def _push(self, *refs):
@@ -107,7 +110,8 @@ class Git(Scm):
       raise Scm.LocalException('Failed to determine local branch')
 
     def get_local_config(key):
-      value = self._check_output(['config', '--local', '--get', key], raise_type=Scm.LocalException)
+      value = self._check_output(['config', '--local', '--get', key],
+                                            raise_type=Scm.LocalException)
       return value.strip()
 
     self._remote = self._remote or get_local_config('branch."%s".remote' % branch)
@@ -123,8 +127,12 @@ class Git(Scm):
   def _check_output(self, args, failure_msg=None, raise_type=None):
     cmd = self._create_git_cmdline(args)
     self._log_call(cmd)
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = process.communicate()
+
+    # We let stderr flow to wherever its currently mapped for this process - generally to the
+    # terminal where the user can see the error.
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    out, _ = process.communicate()
+
     self._check_result(cmd, process.returncode, failure_msg, raise_type)
     return out
 
