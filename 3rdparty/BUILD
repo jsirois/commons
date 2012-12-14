@@ -480,7 +480,7 @@ jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
 # common rev for all com.twitter%util* artifacts
-UTIL_REV = '5.3.14'
+UTIL_REV = '5.3.15'
 jar_library(name = 'util',
             dependencies = [
               jar(org = 'com.twitter', name = 'util', rev = UTIL_REV)
