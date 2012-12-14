@@ -121,7 +121,7 @@ class ScmWorkspace(Workspace):
   """A workspace that uses an Scm to determine the touched files."""
 
   def __init__(self, scm):
-    super(ScmWorkspace, self).__init()
+    super(ScmWorkspace, self).__init__()
 
     self._scm = scm or get_scm()
 
