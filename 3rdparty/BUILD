@@ -387,8 +387,7 @@ jar_library(name = 'scalatest',
 
 jar_library(name = 'scrooge-runtime',
             dependencies = [
-              # used by scrooge-generator with the identical rev
-              # described in build-support/profiles/scrooge-gen.ivy.xml
+              # used by scrooge-generator described in build-support/profiles/scrooge-gen.ivy.xml
               jar(org='com.twitter', name='scrooge-runtime', rev='3.1-SNAPSHOT').with_sources()
             ]
           )
