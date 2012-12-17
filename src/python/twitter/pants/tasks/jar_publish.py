@@ -257,9 +257,7 @@ class IvyWriter(DependencyWriter):
       publications=set(confs) if confs else set(),
     ))
 
-  def _jardep(self, jar, transitive=True, ext=None, url=None, configurations='default',
-              classifier=None):
-
+  def _jardep(self, jar, transitive=True, configurations='default', classifier=None):
     return TemplateData(
       org=jar.org,
       module=jar.name + ('-only' if classifier == 'idl' else ''),
@@ -267,10 +265,8 @@ class IvyWriter(DependencyWriter):
       force=jar.force,
       excludes=[self.create_exclude(exclude) for exclude in jar.excludes],
       transitive=transitive,
+      artifacts=jar.artifacts,
       is_idl=(classifier == 'idl'),
-      ext=ext,
-      url=url,
-      classifier=classifier,
       configurations=configurations,
     )
 

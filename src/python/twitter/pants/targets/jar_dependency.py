@@ -17,6 +17,33 @@
 from twitter.pants.targets.exclude import Exclude
 
 
+class Artifact(object):
+  """
+  Specification for an Ivy Artifact for this jar dependency.
+
+  See: http://ant.apache.org/ivy/history/latest-milestone/ivyfile/artifact.html
+  """
+  def __init__(self, name, type_, ext=None, conf=None, url=None, classifier=None):
+    """Initializes a new artifact specification.
+
+    name:       The name of the published artifact. This name must not include revision.
+    type_:      The type of the published artifact. It's usually its extension, but not necessarily.
+                For instance, ivy files are of type 'ivy' but have 'xml' extension.
+    ext:        The extension of the published artifact.
+    conf:       The public configuration in which this artifact is published. The '*' wildcard can
+                be used to designate all public configurations.
+    url:        The url at which this artifact can be found if it isn't located at the standard
+                location in the repository
+    classifier: The maven classifier of this artifact.
+    """
+    self.name = name
+    self.type_ = type_
+    self.ext = ext
+    self.url = url
+    self.classifier = classifier
+    self.conf = conf
+
+
 class JarDependency(object):
   """Represents a binary jar dependency ala maven or ivy.  For the ivy dependency defined by:
     <dependency org="com.google.guava" name="guava" rev="r07"/>
@@ -38,12 +65,12 @@ class JarDependency(object):
   If the dependency has API docs available online, these can be noted with apidocs and generated
   javadocs with {@link}s to the jar's classes will be properly hyperlinked.
 
-  If you want to include a classifier variant of a jar, use the classifier param. If you want to include
-  multiple artifacts with differing classifiers, use with_artifact.
+  If you want to use a maven classifier variant of a jar, use the classifier param. If you want
+  to include multiple artifacts with differing classifiers, use with_artifact.
   """
 
-  def __init__(self, org, name, rev = None, force = False, ext = None, url = None,
-               apidocs = None, type_ = None, classifier = None):
+  def __init__(self, org, name, rev=None, force=False, ext=None, url=None, apidocs=None,
+               type_=None, classifier=None):
     self.org = org
     self.name = name
     self.rev = rev
@@ -51,11 +78,13 @@ class JarDependency(object):
     self.excludes = []
     self.transitive = True
     self.apidocs = apidocs
+
     self.artifacts = []
     if ext or url or type_ or classifier:
-      self.with_artifact(name=name, ext=ext, url=url, type_=type_, classifier=classifier)
-    self.id = "%s-%s-%s" % (self.org, self.name, self.rev)
-    self._configurations = [ 'default' ]
+      self.with_artifact(name=name, type_=type_, ext=ext, url=url, classifier=classifier)
+
+    self.id = repr(self)
+    self._configurations = ['default']
 
     # Support legacy method names
     # TODO(John Sirois): introduce a deprecation cycle for these and then kill
@@ -87,9 +116,19 @@ class JarDependency(object):
     self._configurations.append('docs')
     return self
 
-  def with_artifact(self, name = None, ext = None, url = None, type_ = None,
-                    classifier = None, configuration = None):
-    self.artifacts.append(Artifact(name, ext, url, type_, classifier, configuration))
+  def with_artifact(self, name=None, type_=None, ext=None, url=None, configuration=None,
+                    classifier=None):
+    """Sets an alternative artifact to fetch or adds additional artifacts if called multiple times.
+    """
+    artifact = Artifact(name or self.name, type_ or 'jar', ext=ext, url=url, conf=configuration,
+                        classifier=classifier)
+    self.artifacts.append(artifact)
+    return self
+
+  def with_idl(self):
+    """Marks this jar as containing IDL files that should be fetched and processed locally."""
+    self._configurations.append('idl')
+    self.with_artifact(configuration='idl', classifier='idl')
     return self
 
   # TODO: This is necessary duck-typing because in some places JarDependency is treated like

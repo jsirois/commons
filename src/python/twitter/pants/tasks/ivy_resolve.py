@@ -22,9 +22,10 @@ import shutil
 
 from contextlib import contextmanager
 
+from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir, safe_open
 
-from twitter.pants import get_buildroot, is_internal, is_jar, is_jvm
+from twitter.pants import get_buildroot, is_internal, is_jar, is_jvm, is_concrete
 from twitter.pants.base.generator import Generator, TemplateData
 from twitter.pants.base.revision import Revision
 from twitter.pants.tasks import binary_utils, TaskError
@@ -139,7 +140,10 @@ class IvyResolve(NailgunTask):
         is_internal(target) and any(jar for jar in target.jar_dependencies if jar.rev)
       )
 
-    classpath_targets = filter(is_classpath, targets)
+    classpath_targets = OrderedSet()
+    for target in targets:
+      classpath_targets.update(filter(is_classpath, filter(is_concrete, target.resolve())))
+
     target_workdir = os.path.join(self._work_dir, dirname_for_requested_targets(targets))
     target_classpath_file = os.path.join(target_workdir, 'classpath')
     with self.invalidated(classpath_targets, only_buildfiles=True, invalidate_dependents=True) as invalidation_check:
@@ -309,24 +313,22 @@ class IvyResolve(NailgunTask):
         raise TaskError('Failed to parse jar revision', e)
 
   def _generate_jar_template(self, jar):
-    template = TemplateData(
-      org = jar.org,
-      module = jar.name,
-      version = jar.rev,
-      force = jar.force,
-      excludes = [self._generate_exclude_template(exclude) for exclude in jar.excludes],
-      transitive = jar.transitive,
-      is_idl = ('idl' in jar._configurations),
-      ext = jar.ext,
-      url = jar.url,
-      classifier = 'idl' if ('idl' in jar._configurations) else None,
-      configurations = ';'.join(jar._configurations),
+    template=TemplateData(
+      org=jar.org,
+      module=jar.name,
+      version=jar.rev,
+      force=jar.force,
+      excludes=[self._generate_exclude_template(exclude) for exclude in jar.excludes],
+      transitive=jar.transitive,
+      artifacts=jar.artifacts,
+      is_idl='idl' in jar._configurations,
+      configurations=';'.join(jar._configurations),
     )
     override = self._overrides.get((jar.org, jar.name))
     return override(template) if override else template
 
   def _generate_exclude_template(self, exclude):
-    return TemplateData(org = exclude.org, name = exclude.name)
+    return TemplateData(org=exclude.org, name=exclude.name)
 
   @contextmanager
   def _cachepath(self, file):

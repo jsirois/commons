@@ -123,7 +123,16 @@ class Task(object):
                          VersionedTargetSet per target. It is up to the caller to do the right
                          thing with whatever partitioning it asks for.
 
-    Yields an InvalidationCheck object reflecting the (partitioned) targets.
+    _JAR_HASH_KEYS = (
+      'org',
+      'name',
+      'rev',
+      'force',
+      'excludes',
+      'transitive',
+      '_configurations',
+      'artifacts'
+    )
 
     If no exceptions are thrown by work in the block, the build cache is updated for the targets.
     Note: the artifact cache is not updated, that must be done manually.

@@ -31,9 +31,9 @@ class IdlResolve(IvyResolve):
 
   def execute(self, targets):
     super(IdlResolve, self).execute(targets)
-    self._populate_Idl_list()
+    self._populate_idl_list()
 
-  def _populate_Idl_list(self):
+  def _populate_idl_list(self):
     with self._cachepath(self._classpath_file) as classpath:
       jars = {}
       for path in classpath:
@@ -51,9 +51,13 @@ class IdlResolve(IvyResolve):
     return path.endswith('-idl.jar')
 
   # Carve out the custom behavior we need in the base machinery with a few overrides:
+  # + don't generate ivy reports, let IvyResolve handle this
   # + only map idl jars: an idl dependency graph should be pure idl jars
   # + warn about idl classpaths that have non-idl jars
   # + only map idl jars when explicitly requested
+
+  def _generate_ivy_report(self):
+    pass
 
   def _mapfor_typename(self):
     return 'idl_dependencies'
