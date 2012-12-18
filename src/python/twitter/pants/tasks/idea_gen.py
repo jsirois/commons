@@ -77,7 +77,7 @@ class IdeaGen(IdeGen):
                             type="choice", choices=_SCALA_VERSIONS.keys(),
                             dest="idea_scala_language_level",
                             help="[%default] Set the scala language level used for IDEA linting.")
-    option_group.add_option(mkflag("scala-maximum-heap-size"), default="512",
+    option_group.add_option(mkflag("scala-maximum-heap-size"),
                             dest="idea_gen_scala_maximum_heap_size",
                             help="[%default] Sets the maximum heap size (in megabytes) for scalac.")
     option_group.add_option(mkflag("fsc"), mkflag("fsc", negate=True), default=False,
@@ -89,7 +89,7 @@ class IdeaGen(IdeGen):
                             dest="idea_gen_java_encoding",
                             help="[%default] Sets the file encoding for java files in this "
                                    "project.")
-    option_group.add_option(mkflag("java-maximum-heap-size"), default="128",
+    option_group.add_option(mkflag("java-maximum-heap-size"),
                             dest="idea_gen_java_maximum_heap_size",
                             help="[%default] Sets the maximum heap size (in megabytes) for javac.")
 
@@ -103,11 +103,17 @@ class IdeaGen(IdeGen):
     self.bash = context.options.idea_gen_bash
 
     self.scala_language_level = _SCALA_VERSIONS.get(context.options.idea_scala_language_level, None)
-    self.scala_maximum_heap_size = context.options.idea_gen_scala_maximum_heap_size
+    self.scala_maximum_heap_size = (
+      context.options.idea_gen_scala_maximum_heap_size
+      or context.config.getint('idea', 'scala_maximum_heap_size_mb', default=512)
+    )
     self.fsc = context.options.idea_gen_fsc
 
     self.java_encoding = context.options.idea_gen_java_encoding
-    self.java_maximum_heap_size = context.options.idea_gen_java_maximum_heap_size
+    self.java_maximum_heap_size = (
+      context.options.idea_gen_java_maximum_heap_size
+      or context.config.getint('idea', 'java_maximum_heap_size_mb', default=128)
+    )
 
     idea_version = _VERSIONS[context.options.idea_gen_version]
     self.project_template = os.path.join(_TEMPLATE_BASEDIR, 'project-%s.mustache' % idea_version)
