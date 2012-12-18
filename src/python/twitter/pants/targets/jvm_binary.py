@@ -148,6 +148,13 @@ class JvmApp(Target):
 
     self.basename = basename or name
 
+  # TODO(John Sirois): Unify capabilities with thinner mixins, dependencies is duck-typed here
+  # to graft JvmApp into the set of targets that have dependencies and this is difficult to manage.
+  # http://jira.local.twitter.com/browse/AWESOME-1455
+  @property
+  def dependencies(self):
+    yield self.binary
+
   def _walk(self, walked, work, predicate=None):
     Target._walk(self, walked, work, predicate)
     self.binary._walk(walked, work, predicate)
