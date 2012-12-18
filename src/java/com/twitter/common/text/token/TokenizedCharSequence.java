@@ -76,7 +76,7 @@ public class TokenizedCharSequence implements CharSequence {
     public Token tokenize(int offset, int length) {
       Preconditions.checkArgument(offset >= 0 && offset < getLength());
       Preconditions.checkArgument(length > 0 && length <= getLength());
-      return new Token(term.subSequence(offset, offset + length), type, pos);
+      return new Token((CharBuffer)term.subSequence(offset, offset + length), type, pos);
     }
 
     @Override
