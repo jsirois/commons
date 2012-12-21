@@ -130,6 +130,10 @@ public class Group {
     return path + "/" + MorePreconditions.checkNotBlank(memberId);
   }
 
+  public String getPath() {
+    return path;
+  }
+
   public String getMemberId(String nodePath) {
     MorePreconditions.checkNotBlank(nodePath);
     Preconditions.checkArgument(nodePath.startsWith(path + "/"),

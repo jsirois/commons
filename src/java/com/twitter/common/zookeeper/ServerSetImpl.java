@@ -434,7 +434,7 @@ public class ServerSetImpl implements ServerSet {
     }
 
     private void logChange(Level level, ImmutableSet<ServiceInstance> newServerSet) {
-      StringBuilder message = new StringBuilder("server set change: ");
+      StringBuilder message = new StringBuilder("server set " + group.getPath() + " change: ");
       if (serverSet.size() != newServerSet.size()) {
         message.append("from ").append(serverSet.size())
             .append(" members to ").append(newServerSet.size());
