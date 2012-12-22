@@ -501,12 +501,7 @@ class Goal(Command):
     if logger:
       logger.debug('Operating on targets: %s' % self.targets)
 
-    ret = Phase.attempt(context, self.phases)
-    if self.options.time:
-      print('Timing report')
-      print('=============')
-      self.timer.print_timings()
-    return ret
+    return Phase.attempt(context, self.phases, timer=timer_stats, print_timing=timer)
 
   def cleanup(self):
     # TODO: Make this more selective? Only kill nailguns that affect state? E.g., checkstyle

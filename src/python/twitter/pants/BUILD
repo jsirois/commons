@@ -41,16 +41,15 @@ python_library(
 python_library(
   name = 'pants-lib',
   dependencies = [
-    'src/python/twitter/common',
-    'src/python/twitter/common/app',
-    'src/python/twitter/common/confluence',
-    'src/python/twitter/common/contextutil',
-    'src/python/twitter/common/dirutil',
-    'src/python/twitter/common/java',
-    'src/python/twitter/common/lang',
-    'src/python/twitter/common/process',
-    'src/python/twitter/common/python',
-    ':pants-deps',
+    pants("src/python/twitter/common"),
+    pants("src/python/twitter/common/app"),
+    pants("src/python/twitter/common/confluence"),
+    pants("src/python/twitter/common/dirutil"),
+    pants("src/python/twitter/common/lang"),
+    pants("src/python/twitter/common/python"),
+    pants("src/python/twitter/common/util"),
+    pants("src/python/twitter/thrift/text"),
+    pants(":pants-deps")
   ],
   sources = PANTS_SOURCES,
   resources = PANTS_RESOURCES

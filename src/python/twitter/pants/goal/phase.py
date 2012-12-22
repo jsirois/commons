@@ -3,12 +3,18 @@ from __future__ import print_function
 from collections import defaultdict
 from optparse import OptionParser
 
+from twitter.common.util.command_util import CommandUtil
 from twitter.common.collections import OrderedDict, OrderedSet
+from twitter.pants.buildtimestats import BuildTimeStats
 from twitter.pants.goal import GoalError
 from twitter.pants.goal.group import Group
 from twitter.pants.goal.context import Context
 from twitter.pants.tasks import TaskError
 
+
+#Set this value to True in you context file if you want to upload pants runtime stats to a
+#HTTP server.
+STATS_COLLECTION = "stats_collection"
 
 class SingletonPhases(type):
   phases = dict()
