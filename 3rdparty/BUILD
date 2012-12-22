@@ -182,9 +182,11 @@ FINAGLE_REV = '5.3.23'
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
 jar_library(name = 'finagle-core',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV),
-                             pants(':util-core'),
-                           ])
+            dependencies = [
+		    jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+		        .with_sources(),
+            pants(':util-core'),
+            ])
 
 jar_library(name = 'finagle-http',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-http', rev = FINAGLE_REV) ])
@@ -194,7 +196,7 @@ jar_library(name = 'finagle-thrift',
 
 jar_library(name = 'finagle-serversets',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-serversets', rev = FINAGLE_REV)
+             jar(org = 'com.twitter', name = 'finagle-serversets', rev = FINAGLE_REV)
                 .exclude(org='com.twitter.common')
                 .exclude(org='com.twitter.common.zookeeper')
             ])
@@ -487,7 +489,8 @@ jar_library(name = 'util',
             ])
 
 jar_library(name = 'util-core',
-            dependencies = [ jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV) ])
+            dependencies = [
+		    jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-jvm',
             dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
