@@ -16,6 +16,8 @@
 
 from twitter.pants.targets.exclude import Exclude
 
+from .external_dependency import ExternalDependency
+
 
 class Artifact(object):
   """
@@ -44,7 +46,7 @@ class Artifact(object):
     self.conf = conf
 
 
-class JarDependency(object):
+class JarDependency(ExternalDependency):
   """Represents a binary jar dependency ala maven or ivy.  For the ivy dependency defined by:
     <dependency org="com.google.guava" name="guava" rev="r07"/>
 
@@ -68,6 +70,8 @@ class JarDependency(object):
   If you want to use a maven classifier variant of a jar, use the classifier param. If you want
   to include multiple artifacts with differing classifiers, use with_artifact.
   """
+  _JAR_HASH_KEYS = (
+      'org', 'name', 'rev', 'force', 'excludes', 'transitive', 'ext', 'url', '_configurations')
 
   def __init__(self, org, name, rev=None, force=False, ext=None, url=None, apidocs=None,
                type_=None, classifier=None):
@@ -156,6 +160,9 @@ class JarDependency(object):
 
   def __repr__(self):
     return self.id
+
+  def cache_key(self):
+    return ''.join(getattr(self, key) for key in self._JAR_HASH_KEYS)
 
   def resolve(self):
     yield self

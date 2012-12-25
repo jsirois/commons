@@ -26,11 +26,13 @@ from twitter.common.collections.orderedset import OrderedSet
 from twitter.pants.base.artifact_cache import create_artifact_cache
 from twitter.pants.base.build_invalidator import CacheKeyGenerator
 from twitter.pants.tasks.cache_manager import CacheManager, InvalidationCheck
+from twitter.pants.base.build_cache import BuildCache, NO_SOURCES, TARGET_SOURCES
+from twitter.pants.targets import JarDependency
+from twitter.pants.targets.external_dependency import ExternalDependency
 
 
 class TaskError(Exception):
   """Raised to indicate a task has failed."""
-  pass
 
 class Task(object):
   @classmethod
