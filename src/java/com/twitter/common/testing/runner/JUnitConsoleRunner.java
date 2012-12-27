@@ -30,6 +30,7 @@ import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
+import org.junit.runner.RunWith;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -448,6 +449,11 @@ public class JUnitConsoleRunner {
 
     // Support junit 3.x Test hierarchy.
     if (junit.framework.Test.class.isAssignableFrom(clazz)) {
+      return true;
+    }
+
+    // Support classes using junit 4.x custom runners.
+    if (clazz.isAnnotationPresent(RunWith.class)) {
       return true;
     }
 
