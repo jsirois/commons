@@ -22,7 +22,7 @@ from twitter.common.collections import OrderedSet
 
 from twitter.pants import is_scala, is_test
 from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible, safe_args
+from twitter.pants.tasks.binary_utils import profile_classpath, runjava, safe_args
 from twitter.pants.tasks.jvm_task import JvmTask
 
 class SpecsRun(JvmTask):
@@ -70,14 +70,14 @@ class SpecsRun(JvmTask):
   def execute(self, targets):
     if not self.skip:
       def run_tests(tests):
-        opts = ['--color'] if self.color else []
-        opts.append('--specs=%s' % ','.join(tests))
+        args = ['--color'] if self.color else []
+        args.append('--specs=%s' % ','.join(tests))
 
-        result = runjava_indivisible(
+        result = runjava(
           jvmargs=self.java_args,
           classpath=self.classpath(profile_classpath(self.profile), confs=self.confs),
           main='com.twitter.common.testing.ExplicitSpecsRunnerMain',
-          opts=opts
+          args=args
         )
         if result != 0:
           raise TaskError()

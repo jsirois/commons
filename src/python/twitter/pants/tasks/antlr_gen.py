@@ -61,10 +61,11 @@ class AntlrGen(CodeGen, NailgunTask):
     safe_mkdir(self.java_out)
 
     antlr_classpath = nailgun_profile_classpath(self, self.antlr_profile)
-    antlr_opts = ["-o", self.java_out ]
+    antlr_args = ["-o", self.java_out ]
+    for source in sources:
+      antlr_args.append(source)
 
-    if 0 != self.runjava_indivisible("org.antlr.Tool", classpath=antlr_classpath, opts=antlr_opts, args=sources):
-      raise TaskError
+    self.runjava("org.antlr.Tool", classpath=antlr_classpath, args=antlr_args)
 
   def _calculate_sources(self, targets):
     sources = set()

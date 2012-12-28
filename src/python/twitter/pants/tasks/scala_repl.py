@@ -20,7 +20,7 @@ import shlex
 import subprocess
 
 from twitter.pants.tasks import Task
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible
+from twitter.pants.tasks.binary_utils import profile_classpath, runjava
 from twitter.pants.tasks.jvm_task import JvmTask
 
 
@@ -53,7 +53,7 @@ class ScalaRepl(JvmTask):
 
     self.save_stty_options()
     try:
-      runjava_indivisible(
+      runjava(
         jvmargs=self.jvm_args,
         classpath=self.classpath(profile_classpath(self.profile), confs=self.confs),
         main=self.main,

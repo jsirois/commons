@@ -100,20 +100,20 @@ class JavaCompile(NailgunTask):
     self._jmake_profile = context.config.get('java-compile', 'jmake-profile')
     self._compiler_profile = context.config.get('java-compile', 'compiler-profile')
 
-    self._opts = context.config.getlist('java-compile', 'args')
+    self._args = context.config.getlist('java-compile', 'args')
     self._jvm_args = context.config.getlist('java-compile', 'jvm_args')
 
-    self._javac_opts = []
+    self._javac_args = []
     if context.options.java_compile_args:
       for arg in context.options.java_compile_args:
-        self._javac_opts.extend(shlex.split(arg))
+        self._javac_args.extend(shlex.split(arg))
     else:
-      self._javac_opts.extend(context.config.getlist('java-compile', 'javac_args', default=[]))
+      self._javac_args.extend(context.config.getlist('java-compile', 'javac_args', default=[]))
 
     if context.options.java_compile_warnings:
-      self._opts.extend(context.config.getlist('java-compile', 'warning_args'))
+      self._args.extend(context.config.getlist('java-compile', 'warning_args'))
     else:
-      self._opts.extend(context.config.getlist('java-compile', 'no_warning_args'))
+      self._args.extend(context.config.getlist('java-compile', 'no_warning_args'))
 
     self._confs = context.config.getlist('java-compile', 'confs')
 
@@ -239,22 +239,24 @@ class JavaCompile(NailgunTask):
   def compile(self, classpath, sources, fingerprint, depfile):
     jmake_classpath = nailgun_profile_classpath(self, self._jmake_profile)
 
-    opts = [
+    args = [
       '-classpath', ':'.join(classpath),
       '-d', self._classes_dir,
       '-pdb', os.path.join(self._classes_dir, '%s.dependencies.pdb' % fingerprint),
     ]
 
     compiler_classpath = nailgun_profile_classpath(self, self._compiler_profile)
-    opts.extend([
+    args.extend([
       '-jcpath', ':'.join(compiler_classpath),
       '-jcmainclass', 'com.twitter.common.tools.Compiler',
       '-C-Tdependencyfile', '-C%s' % depfile,
     ])
-    opts.extend(map(lambda arg: '-C%s' % arg, self._javac_opts))
+    args.extend(map(lambda arg: '-C%s' % arg, self._javac_args))
 
-    opts.extend(self._opts)
-    return self.runjava_indivisible(_JMAKE_MAIN, classpath=jmake_classpath, opts=opts, args=sources, jvmargs=self._jvm_args)
+    args.extend(self._args)
+    args.extend(sources)
+    log.debug('Executing: %s %s' % (_JMAKE_MAIN, ' '.join(args)))
+    return self.runjava(_JMAKE_MAIN, classpath=jmake_classpath, args=args, jvmargs=self._jvm_args)
 
   def check_artifact_cache(self, vts):
     # Special handling for java artifacts.

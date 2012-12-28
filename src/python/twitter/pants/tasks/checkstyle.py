@@ -78,7 +78,7 @@ class Checkstyle(NailgunTask):
     with self.context.state('classpath', []) as cp:
       classpath.extend(jar for conf, jar in cp if conf in self._confs)
 
-    opts = [
+    args = [
       '-c', self._configuration_file,
       '-f', 'plain'
     ]
@@ -88,6 +88,8 @@ class Checkstyle(NailgunTask):
       with safe_open(properties_file, 'w') as pf:
         for k, v in self._properties.items():
           pf.write('%s=%s\n' % (k, v))
-      opts.extend(['-p', properties_file])
+      args.extend(['-p', properties_file])
 
-    return self.runjava(CHECKSTYLE_MAIN, classpath=classpath, opts=opts, args=sources)
+    args.extend(sources)
+    log.debug('Executing: %s %s' % (CHECKSTYLE_MAIN, ' '.join(args)))
+    return self.runjava(CHECKSTYLE_MAIN, classpath=classpath, args=args)

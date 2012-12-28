@@ -35,7 +35,7 @@ from twitter.pants.targets import (
   JavaThriftLibrary,
   ScalaLibrary)
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible
+from twitter.pants.tasks.binary_utils import profile_classpath, runjava
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.thrift_util import calculate_compile_sources
 
@@ -123,36 +123,45 @@ class ScroogeGen(CodeGen):
     return result
 
   def genlang(self, lang, targets):
-    bases, sources = calculate_compile_sources(targets, self.is_gentarget)
+    compiler_targets = targets_for_compiler(targets)
+    for compiler, targets in compiler_targets.items():
+      bases, sources = calculate_compile_sources(targets, self.is_gentarget)
+      compiler_info = self.compilers[compiler]
 
-    safe_mkdir(self.output_dir)
-    try:
-      gen_file_map = mkstempname()
+      safe_mkdir(compiler_info['outdir'])
+      try:
+        gen_file_map = mkstempname()
 
-      opts = [
-        '--language', lang,
-        '--dest', self.output_dir,
-        '--gen-file-map', gen_file_map,
-        '--finagle',
-        '--ostrich',
-        ]
+        args = [
+          '--language', lang,
+          '--dest', compiler_info['outdir'],
+          '--gen-file-map', gen_file_map,
+          # TODO(Robert Nielsen): we need both of the following configurable in the BUILD file
+          '--finagle',
+          '--ostrich',
+          ]
 
-      if not self.strict:
-        opts.append('--disable-strict')
-      if self.verbose:
-        opts.append('--verbose')
+        # TODO(Robert Nielsen): we need --namespace-map configurable in the BUILD file
 
-      for base in bases:
-        opts.extend(('--import-path', base))
+        if not compiler_info['strict']:
+          args.append('--disable-strict')
+        if compiler_info['verbose']:
+          args.append('--verbose')
 
-      if 0 != runjava_indivisible(main=SCROOGE_MAIN, classpath=self.classpath, opts=opts, args=sources):
-        raise TaskError
+        for base in bases:
+          args.extend(('--import-path', base))
+
+        args.extend(sources)
+
+        if 0 != runjava(main=INFO_FOR_COMPILER[compiler]['main'],
+                        classpath=compiler_info['classpath'], args=args):
+          raise TaskError
 
         compiler_info['gen_files_for_source'] = self.parse_gen_file_map(gen_file_map,
                                                                         compiler_info['outdir'])
-    finally:
-      if os.path.exists(gen_file_map):
-        os.remove(gen_file_map)
+      finally:
+        if os.path.exists(gen_file_map):
+          os.remove(gen_file_map)
 
   def createtarget(self, lang, gentarget, dependees):
     if lang not in INFO_FOR_LANG:
