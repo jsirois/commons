@@ -22,7 +22,7 @@ import sys
 from twitter.common.dirutil import safe_open
 from twitter.pants.targets import JvmBinary
 from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks.binary_utils import runjava
+from twitter.pants.tasks.binary_utils import runjava_indivisible
 from twitter.pants.tasks.jvm_task import JvmTask
 
 

@@ -22,7 +22,7 @@ from twitter.common.dirutil import safe_mkdir, safe_open
 
 from twitter.pants import is_java, is_scala, is_test, junit_tests
 from twitter.pants.tasks import binary_utils, Task, TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava, safe_args
+from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible, safe_args
 from twitter.pants.tasks.jvm_task import JvmTask
 
 class JUnitRun(JvmTask):
@@ -166,18 +166,18 @@ class JUnitRun(JvmTask):
     self.coverage = self.coverage or self.coverage_report_html_open
     self.coverage_html_file = os.path.join(self.coverage_dir, 'html', 'index.html')
 
-    self.flags = []
+    self.opts = []
     if context.options.junit_run_xmlreport or context.options.junit_run_suppress_output:
       if self.fail_fast:
-        self.flags.append('-fail-fast')
+        self.opts.append('-fail-fast')
       if context.options.junit_run_xmlreport:
-        self.flags.append('-xmlreport')
-      self.flags.append('-suppress-output')
-      self.flags.append('-outdir')
-      self.flags.append(self.outdir)
+        self.opts.append('-xmlreport')
+      self.opts.append('-suppress-output')
+      self.opts.append('-outdir')
+      self.opts.append(self.outdir)
 
     if context.options.junit_run_per_test_timer:
-      self.flags.append('-per-test-timer')
+      self.opts.append('-per-test-timer')
 
   def _partition(self, tests):
     stride = min(self.batch_size, len(tests))
@@ -198,11 +198,11 @@ class JUnitRun(JvmTask):
           result = 0
           for batch in self._partition(tests):
             with safe_args(batch) as batch_tests:
-              result += runjava(
+              result += runjava_indivisible(
                 jvmargs=(jvmargs or []) + self.java_args,
                 classpath=classpath,
                 main=main,
-                args=self.flags + batch_tests
+                opts=self.opts, args=batch_tests
               )
               if result != 0 and self.fail_fast:
                 break
@@ -215,7 +215,7 @@ class JUnitRun(JvmTask):
           def instrument_code():
             safe_mkdir(self.coverage_instrument_dir, clean=True)
             with safe_args(self.get_coverage_patterns(targets)) as patterns:
-              args = [
+              opts = [
                 'instr',
                 '-out', self.coverage_metadata_file,
                 '-d', self.coverage_instrument_dir,
@@ -223,13 +223,13 @@ class JUnitRun(JvmTask):
                 '-exit'
               ]
               for pattern in patterns:
-                args.extend(['-filter', pattern])
-              result = runjava(classpath=emma_classpath, main='emma', args=args)
+                opts.extend(['-filter', pattern])
+              result = runjava_indivisible(classpath=emma_classpath, main='emma', opts=opts)
               if result != 0:
                 raise TaskError('Emma instrumentation failed with: %d' % result)
 
           def generate_reports():
-            args = [
+            opts = [
               'report',
               '-in', self.coverage_metadata_file,
               '-in', self.coverage_file,
@@ -242,23 +242,23 @@ class JUnitRun(JvmTask):
             for target in self.test_target_candidates(targets):
               target.walk(collect_source_base)
             for source_base in source_bases:
-              args.extend(['-sp', source_base])
+              opts.extend(['-sp', source_base])
 
             sorting = ['-Dreport.sort', '+name,+class,+method,+block']
             if self.coverage_report_console:
-              args.extend(['-r', 'txt',
+              opts.extend(['-r', 'txt',
                            '-Dreport.txt.out.file=%s' % self.coverage_console_file] + sorting)
             if self.coverage_report_xml:
-              args.extend(['-r', 'xml','-Dreport.xml.out.file=%s' % self.coverage_xml_file])
+              opts.extend(['-r', 'xml','-Dreport.xml.out.file=%s' % self.coverage_xml_file])
             if self.coverage_report_html:
-              args.extend(['-r', 'html',
+              opts.extend(['-r', 'html',
                            '-Dreport.html.out.file=%s' % self.coverage_html_file,
                            '-Dreport.out.encoding=UTF-8'] + sorting)
 
-            result = runjava(
+            result = runjava_indivisible(
               classpath=emma_classpath,
               main='emma',
-              args=args
+              opts=opts
             )
             if result != 0:
               raise TaskError('Failed to emma generate code coverage reports: %d' % result)

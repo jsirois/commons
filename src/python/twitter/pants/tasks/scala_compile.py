@@ -79,11 +79,11 @@ class ScalaCompile(NailgunTask):
     if context.options.scala_check_missing_deps:
       JvmDependencyCache.init_product_requirements(self)
 
-    # Various output directories.
-    self._buildroot = get_buildroot()
-    workdir = context.config.get('scala-compile', 'workdir') if workdir is None else workdir
-    self._resources_dir = os.path.join(workdir, 'resources')
-    self._artifact_factory = ZincArtifactFactory(workdir, self.context, self._zinc_utils)
+    self._opts = context.config.getlist('scala-compile', 'args')
+    if context.options.scala_compile_warnings:
+      self._opts.extend(context.config.getlist('scala-compile', 'warning_args'))
+    else:
+      self._opts.extend(context.config.getlist('scala-compile', 'no_warning_args'))
 
     # The ivy confs for which we're building.
     self._confs = context.config.getlist('scala-compile', 'confs')
