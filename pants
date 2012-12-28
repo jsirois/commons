@@ -56,10 +56,6 @@ if [ -z "${PANTS_DEV}" -a ! -e $MY_DIR/pants.pex ]; then
   fi
 fi
 
-if [ -z "$ANT_OPTS" ]; then
-  export ANT_OPTS="-Xmx1g -XX:MaxPermSize=512m"
-fi
-
 if [ ! -z "${PANTS_DEV}" ]; then
   # TODO(John Sirois): ideally this would just use pants.pex to run the pants target in py mode:
   # ./pants.pex py src/python/twitter/pants "$@"
