@@ -56,6 +56,6 @@ Solution:
 Almost any problem can be solved by fully clearing out all caches and rebuilding pants:
 
     $ build-support/python/clean.sh
-    $ git clean -fdx build-support
+    $ ./science-tools/check_environment.sh
     $ ./pants
 
