@@ -362,9 +362,6 @@ jar_library(name = 'protobuf-2.4.1',
             ]
            )
 
-jar_library(name = 'pig-9',
-           dependencies = [ jar(org = 'org.apache.pig', name = 'pig', rev = '0.9.2+20') ])
-
 jar_library(name = 'protobuf-java',
             dependencies = [ pants(':protobuf-2.4.1') ])
 
