@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==================================================================================================
+
 import os
 import pkgutil
 import shutil
@@ -22,7 +23,7 @@ from xml.dom import minidom
 
 from twitter.common.dirutil import safe_mkdir
 
-from twitter.pants import get_buildroot
+from twitter.pants import get_buildroot, JavaTests, ScalaTests, SourceRoot
 from twitter.pants.base.generator import TemplateData, Generator
 from twitter.pants.tasks.ide_gen import IdeGen, Project
 
@@ -123,17 +124,42 @@ class IdeaGen(IdeGen):
     self.module_filename = os.path.join(self.work_dir, '%s.iml' % self.project_name)
 
   def generate_project(self, project):
+    def is_test_target_type(ttype):
+      return issubclass(ttype, (JavaTests, ScalaTests))
+
+    is_test_by_base = {}
+
+    def is_test(source_set):
+      if source_set.is_test:
+        return True
+
+      # Non test targets that otherwise live in test target roots (say a java_library), must
+      # be marked as test for IDEA to correctly link the targets with the test code that uses
+      # them.
+      base = source_set.source_base
+      if base not in is_test_by_base:
+        is_test_by_base[base] = any(map(is_test_target_type, SourceRoot.types(base)))
+      istest = is_test_by_base[base]
+      if istest:
+        self.context.log.debug('Marked non-test source set as test (%s, %s)' % (
+          source_set.source_base, source_set.path
+        ))
+      return istest
+
     def create_content_root(source_set):
       root_relative_path = os.path.join(source_set.source_base, source_set.path) \
                            if source_set.path else source_set.source_base
+
+      sources = TemplateData(
+        path=root_relative_path,
+        package_prefix=source_set.path.replace('/', '.') if source_set.path else None,
+        is_test=is_test(source_set)
+      )
+
       return TemplateData(
-        path = root_relative_path,
-        sources = [ TemplateData(
-          path=root_relative_path,
-          package_prefix=source_set.path.replace('/', '.') if source_set.path else None,
-          is_test=source_set.is_test,
-        ) ],
-        exclude_paths = [ os.path.join(source_set.source_base, x) for x in source_set.excludes ],
+        path=root_relative_path,
+        sources=[sources],
+        exclude_paths=[os.path.join(source_set.source_base, x) for x in source_set.excludes],
       )
 
     content_roots = [create_content_root(source_set) for source_set in project.sources]
