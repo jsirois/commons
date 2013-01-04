@@ -50,4 +50,65 @@ limitations under the License.
   <suppress files="com/twitter/common/thrift/.*\.java" checks=".*"/>
   <suppress files="com/twitter/common/util/.*\.java" checks=".*"/>
   <suppress files="com/twitter/common/zookeeper/.*\.java" checks=".*"/>
+
+  <!-- TODO lz fix checkstyle REV-12352 -->
+  <suppress files="com/twitter/twadoop/crane/.*\.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/common/location/PhoneToCountryFunc.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/darkwing/DarkwingExporterClient.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hbase/PutHelper.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hbase/ReverseUserIdKey.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hdfs/CorruptLzoFixer.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hdfs/HadoopLzoUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hdfs/HdfsFsWalker.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hdfs/HdfsUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/hdfs/MultiFileRecordReader.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/jobs/CorruptLzoFileFixer.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/jobs/TwadoopJob.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/jobs/tasks/TaskLists.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/jobs/util/DirResolution.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/FileSetInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/FileSetInputSplit.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/FileSetRecordReader.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/IntegerListInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/IntegerListInputSplit.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/IntegerListRecordReader.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/KafkaInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/KafkaInputSplit.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/KafkaRecordReader.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/MapInputSplit.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/PlaybackInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/input/TestPlaybackInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/io/CassowaryAdjacencyList.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/io/CategorizedLongWritable.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/io/StringTimestampWritable.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/io/TweetSampleDbWritable.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/lib/NLineInputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/mapreduce/output/HotmailDumpOutputFormat.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/pig/load/TwadoopLoader.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/scribehose/kafka/KafkaUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/scribehose/kafka/consumer/ClientEventConsumer.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/thirdparty/salesforce/CampaignActualStagingImporter.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/thirdparty/salesforce/SalesforceBulkJob.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/DigestUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/FtpClient.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/FtpUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/GeoIPCityUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/HexCodec.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/HttpUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/ListUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/LogHelper.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/MapUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/ProtobufJdbc.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/ProtobufUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/RemoteFileClient.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/SftpClient.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/SimpleTimer.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/Statistics.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/StatusCountBitmaskHelper.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/TFWLogUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/ThriftToDynamicProto.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/XmlUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/zookeeper/ZkConfig.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/util/testing/HSqlDbUtil.java" checks=".*"/>
+  <suppress files="src/java/com/twitter/twadoop/pig/load/testing/MockPigLoader.java" checks=".*"/>
 </suppressions>

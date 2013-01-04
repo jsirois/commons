@@ -79,6 +79,11 @@ jar_library(name = 'cascading-kryo',
               jar(org = 'cascading.kryo', name = 'cascading.kryo', rev = '0.4.4')
             ])
 
+jar_library(name = 'dspace-geoip',
+            dependencies = [
+              jar(org = 'org.dspace.dependencies', name = 'dspace-geoip', rev = '1.2.3')
+            ])
+
 jar_library(name = 'maple',
             dependencies = [
               jar(org = 'com.twitter', name = 'maple', rev = '0.2.5')
@@ -201,6 +206,9 @@ jar_library(name = 'finagle-serversets',
                 .exclude(org='com.twitter.common.zookeeper')
             ])
 
+jar_library(name = 'gdata-core',
+            dependencies = [ jar(org = 'com.google.gdata', name = 'core', rev = '1.47.1') ])
+
 jar_library(name = 'gson',
             dependencies = [ jar(org = 'com.google.code.gson', name = 'gson', rev = '2.1') ])
 
@@ -243,6 +251,9 @@ jar_library(name = 'guice-servlet',
 jar_library(name = 'hsqldb',
             dependencies = [ jar(org = 'hsqldb', name = 'hsqldb', rev = '1.8.0.10') ])
 
+jar_library(name = 'hsqldb-2.2',
+            dependencies = [ jar(org = 'org.hsqldb', name = 'hsqldb', rev = '2.2.4') ])
+
 jar_library(name = 'jetty',
             dependencies = [
               jar(org = 'org.mortbay.jetty', name = 'jetty', rev = '6.1.25').with_sources()
@@ -261,6 +272,10 @@ jar_library(name = 'joda-time',
               jar(org = 'org.joda', name = 'joda-convert', rev = '1.2')
             ]
            )
+
+jar_library(name = 'jsch',
+            dependencies = [
+              jar(org = 'com.jcraft', name = 'jsch', rev = '0.1.48')])
 
 jar_library(name = 'json-simple',
             dependencies = [
@@ -404,6 +419,12 @@ jar_library(name = 'servlet-api',
            )
 
 SLF4J_VERSION = '1.6.1'
+
+jar_library(name = 'javacsv',
+            dependencies = [
+              jar(org = 'net.sourceforge.javacsv', name = 'javacsv', rev = '2.0').with_sources()
+            ]
+           )
 
 jar_library(name = 'slf4j-api',
             dependencies = [
