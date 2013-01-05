@@ -96,13 +96,7 @@ class NailgunTask(Task):
     self._ng_out = os.path.join(workdir, 'stdout')
     self._ng_err = os.path.join(workdir, 'stderr')
 
-  def runjava(self, main, classpath=None, args=None, jvmargs=None):
-    """
-      Runs the java main using the given classpath and args.  If --no-ng-daemons is specified then
-      the java main is run in a freshly spawned subprocess, otherwise a persistent nailgun server
-      dedicated to this Task subclass is used to speed up amortized run times.
-    """
-
+  def _runjava_common(self, runjava, main, classpath=None, opts=None, args=None, jvmargs=None):
     cp = (self._classpath or []) + (classpath or [])
     if self._daemon:
       nailgun = self._get_nailgun_client()
@@ -116,13 +110,42 @@ class NailgunTask(Task):
 
       try:
         if cp:
-          call_nailgun('ng-cp', *[os.path.relpath(jar, get_buildroot()) for jar in cp])
-        return call_nailgun(main, *args)
+          nailgun('ng-cp', *[os.path.relpath(jar, get_buildroot()) for jar in cp])
+        opts_args = []
+        if opts:
+          opts_args.extend(opts)
+        if args:
+          opts_args.extend(args)
+        return nailgun(main, *opts_args)
       except NailgunError as e:
         self._ng_shutdown()
         raise e
     else:
-      return binary_utils.runjava(main=main, classpath=cp, args=args, jvmargs=jvmargs)
+      return binary_utils.runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs)
+
+  def runjava(self, main, classpath=None, opts=None, args=None, jvmargs=None):
+    """
+      Runs the java main using the given classpath and args.  If --no-ng-daemons is specified then
+      the java main is run in a freshly spawned subprocess, otherwise a persistent nailgun server
+      dedicated to this Task subclass is used to speed up amortized run times.
+      The args list is divisable so it can be split across multiple invocations of the command
+      similiar to xargs.
+    """
+
+    return self._runjava_common(binary_utils.runjava, main=main, classpath=classpath,
+                                opts=opts, args=args, jvmargs=jvmargs)
+
+  def runjava_indivisible(self, main, classpath=None, opts=None, args=None, jvmargs=None):
+    """
+      Runs the java main using the given classpath and args.  If --no-ng-daemons is specified then
+      the java main is run in a freshly spawned subprocess, otherwise a persistent nailgun server
+      dedicated to this Task subclass is used to speed up amortized run times.
+      The args list is indivisable so it can't be split across multiple invocations of the command
+      similiar to xargs.
+    """
+
+    return self._runjava_common(binary_utils.runjava_indivisible, main=main, classpath=classpath,
+                                opts=opts, args=args, jvmargs=jvmargs)
 
   def _ng_shutdown(self):
     endpoint = self._get_nailgun_endpoint()

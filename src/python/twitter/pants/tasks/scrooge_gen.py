@@ -35,7 +35,7 @@ from twitter.pants.targets import (
   JavaThriftLibrary,
   ScalaLibrary)
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava
+from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.thrift_util import calculate_compile_sources
 
@@ -132,7 +132,7 @@ class ScroogeGen(CodeGen):
       try:
         gen_file_map = mkstempname()
 
-        args = [
+        opts = [
           '--language', lang,
           '--dest', compiler_info['outdir'],
           '--gen-file-map', gen_file_map,
@@ -144,17 +144,15 @@ class ScroogeGen(CodeGen):
         # TODO(Robert Nielsen): we need --namespace-map configurable in the BUILD file
 
         if not compiler_info['strict']:
-          args.append('--disable-strict')
+          opts.append('--disable-strict')
         if compiler_info['verbose']:
-          args.append('--verbose')
+          opts.append('--verbose')
 
         for base in bases:
-          args.extend(('--import-path', base))
+          opts.extend(('--import-path', base))
 
-        args.extend(sources)
-
-        if 0 != runjava(main=INFO_FOR_COMPILER[compiler]['main'],
-                        classpath=compiler_info['classpath'], args=args):
+        if 0 != runjava_indivisible(main=INFO_FOR_COMPILER[compiler]['main'],
+                                    classpath=compiler_info['classpath'], opts=opts, args=sources):
           raise TaskError
 
         compiler_info['gen_files_for_source'] = self.parse_gen_file_map(gen_file_map,

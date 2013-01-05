@@ -76,7 +76,7 @@ class IvyResolve(NailgunTask):
     self._cachedir = context.options.ivy_resolve_cache or context.config.get('ivy', 'cache_dir')
     self._confs = confs or context.config.getlist('ivy-resolve', 'confs')
     self._transitive = context.config.getbool('ivy-resolve', 'transitive')
-    self._args = context.config.getlist('ivy-resolve', 'args')
+    self._opts = context.config.getlist('ivy-resolve', 'args')
 
     self._profile = context.config.get('ivy-resolve', 'profile')
 
@@ -240,8 +240,9 @@ class IvyResolve(NailgunTask):
       )
       xml = self._ivy_utils.xml_report_path(conf)
       out = os.path.join(self._outdir, '%(org)s-%(name)s-%(conf)s.html' % params)
-      args = ['-IN', xml, '-XSL', xsl, '-OUT', out]
-      self.runjava('org.apache.xalan.xslt.Process', classpath=classpath, args=args)
+      opts = ['-IN', xml, '-XSL', xsl, '-OUT', out]
+      if 0 != self.runjava_indivisible('org.apache.xalan.xslt.Process', classpath=classpath, opts=opts):
+        raise TaskError
       reports.append(out)
 
     css = os.path.join(self._outdir, 'ivy-report.css')
@@ -392,17 +393,16 @@ class IvyResolve(NailgunTask):
     jars, excludes = self._calculate_classpath(targets)
     self._generate_ivy(jars, excludes, ivyxml)
 
-    ivy_args = [
+    ivy_opts = [
       '-settings', self._ivy_settings,
       '-cache', self._cachedir,
       '-ivy', ivyxml,
     ]
-    ivy_args.extend(args)
+    ivy_opts.extend(args)
     if not self._transitive:
-      ivy_args.append('-notransitive')
-    ivy_args.extend(self._args)
+      ivy_opts.append('-notransitive')
+    ivy_opts.extend(self._opts)
 
-    result = self.runjava('org.apache.ivy.Main', args=ivy_args)
+    result = self.runjava_indivisible('org.apache.ivy.Main', opts=ivy_opts) 
     if result != 0:
       raise TaskError('org.apache.ivy.Main returned %d' % result)
-

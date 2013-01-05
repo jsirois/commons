@@ -79,11 +79,11 @@ class ScalaCompile(NailgunTask):
     if context.options.scala_check_missing_deps:
       JvmDependencyCache.init_product_requirements(self)
 
-    self._args = context.config.getlist('scala-compile', 'args')
+    self._opts = context.config.getlist('scala-compile', 'args')
     if context.options.scala_compile_warnings:
-      self._args.extend(context.config.getlist('scala-compile', 'warning_args'))
+      self._opts.extend(context.config.getlist('scala-compile', 'warning_args'))
     else:
-      self._args.extend(context.config.getlist('scala-compile', 'no_warning_args'))
+      self._opts.extend(context.config.getlist('scala-compile', 'no_warning_args'))
 
     # The ivy confs for which we're building.
     self._confs = context.config.getlist('scala-compile', 'confs')

@@ -19,7 +19,8 @@ python_test_suite(name = 'all',
   dependencies = [
     pants(':test_antlr_builder'),
     pants(':test_python_chroot'),
-    pants(':test_thrift_namespace_packages')
+    pants(':test_thrift_namespace_packages'),
+    pants(':test_subprocess_call_with_args')
   ]
 )
 
@@ -42,6 +43,14 @@ python_tests(name = 'test_python_chroot',
   sources = ['test_python_chroot.py'],
   dependencies = [
     pants('src/python/twitter/common/config'),
+    pants('src/python/twitter/common/python'),
+    pants('src/python/twitter/pants:pants-lib')
+  ]
+)
+
+python_tests(name = 'test_subprocess_call_with_args',
+  sources = ['test_subprocess_call_with_args.py'],
+  dependencies = [
     pants('src/python/twitter/common/python'),
     pants('src/python/twitter/pants:pants-lib')
   ]

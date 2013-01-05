@@ -15,10 +15,12 @@
 # ==================================================================================================
 
 from __future__ import print_function
+from __future__ import division
 
 __author__ = 'jsirois'
 
 import os
+import errno
 import subprocess
 
 from contextlib import contextmanager
@@ -126,11 +128,7 @@ def safe_classpath(logger=None):
     yield
 
 
-def runjava(jvmargs=None, classpath=None, main=None, args=None, **kwargs):
-  """Spawns a java process with the supplied configuration and returns its exit code.
-
-  Passes kwargs through to subproccess.call.
-  """
+def _runjava_cmd(jvmargs=None, classpath=None, main=None, opts=None, args=None):
   cmd = ['java']
   if jvmargs:
     cmd.extend(jvmargs)
@@ -138,12 +136,65 @@ def runjava(jvmargs=None, classpath=None, main=None, args=None, **kwargs):
     cmd.extend(('-cp' if main else '-jar', os.pathsep.join(classpath)))
   if main:
     cmd.append(main)
+  if opts:
+    cmd.extend(opts)
   if args:
     cmd.extend(args)
+  return cmd
 
-  log.debug('Executing: %s' % ' '.join(cmd))
+
+def runjava_indivisible(jvmargs=None, classpath=None, main=None, opts=None, args=None, **kwargs):
+  """Spawns a java process with the supplied configuration and returns its exit code.
+  The args list is indivisable so it can't be split across multiple invocations of the command
+  similiar to xargs.
+  Passes kwargs through to subproccess.call.
+  """
+  cmd_with_args = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts, args=args)
   with safe_classpath():
-    return subprocess.call(cmd, **kwargs)
+    return _subprocess_call(cmd_with_args, **kwargs)
+
+
+def runjava(jvmargs=None, classpath=None, main=None, opts=None, args=None, **kwargs):
+  """Spawns a java process with the supplied configuration and returns its exit code.
+  The args list is divisable so it can be split across multiple invocations of the command
+  similiar to xargs.
+  Passes kwargs through to subproccess.call.
+  """
+  cmd = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts)
+  with safe_classpath():
+    return _subprocess_call_with_args(cmd, args, **kwargs)
+
+
+def _split_args(i):
+  l = list(i)
+  half = len(l)//2
+  return l[:half], l[half:]
+
+
+def _subprocess_call(cmd_with_args, call=subprocess.call, **kwargs):
+  log.debug('Executing: %s' % ' '.join(cmd_with_args))
+  return call(cmd_with_args, **kwargs)
+
+
+def _subprocess_call_with_args(cmd, args, call=subprocess.call, **kwargs):
+  cmd_with_args = cmd[:]
+  if args:
+    cmd_with_args.extend(args)
+  try:
+    with safe_classpath():
+      return _subprocess_call(cmd_with_args, call=call, **kwargs)
+  except OSError as e:
+    if errno.E2BIG == e.errno and args and len(args) > 1:
+      args1, args2 = _split_args(args)
+      result1 = _subprocess_call_with_args(cmd, args1, call=call, **kwargs)
+      result2 = _subprocess_call_with_args(cmd, args2, call=call, **kwargs)
+      # we are making one command into two so if either fails we return fail
+      result = 0
+      if 0 != result1 or 0 != result2:
+        result = 1
+      return result
+    else:
+      raise e
 
 def find_java_home():
   # A kind-of-insane hack to find the effective java home. On some platforms there are so
@@ -167,7 +218,7 @@ def find_java_home():
 def nailgun_profile_classpath(nailgun_task, profile, ivy_jar=None, ivy_settings=None):
   return profile_classpath(
     profile,
-    java_runner=nailgun_task.runjava,
+    java_runner=nailgun_task.runjava_indivisible,
     config=nailgun_task.context.config,
     ivy_jar=ivy_jar,
     ivy_settings=ivy_settings
@@ -178,7 +229,7 @@ def profile_classpath(profile, java_runner=None, config=None, ivy_jar=None, ivy_
   # TODO(John Sirois): consider rework when ant backend is gone and there is no more need to share
   # path structure
 
-  java_runner = java_runner or runjava
+  java_runner = java_runner or runjava_indivisible
 
   config = config or Config.load()
 
@@ -192,7 +243,7 @@ def profile_classpath(profile, java_runner=None, config=None, ivy_jar=None, ivy_
     safe_mkdir(profile_libdir)
     ivy_settings = ivy_settings or config.get('ivy', 'ivy_settings')
     ivy_xml = os.path.join(profile_dir, '%s.ivy.xml' % profile)
-    ivy_args = [
+    ivy_opts = [
       '-settings', ivy_settings,
       '-ivy', ivy_xml,
 
@@ -205,7 +256,7 @@ def profile_classpath(profile, java_runner=None, config=None, ivy_jar=None, ivy_
       '-types', 'jar', 'bundle',
       '-confs', 'default'
     ]
-    result = java_runner(classpath=ivy_classpath, main='org.apache.ivy.Main', args=ivy_args)
+    result = java_runner(classpath=ivy_classpath, main='org.apache.ivy.Main', opts=ivy_opts)
     if result != 0:
       raise TaskError('Failed to load profile %s, ivy exit code %d' % (profile, result))
     touch(profile_check)
