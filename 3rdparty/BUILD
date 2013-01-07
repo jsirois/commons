@@ -76,7 +76,7 @@ jar_library(name = 'cascading2-core',
 
 jar_library(name = 'cascading-kryo',
             dependencies = [
-              jar(org = 'cascading.kryo', name = 'cascading.kryo', rev = '0.4.4')
+              jar(org = 'cascading.kryo', name = 'cascading.kryo', rev = '0.4.6')
             ])
 
 jar_library(name = 'dspace-geoip',
