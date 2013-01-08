@@ -17,20 +17,27 @@
 from __future__ import print_function
 from __future__ import division
 
-__author__ = 'jsirois'
-
 import os
 import errno
+import posixpath
 import subprocess
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 
 from twitter.common import log
-from twitter.common.contextutil import environment_as, open_zip, temporary_file, temporary_dir
-from twitter.common.dirutil import safe_mkdir, safe_open, touch
+from twitter.common.contextutil import environment_as, open_zip, temporary_dir, temporary_file
+from twitter.common.dirutil import chmod_plus_x, safe_delete, safe_mkdir, safe_open, touch
+from twitter.common.lang import Compatibility
+
+if Compatibility.PY3:
+  import urllib.request as urllib_request
+  import urllib.error as urllib_error
+else:
+  import urllib2 as urllib_request
+  import urllib2 as urllib_error
 
 from twitter.pants.base import Config
-from twitter.pants.tasks import TaskError
+from . import TaskError
 
 _ID_BY_OS = {
   'linux': lambda release, machine: ('linux', machine),
@@ -39,34 +46,52 @@ _ID_BY_OS = {
 
 
 _PATH_BY_ID = {
-  ('linux', 'x86_64'): [ 'linux', 'x86_64' ],
-  ('linux', 'amd64'): [ 'linux', 'x86_64' ],
-  ('linux', 'i386'): [ 'linux', 'i386' ],
-  ('darwin', '9'): [ 'mac', '10.5' ],
-  ('darwin', '10'): [ 'mac', '10.6' ],
-  ('darwin', '11'): [ 'mac', '10.7' ],
-  ('darwin', '12'): [ 'mac', '10.8' ],
+  ('linux', 'x86_64'):  ['linux', 'x86_64'],
+  ('linux', 'amd64'):   ['linux', 'x86_64'],
+  ('linux', 'i386'):    ['linux', 'i386'],
+  ('darwin', '9'):      ['mac', '10.5'],
+  ('darwin', '10'):     ['mac', '10.6'],
+  ('darwin', '11'):     ['mac', '10.7'],
+  ('darwin', '12'):     ['mac', '10.8'],
 }
 
 
-def select_binary(base_path, version, name):
-  """
-    Selects a binary...
-    Raises TaskError if no binary of the given version and name could be found.
+def select_binary(base_path, version, name, config=None):
+  """Selects a binary matching the current os and architecture.
+
+  Raises TaskError if no binary of the given version and name could be found.
   """
   # TODO(John Sirois): finish doc of the path structure expexcted under base_path
+  config = config or Config.load()
+  cachedir = config.getdefault('pants_cachedir', default=os.path.expanduser('~/.pants.d'))
+  baseurl = config.getdefault('pants_support_baseurl')
+  timeout_secs = config.getdefault('pants_support_fetch_timeout_secs', type=int, default=30)
+
   sysname, _, release, _, machine = os.uname()
   os_id = _ID_BY_OS[sysname.lower()]
   if os_id:
     middle_path = _PATH_BY_ID[os_id(release, machine)]
     if middle_path:
       binary_path = os.path.join(base_path, *(middle_path + [version, name]))
-      log.debug('Selected %s binary at: %s' % (name, binary_path))
-      if os.path.exists(binary_path):
-        return binary_path
-      else:
-        raise TaskError('Selected binary %s does not exist!' % binary_path)
-  raise TaskError('Cannot generate thrift code for: %s' % [sysname, release, machine])
+      cached_binary_path = os.path.join(cachedir, binary_path)
+      if not os.path.exists(cached_binary_path):
+        url = posixpath.join(baseurl, binary_path)
+        log.info('Fetching %s binary from: %s' % (name, url))
+        downloadpath = cached_binary_path + '~'
+        try:
+          with closing(urllib_request.urlopen(url, timeout=timeout_secs)) as binary:
+            with safe_open(downloadpath, 'wb') as cached_binary:
+              cached_binary.write(binary.read())
+
+          os.rename(downloadpath, cached_binary_path)
+          chmod_plus_x(cached_binary_path)
+        except (IOError, urllib_error.HTTPError, urllib_error.URLError) as e:
+          raise TaskError('Failed to fetch binary from %s: %s' % (url, e))
+        finally:
+          safe_delete(downloadpath)
+      log.debug('Selected %s binary cached at: %s' % (name, cached_binary_path))
+      return cached_binary_path
+  raise TaskError('No %s binary found for: %s' % (name, (sysname, release, machine)))
 
 
 @contextmanager

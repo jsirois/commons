@@ -47,12 +47,8 @@ class ProtobufGen(CodeGen):
   def __init__(self, context):
     CodeGen.__init__(self, context)
 
-    self.protobuf_binary = select_binary(
-      context.config.get('protobuf-gen', 'supportdir'),
-      context.config.get('protobuf-gen', 'version'),
-      'protoc'
-    )
-
+    self.protoc_supportdir = self.context.config.get('protobuf-gen', 'supportdir')
+    self.protoc_version = self.context.config.get('protobuf-gen', 'version')
     self.output_dir = (
       context.options.protobuf_gen_create_outdir
       or context.config.get('protobuf-gen', 'workdir')
@@ -91,6 +87,13 @@ class ProtobufGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
+    protobuf_binary = select_binary(
+      self.protoc_supportdir,
+      self.protoc_version,
+      'protoc',
+      self.context.config
+    )
+
     bases, sources = self._calculate_sources(targets)
 
     if lang == 'java':
@@ -103,7 +106,7 @@ class ProtobufGen(CodeGen):
       raise TaskError('Unrecognized protobuf gen lang: %s' % lang)
 
     args = [
-      self.protobuf_binary,
+      protobuf_binary,
       gen
     ]
 

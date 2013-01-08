@@ -60,11 +60,10 @@ class ThriftGen(CodeGen):
   def __init__(self, context):
     CodeGen.__init__(self, context)
 
-    self.thrift_binary = select_binary(
-      context.config.get('thrift-gen', 'supportdir'),
-      (context.options.thrift_version
-        or context.config.get('thrift-gen', 'version')),
-      'thrift'
+    self.thrift_supportdir = self.context.config.get('thrift-gen', 'supportdir')
+    self.thrift_version = (
+      self.context.options.thrift_version
+      or self.context.config.get('thrift-gen', 'version')
     )
     self.output_dir = (
       context.options.thrift_gen_create_outdir
@@ -111,6 +110,13 @@ class ThriftGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
+    thrift_binary = select_binary(
+      self.thrift_supportdir,
+      self.thrift_version,
+      'thrift',
+      self.context.config
+    )
+
     bases, sources = calculate_compile_roots(targets, self.is_gentarget)
 
     if lang == 'java':
@@ -123,7 +129,7 @@ class ThriftGen(CodeGen):
     safe_mkdir(self.output_dir)
 
     args = [
-      self.thrift_binary,
+      thrift_binary,
       '--gen', gen,
       '-recurse',
       '-o', self.output_dir,
