@@ -86,7 +86,7 @@ jar_library(name = 'dspace-geoip',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.2.5')
+              jar(org = 'com.twitter', name = 'maple', rev = '0.2.6').with_sources()
             ])
 
 jar_library(name = 'cascading2-local',
