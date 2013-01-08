@@ -14,9 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
-import StringIO
 import os
 import re
 import signal
@@ -31,6 +28,7 @@ from twitter.common.python.platforms import Platform
 from twitter.pants import get_buildroot
 from twitter.pants.java import NailgunClient, NailgunError
 from twitter.pants.tasks import binary_utils, Task
+from twitter.pants.tasks.binary_utils import profile_classpath
 
 def _check_pid(pid):
   try:
@@ -79,13 +77,13 @@ class NailgunTask(Task):
                                      help="[%default] Use nailgun daemons to execute java tasks.")
       NailgunTask._DAEMON_OPTION_PRESENT = True
 
-  def __init__(self, context, classpath=None, workdir=None, nailgun_jar=None, args=None,
+  def __init__(self, context, classpath=None, workdir=None,
                stdin=None, stderr=sys.stderr, stdout=sys.stdout):
     Task.__init__(self, context)
 
     self._classpath = classpath
-    self._nailgun_jar = nailgun_jar or context.config.get('nailgun', 'jar')
-    self._ng_server_args = args or context.config.getlist('nailgun', 'args')
+    self._nailgun_profile = context.config.get('nailgun', 'profile', default='nailgun')
+    self._ng_server_args = context.config.getlist('nailgun', 'args')
     self._stdin = stdin
     self._stderr = stderr
     self._stdout = stdout
@@ -253,7 +251,8 @@ class NailgunTask(Task):
       args.extend(self._ng_server_args)
     args.append(NailgunTask.PANTS_NG_ARG)
     args.append(NailgunTask.create_pidfile_arg(self._pidfile))
-    args.extend(['-jar', self._nailgun_jar, ':0'])
+    ng_classpath = os.pathsep.join(profile_classpath(self._nailgun_profile))
+    args.extend(['-cp', ng_classpath, 'com.martiansoftware.nailgun.NGServer', ':0'])
     log.debug('Executing: %s' % ' '.join(args))
 
     with binary_utils.safe_classpath(logger=log.warn):
