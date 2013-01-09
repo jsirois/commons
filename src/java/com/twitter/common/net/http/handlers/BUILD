@@ -128,6 +128,7 @@ java_library(name = 'params',
   dependencies = [
     pants('3rdparty:guava'),
     pants('3rdparty:guice'),
+    pants('3rdparty:jsr305'),
     pants('3rdparty:servlet-api'),
   ],
   sources = PARAMS_SOURCES
