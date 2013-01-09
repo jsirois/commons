@@ -20,9 +20,8 @@ import sys
 
 from twitter.common.dirutil import safe_mkdir, safe_open
 
-from twitter.pants import is_java, is_scala, is_test, junit_tests
-from twitter.pants.tasks import binary_utils, Task, TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible, safe_args
+from twitter.pants import binary_util, is_java, is_scala, is_test, junit_tests
+from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.jvm_task import JvmTask
 
 class JUnitRun(JvmTask):
@@ -189,7 +188,8 @@ class JUnitRun(JvmTask):
       tests = list(self.normalize_test_classes() if self.test_classes
                                                  else self.calculate_tests(targets))
       if tests:
-        junit_classpath = self.classpath(profile_classpath(self.junit_profile), confs=self.confs)
+        junit_classpath = self.classpath(binary_util.profile_classpath(self.junit_profile),
+                                         confs=self.confs)
 
         def run_tests(classpath, main, jvmargs=None):
           # TODO(John Sirois): Integrated batching with the test runner.  As things stand we get
@@ -197,8 +197,8 @@ class JUnitRun(JvmTask):
           # http://jira.local.twitter.com/browse/AWESOME-1114
           result = 0
           for batch in self._partition(tests):
-            with safe_args(batch) as batch_tests:
-              result += runjava_indivisible(
+            with binary_util.safe_args(batch) as batch_tests:
+              result += binary_util.runjava_indivisible(
                 jvmargs=(jvmargs or []) + self.java_args,
                 classpath=classpath,
                 main=main,
@@ -210,11 +210,11 @@ class JUnitRun(JvmTask):
             raise TaskError()
 
         if self.coverage:
-          emma_classpath = profile_classpath(self.emma_profile)
+          emma_classpath = binary_util.profile_classpath(self.emma_profile)
 
           def instrument_code():
             safe_mkdir(self.coverage_instrument_dir, clean=True)
-            with safe_args(self.get_coverage_patterns(targets)) as patterns:
+            with binary_util.safe_args(self.get_coverage_patterns(targets)) as patterns:
               opts = [
                 'instr',
                 '-out', self.coverage_metadata_file,
@@ -224,7 +224,8 @@ class JUnitRun(JvmTask):
               ]
               for pattern in patterns:
                 opts.extend(['-filter', pattern])
-              result = runjava_indivisible(classpath=emma_classpath, main='emma', opts=opts)
+              result = binary_util.runjava_indivisible(classpath=emma_classpath, main='emma',
+                                                       opts=opts)
               if result != 0:
                 raise TaskError('Emma instrumentation failed with: %d' % result)
 
@@ -255,7 +256,7 @@ class JUnitRun(JvmTask):
                            '-Dreport.html.out.file=%s' % self.coverage_html_file,
                            '-Dreport.out.encoding=UTF-8'] + sorting)
 
-            result = runjava_indivisible(
+            result = binary_util.runjava_indivisible(
               classpath=emma_classpath,
               main='emma',
               opts=opts
@@ -267,7 +268,7 @@ class JUnitRun(JvmTask):
               with safe_open(self.coverage_console_file) as console_report:
                 sys.stdout.write(console_report.read())
             if self.coverage_report_html_open:
-              binary_utils.open(self.coverage_html_file)
+              binary_util.open(self.coverage_html_file)
 
           instrument_code()
           try:

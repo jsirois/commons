@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import re
 import os
 import subprocess
@@ -27,9 +25,9 @@ from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_jvm, is_python
+from twitter.pants.binary_util import select_binary
 from twitter.pants.targets import JavaLibrary, JavaProtobufLibrary, PythonLibrary
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import select_binary
 from twitter.pants.tasks.code_gen import CodeGen
 
 
@@ -47,12 +45,8 @@ class ProtobufGen(CodeGen):
   def __init__(self, context):
     CodeGen.__init__(self, context)
 
-    self.protobuf_binary = select_binary(
-      context.config.get('protobuf-gen', 'supportdir'),
-      context.config.get('protobuf-gen', 'version'),
-      'protoc'
-    )
-
+    self.protoc_supportdir = self.context.config.get('protobuf-gen', 'supportdir')
+    self.protoc_version = self.context.config.get('protobuf-gen', 'version')
     self.output_dir = (
       context.options.protobuf_gen_create_outdir
       or context.config.get('protobuf-gen', 'workdir')
@@ -91,6 +85,13 @@ class ProtobufGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
+    protobuf_binary = select_binary(
+      self.protoc_supportdir,
+      self.protoc_version,
+      'protoc',
+      self.context.config
+    )
+
     bases, sources = self._calculate_sources(targets)
 
     if lang == 'java':
@@ -103,7 +104,7 @@ class ProtobufGen(CodeGen):
       raise TaskError('Unrecognized protobuf gen lang: %s' % lang)
 
     args = [
-      self.protobuf_binary,
+      protobuf_binary,
       gen
     ]
 

@@ -14,15 +14,13 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 
 from twitter.common.collections import OrderedSet
 
 from twitter.pants import is_scala, is_test
+from twitter.pants.binary_util import profile_classpath, runjava_indivisible, safe_args
 from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible, safe_args
 from twitter.pants.tasks.jvm_task import JvmTask
 
 class SpecsRun(JvmTask):

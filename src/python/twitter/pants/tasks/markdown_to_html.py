@@ -70,10 +70,11 @@ import re
 import textwrap
 
 from twitter.common.dirutil import safe_open
-from twitter.pants import get_buildroot
+
+from twitter.pants import binary_util, get_buildroot
 from twitter.pants.base import Address, Target
 from twitter.pants.targets import Page
-from twitter.pants.tasks import binary_utils, Task, TaskError
+from twitter.pants.tasks import Task, TaskError
 
 class MarkdownToHtml(Task):
   AVAILABLE = HAS_MARKDOWN
@@ -187,7 +188,7 @@ class MarkdownToHtml(Task):
           process_page((wiki, page), basedir, wiki.url_builder, get_config)
 
     if show:
-      binary_utils.open(*show)
+      binary_util.open(*show)
 
   PANTS_LINK = re.compile(r'''pants\(['"]([^)]+)['"]\)''')
 

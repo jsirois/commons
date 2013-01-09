@@ -17,12 +17,11 @@
 __author__ = 'Benjy Weinberger'
 
 import shlex
-import sys
 
 from twitter.common.dirutil import safe_open
+from twitter.pants.binary_util import runjava_indivisible
 from twitter.pants.targets import JvmBinary
 from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks.binary_utils import runjava_indivisible
 from twitter.pants.tasks.jvm_task import JvmTask
 
 
@@ -82,7 +81,7 @@ class JvmRun(JvmTask):
       main = binaries[0].main
 
       def run_binary(only_write_cmd_line_to):
-        result = runjava(
+        result = runjava_indivisible(
           jvmargs=self.jvm_args,
           classpath=(self.classpath(confs=self.confs)),
           main=main,

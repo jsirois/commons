@@ -18,13 +18,11 @@ __author__ = 'Phil Hom'
 
 import os
 
-from collections import defaultdict
-
 from twitter.common.contextutil import open_zip
 
+from twitter.pants.binary_util import safe_extract
 from twitter.pants.targets import JavaThriftLibrary
 from twitter.pants.tasks import Task
-from twitter.pants.tasks.binary_utils import safe_extract
 
 
 class Extract(Task):

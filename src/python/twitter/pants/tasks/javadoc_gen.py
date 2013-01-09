@@ -14,15 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 import subprocess
 import multiprocessing
 
 from twitter.common.dirutil import safe_mkdir
-from twitter.pants import is_jvm, JavaLibrary, JavaTests
-from twitter.pants.tasks import binary_utils, Task, TaskError
+
+from twitter.pants import binary_util, is_jvm, JavaLibrary, JavaTests
+from twitter.pants.tasks import Task, TaskError
 
 def is_java(target):
   return isinstance(target, JavaLibrary) or isinstance(target, JavaTests)
@@ -116,7 +115,7 @@ class JavadocGen(Task):
       if command:
         create_javadoc(command, gendir)
     if self.open:
-      binary_utils.open(os.path.join(gendir, 'index.html'))
+      binary_util.open(os.path.join(gendir, 'index.html'))
 
   def generate_individual(self, classpath, targets):
     jobs = {}

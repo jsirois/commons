@@ -25,10 +25,10 @@ from contextlib import contextmanager
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir, safe_open
 
-from twitter.pants import get_buildroot, is_internal, is_jar, is_jvm, is_concrete
+from twitter.pants import binary_util, get_buildroot, is_internal, is_jar, is_jvm, is_concrete
 from twitter.pants.base.generator import Generator, TemplateData
 from twitter.pants.base.revision import Revision
-from twitter.pants.tasks import binary_utils, TaskError
+from twitter.pants import TaskError
 from twitter.pants.tasks.ivy_utils import IvyUtils
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
@@ -226,7 +226,7 @@ class IvyResolve(NailgunTask):
       genmap.add("ivy", conf, [ivyinfo])
 
   def _generate_ivy_report(self):
-    classpath = binary_utils.nailgun_profile_classpath(self, self._profile)
+    classpath = self.profile_classpath(self._profile)
 
     reports = []
     org, name = self._ivy_utils.identify()
@@ -251,7 +251,7 @@ class IvyResolve(NailgunTask):
     shutil.copy(os.path.join(self._cachedir, 'ivy-report.css'), self._outdir)
 
     if self._open:
-      binary_utils.open(*reports)
+      binary_util.open(*reports)
 
   def _calculate_classpath(self, targets):
     def is_jardependant(target):
@@ -403,6 +403,6 @@ class IvyResolve(NailgunTask):
       ivy_opts.append('-notransitive')
     ivy_opts.extend(self._opts)
 
-    result = self.runjava_indivisible('org.apache.ivy.Main', opts=ivy_opts) 
+    result = self.runjava_indivisible('org.apache.ivy.Main', opts=ivy_opts)
     if result != 0:
       raise TaskError('org.apache.ivy.Main returned %d' % result)

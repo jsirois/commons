@@ -25,10 +25,10 @@ import subprocess
 
 from twitter.common.dirutil import safe_rmtree
 from twitter.common.dirutil.chroot import RelativeChroot
-from twitter.pants import Config
+
 from twitter.pants.python.egg_builder import EggBuilder
 from twitter.pants.targets.python_thrift_library import PythonThriftLibrary
-from twitter.pants.thrift_util import calculate_compile_roots
+from twitter.pants.thrift_util import calculate_compile_roots, select_thrift_binary
 
 class PythonThriftBuilder(object):
   """
@@ -39,20 +39,16 @@ class PythonThriftBuilder(object):
       Exception.__init__(self, "Unknown platform: %s!" % str(platform))
   class CodeGenerationException(Exception): pass
 
-  def __init__(self, target, root_dir):
+  def __init__(self, target, root_dir, config):
     self.target = target
     self.root = root_dir
+    self.config = config
     distdir = os.path.join(self.root, 'dist')
     self.chroot = RelativeChroot(root_dir, distdir, target.name)
     codegen_root = tempfile.mkdtemp(dir=self.chroot.path(), prefix='codegen.')
     self.codegen_root = os.path.relpath(codegen_root, self.chroot.path())
     self.detected_packages = set()
     self.detected_namespace_packages = set()
-
-    # TODO: Temporary hack where we reparse pants.ini. Right now it's too difficult to plumb
-    # it through, and this will all be ported to "new pants" soon anyway.
-    config = Config.load()
-    self.platmap = config.getdict('py', 'thrift-platmap')
 
   def __del__(self):
     self.cleanup()
@@ -62,13 +58,6 @@ class PythonThriftBuilder(object):
 
   def cleanup(self):
     safe_rmtree(self.chroot.path())
-
-  def thrift_binary(self, root_dir):
-    uname = os.uname()
-    platform = (uname[0].lower(), uname[4])
-    if platform not in self.platmap:
-      raise PythonThriftBuilder.UnknownPlatformException(platform)
-    return os.path.join(root_dir, 'build-support', 'bin', 'thrift', *self.platmap[platform])
 
   def run_thrifts(self):
     def is_py_thrift(target):
@@ -86,7 +75,7 @@ class PythonThriftBuilder(object):
     thrift_abs_path = os.path.abspath(thrift_abs_path)
 
     args = [
-      self.thrift_binary(self.root),
+      select_thrift_binary(self.config),
       '--gen',
       'py:new_style',
       '-recurse',

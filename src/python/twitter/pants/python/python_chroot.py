@@ -153,7 +153,7 @@ class PythonChroot(object):
     self._builder.set_executable(src, os.path.basename(src))
 
   def _dump_thrift_library(self, library):
-    self._dump_built_library(library, PythonThriftBuilder(library, self._root))
+    self._dump_built_library(library, PythonThriftBuilder(library, self._root, self._config))
 
   def _dump_antlr_library(self, library):
     self._dump_built_library(library, PythonAntlrBuilder(library, self._root))

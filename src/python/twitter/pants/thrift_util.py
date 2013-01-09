@@ -1,7 +1,11 @@
 import os
 import re
 
+from twitter.pants.binary_util import select_binary
+
+
 INCLUDE_PARSER = re.compile(r'^\s*include\s+"([^"]+)"\s*$')
+
 
 def find_includes(basedirs, source, log=None):
   """Finds all thrift files included by the given thrift source.
@@ -76,3 +80,15 @@ def calculate_compile_roots(targets, is_thrift_target):
   sources = find_root_thrifts(basedirs, sources)
   return basedirs, sources
 
+
+def select_thrift_binary(config, version=None):
+  """Selects a thrift compiler binary matching the current os and architecture.
+
+  By default uses the repo default thrift compiler version specified in the pants config.
+
+  config: The pants config containing thrift thrift binary selection data.
+  version: An optional thrift compiler binary version override.
+  """
+  thrift_supportdir = config.get('thrift-gen', 'supportdir')
+  thrift_version = version or config.get('thrift-gen', 'version')
+  return select_binary(thrift_supportdir, thrift_version, 'thrift', config)

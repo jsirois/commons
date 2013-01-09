@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import textwrap
 
 import os
@@ -23,9 +21,9 @@ import os
 from twitter.common.confluence import Confluence, ConfluenceError
 from twitter.common.dirutil import safe_open
 
+from twitter.pants import binary_util
 from twitter.pants.targets import Page
 from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks import binary_utils
 
 class ConfluencePublish(Task):
 
@@ -97,7 +95,7 @@ class ConfluencePublish(Task):
           self.context.log.info('Published %s to %s' % (page, url))
 
     if self.open and urls:
-      binary_utils.open(*urls)
+      binary_util.open(*urls)
 
   def publish_page(self, address, space, title, content, parent=None):
     body = textwrap.dedent('''

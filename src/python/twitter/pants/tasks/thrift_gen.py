@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 import re
 import subprocess
@@ -31,12 +29,10 @@ from twitter.pants.targets import (
   JavaLibrary,
   JavaThriftLibrary,
   PythonLibrary,
-  PythonRequirement,
   PythonThriftLibrary)
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import select_binary
 from twitter.pants.tasks.code_gen import CodeGen
-from twitter.pants.thrift_util import calculate_compile_roots
+from twitter.pants.thrift_util import calculate_compile_roots, select_thrift_binary
 
 class ThriftGen(CodeGen):
   class GenInfo(object):
@@ -60,12 +56,6 @@ class ThriftGen(CodeGen):
   def __init__(self, context):
     CodeGen.__init__(self, context)
 
-    self.thrift_binary = select_binary(
-      context.config.get('thrift-gen', 'supportdir'),
-      (context.options.thrift_version
-        or context.config.get('thrift-gen', 'version')),
-      'thrift'
-    )
     self.output_dir = (
       context.options.thrift_gen_create_outdir
       or context.config.get('thrift-gen', 'workdir')
@@ -102,7 +92,8 @@ class ThriftGen(CodeGen):
     return [self.thrift_binary]
 
   def is_gentarget(self, target):
-    return (isinstance(target, JavaThriftLibrary) and target.compiler == 'thrift') or isinstance(target, PythonThriftLibrary)
+    return ((isinstance(target, JavaThriftLibrary) and target.compiler == 'thrift')
+            or isinstance(target, PythonThriftLibrary))
 
   def is_forced(self, lang):
     return lang in self.gen_langs
@@ -111,6 +102,11 @@ class ThriftGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
+    thrift_binary = select_thrift_binary(
+      self.context.config,
+      version=self.context.options.thrift_version
+    )
+
     bases, sources = calculate_compile_roots(targets, self.is_gentarget)
 
     if lang == 'java':
@@ -123,7 +119,7 @@ class ThriftGen(CodeGen):
     safe_mkdir(self.output_dir)
 
     args = [
-      self.thrift_binary,
+      thrift_binary,
       '--gen', gen,
       '-recurse',
       '-o', self.output_dir,

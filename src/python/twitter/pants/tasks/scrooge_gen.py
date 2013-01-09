@@ -17,25 +17,22 @@
 from __future__ import print_function
 
 import os
-import sys
 import errno
 import re
-import subprocess
 import tempfile
 
 from collections import defaultdict
 
-from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_jvm
+from twitter.pants.binary_util import profile_classpath, runjava_indivisible
 from twitter.pants.targets import (
   JavaLibrary,
   JavaThriftLibrary,
   ScalaLibrary)
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.thrift_util import calculate_compile_sources
 

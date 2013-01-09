@@ -14,12 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-import unittest
-import pytest
 import errno
 import os
+import unittest
 
-from twitter.pants.tasks.binary_utils import _subprocess_call, _subprocess_call_with_args
+import pytest
+
+from twitter.pants.binary_util import _subprocess_call, _subprocess_call_with_args
+
 
 def _call(cmd_with_args, **kwargs):
   if len(cmd_with_args) > 4:

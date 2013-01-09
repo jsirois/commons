@@ -18,8 +18,7 @@ __author__ = 'Benjy Weinberger'
 
 import os
 
-from collections import namedtuple
-from twitter.pants import  is_scalac_plugin, get_buildroot
+from twitter.pants import  is_scalac_plugin
 from twitter.pants.targets.scala_library import ScalaLibrary
 from twitter.pants.targets.scala_tests import ScalaTests
 from twitter.pants.tasks import Task, TaskError

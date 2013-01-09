@@ -17,13 +17,13 @@
 __author__ = 'Brian Larson'
 
 import os
+
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
-from twitter.pants import get_buildroot, is_jvm
+from twitter.pants import is_jvm
 from twitter.pants.targets import JavaLibrary, JavaAntlrLibrary
-from twitter.pants.tasks import binary_utils, Task, TaskError
-from twitter.pants.tasks.binary_utils import nailgun_profile_classpath, safe_args
+from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
@@ -60,7 +60,7 @@ class AntlrGen(CodeGen, NailgunTask):
     sources = self._calculate_sources(targets)
     safe_mkdir(self.java_out)
 
-    antlr_classpath = nailgun_profile_classpath(self, self.antlr_profile)
+    antlr_classpath = self.profile_classpath(self.antlr_profile)
     antlr_opts = ["-o", self.java_out ]
 
     if 0 != self.runjava_indivisible("org.antlr.Tool", classpath=antlr_classpath, opts=antlr_opts, args=sources):

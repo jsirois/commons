@@ -14,15 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 import os
 
-from twitter.common import log
 from twitter.common.dirutil import safe_open
 from twitter.pants import is_codegen, is_java
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import nailgun_profile_classpath
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
 
@@ -74,7 +70,7 @@ class Checkstyle(NailgunTask):
     return sources
 
   def checkstyle(self, sources):
-    classpath = nailgun_profile_classpath(self, self._profile)
+    classpath = self.profile_classpath(self._profile)
     with self.context.state('classpath', []) as cp:
       classpath.extend(jar for conf, jar in cp if conf in self._confs)
 

@@ -19,7 +19,6 @@ from collections import defaultdict
 import os
 import shlex
 
-from twitter.common import log
 from twitter.common.dirutil import safe_open, safe_mkdir
 
 from twitter.pants import has_sources, is_apt
@@ -237,7 +236,7 @@ class JavaCompile(NailgunTask):
     return sources, Target.identify(targets)
 
   def compile(self, classpath, sources, fingerprint, depfile):
-    jmake_classpath = nailgun_profile_classpath(self, self._jmake_profile)
+    jmake_classpath = self.profile_classpath(self._jmake_profile)
 
     opts = [
       '-classpath', ':'.join(classpath),
@@ -245,7 +244,7 @@ class JavaCompile(NailgunTask):
       '-pdb', os.path.join(self._classes_dir, '%s.dependencies.pdb' % fingerprint),
     ]
 
-    compiler_classpath = nailgun_profile_classpath(self, self._compiler_profile)
+    compiler_classpath = self.profile_classpath(self._compiler_profile)
     opts.extend([
       '-jcpath', ':'.join(compiler_classpath),
       '-jcmainclass', 'com.twitter.common.tools.Compiler',

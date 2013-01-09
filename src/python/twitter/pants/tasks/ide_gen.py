@@ -17,26 +17,27 @@
 import os
 import shutil
 
+from collections import defaultdict
+
 from twitter.common.collections.orderedset import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 from twitter.pants.targets.jvm_target import JvmTarget
 
 from twitter.pants import (
+  binary_util,
   extract_jvm_targets,
   get_buildroot,
+  has_resources,
   has_sources,
+  is_codegen,
   is_java as _is_java,
   is_scala as _is_scala,
   is_test,
   is_apt)
 from twitter.pants.base.target import Target
 from twitter.pants.goal.phase import Phase
-from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
-from twitter.pants.targets.java_library import JavaLibrary
 from twitter.pants.targets.jvm_binary import JvmBinary
-from twitter.pants.targets.scala_library import ScalaLibrary
-from twitter.pants.tasks import binary_utils, TaskError
-from twitter.pants.tasks.binary_utils import profile_classpath
+from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.checkstyle import Checkstyle
 from twitter.pants.tasks.jvm_binary_task import JvmBinaryTask
 
@@ -300,7 +301,7 @@ class IdeGen(JvmBinaryTask):
 
     idefile = self.generate_project(self._project)
     if idefile:
-      binary_utils.open(idefile)
+      binary_util.open(idefile)
 
   def generate_project(self, project):
     raise NotImplementedError('Subclasses must generate a project for an ide')
@@ -349,7 +350,7 @@ class Project(object):
         _, ext = os.path.splitext(resource)
         yield ext
 
-  def __init__(self, name,has_python, skip_java, skip_scala, root_dir,
+  def __init__(self, name, has_python, skip_java, skip_scala, root_dir,
                checkstyle_suppression_files, debug_port, targets, transitive):
     """Creates a new, unconfigured, Project based at root_dir and comprised of the sources visible
     to the given targets."""
@@ -426,15 +427,13 @@ class Project(object):
 
         self.has_scala = not self.skip_scala and (self.has_scala or is_scala(target))
 
-        if isinstance(target, JavaLibrary) or isinstance(target, ScalaLibrary):
-          resources = set()
-          if target.resources:
-            resources.update(target.resources)
-          if resources:
+        if has_resources(target):
+          resources_by_basedir = defaultdict(set)
+          for resources in target.resources:
+            resources_by_basedir[resources.target_base].update(resources.sources)
+          for basedir, resources in resources_by_basedir.items():
             self.resource_extensions.update(Project.extract_resource_extensions(resources))
-            configure_source_sets(target.sibling_resources_base,
-                                  resources,
-                                  is_test = False)
+            configure_source_sets(basedir, resources, is_test=False)
 
         if target.sources:
           test = is_test(target)
@@ -511,8 +510,9 @@ class Project(object):
 
   def configure_profiles(self, scala_compiler_profile):
     checkstyle_enabled = len(Phase.goals_of_type(Checkstyle)) > 0
-    self.checkstyle_classpath = profile_classpath('checkstyle') if checkstyle_enabled else []
+    self.checkstyle_classpath = (binary_util.profile_classpath('checkstyle') if checkstyle_enabled
+                                 else [])
     self.scala_compiler_classpath = []
     if self.has_scala:
-      self.scala_compiler_classpath.extend(profile_classpath(scala_compiler_profile))
+      self.scala_compiler_classpath.extend(binary_util.profile_classpath(scala_compiler_profile))
 

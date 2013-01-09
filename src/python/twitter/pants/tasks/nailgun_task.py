@@ -25,10 +25,9 @@ from twitter.common import log
 from twitter.common.dirutil import safe_open
 from twitter.common.python.platforms import Platform
 
-from twitter.pants import get_buildroot
+from twitter.pants import binary_util, get_buildroot
 from twitter.pants.java import NailgunClient, NailgunError
-from twitter.pants.tasks import binary_utils, Task
-from twitter.pants.tasks.binary_utils import profile_classpath
+from twitter.pants.tasks import Task
 
 def _check_pid(pid):
   try:
@@ -119,31 +118,41 @@ class NailgunTask(Task):
         self._ng_shutdown()
         raise e
     else:
-      return binary_utils.runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs)
+      return binary_util.runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs)
 
   def runjava(self, main, classpath=None, opts=None, args=None, jvmargs=None):
-    """
-      Runs the java main using the given classpath and args.  If --no-ng-daemons is specified then
-      the java main is run in a freshly spawned subprocess, otherwise a persistent nailgun server
-      dedicated to this Task subclass is used to speed up amortized run times.
-      The args list is divisable so it can be split across multiple invocations of the command
-      similiar to xargs.
+    """Runs the java main using the given classpath and args.
+
+    If --no-ng-daemons is specified then the java main is run in a freshly spawned subprocess,
+    otherwise a persistent nailgun server dedicated to this Task subclass is used to speed up
+    amortized run times. The args list is divisable so it can be split across multiple invocations
+    of the command similiar to xargs.
     """
 
-    return self._runjava_common(binary_utils.runjava, main=main, classpath=classpath,
+    return self._runjava_common(binary_util.runjava, main=main, classpath=classpath,
                                 opts=opts, args=args, jvmargs=jvmargs)
 
   def runjava_indivisible(self, main, classpath=None, opts=None, args=None, jvmargs=None):
-    """
-      Runs the java main using the given classpath and args.  If --no-ng-daemons is specified then
-      the java main is run in a freshly spawned subprocess, otherwise a persistent nailgun server
-      dedicated to this Task subclass is used to speed up amortized run times.
-      The args list is indivisable so it can't be split across multiple invocations of the command
-      similiar to xargs.
+    """Runs the java main using the given classpath and args.
+
+    If --no-ng-daemons is specified then the java main is run in a freshly spawned subprocess,
+    otherwise a persistent nailgun server dedicated to this Task subclass is used to speed up
+    amortized run times. The args list is indivisable so it can't be split across multiple
+    invocations of the command similiar to xargs.
     """
 
-    return self._runjava_common(binary_utils.runjava_indivisible, main=main, classpath=classpath,
+    return self._runjava_common(binary_util.runjava_indivisible, main=main, classpath=classpath,
                                 opts=opts, args=args, jvmargs=jvmargs)
+
+  def profile_classpath(self, profile):
+    """Ensures the classpath for the given profile ivy.xml is available and returns it as a list of
+    paths.
+
+    profile: The name of the tool profile classpath to ensure.
+    """
+    return binary_util.profile_classpath(profile,
+                                         java_runner=self.runjava_indivisible,
+                                         config=self.context.config)
 
   def _ng_shutdown(self):
     endpoint = self._get_nailgun_endpoint()
@@ -251,11 +260,11 @@ class NailgunTask(Task):
       args.extend(self._ng_server_args)
     args.append(NailgunTask.PANTS_NG_ARG)
     args.append(NailgunTask.create_pidfile_arg(self._pidfile))
-    ng_classpath = os.pathsep.join(profile_classpath(self._nailgun_profile))
+    ng_classpath = os.pathsep.join(binary_util.profile_classpath(self._nailgun_profile))
     args.extend(['-cp', ng_classpath, 'com.martiansoftware.nailgun.NGServer', ':0'])
     log.debug('Executing: %s' % ' '.join(args))
 
-    with binary_utils.safe_classpath(logger=log.warn):
+    with binary_util.safe_classpath(logger=log.warn):
       process = subprocess.Popen(
         args,
         stdin=in_fd,

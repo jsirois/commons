@@ -4,19 +4,14 @@ __author__ = 'Anand Madhavan'
 # or ok if/when thriftstore is open sourced as well
 
 import os
-import re
 import subprocess
 
-from collections import defaultdict
-
-from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_jvm
 from twitter.pants.targets import JavaLibrary, JavaThriftstoreDMLLibrary, JavaThriftLibrary
 from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.binary_utils import select_binary
 from twitter.pants.tasks.code_gen import CodeGen
 
 class ThriftstoreDMLGen(CodeGen):

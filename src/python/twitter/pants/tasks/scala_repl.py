@@ -19,8 +19,8 @@ __author__ = 'Benjy Weinberger'
 import shlex
 import subprocess
 
+from twitter.pants.binary_util import profile_classpath, runjava_indivisible
 from twitter.pants.tasks import Task
-from twitter.pants.tasks.binary_utils import profile_classpath, runjava_indivisible
 from twitter.pants.tasks.jvm_task import JvmTask
 
 

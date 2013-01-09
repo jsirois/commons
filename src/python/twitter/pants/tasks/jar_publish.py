@@ -31,6 +31,7 @@ from twitter.common.config import Properties
 from twitter.common.dirutil import safe_open, safe_rmtree
 
 from twitter.pants import (
+  binary_util,
   get_buildroot,
   get_scm,
   is_exported as provides,
@@ -45,7 +46,7 @@ from twitter.pants.targets import (
   JavaLibrary,
   ScalaLibrary,
   JavaThriftLibrary)
-from twitter.pants.tasks import binary_utils, Task, TaskError
+from twitter.pants.tasks import Task, TaskError
 
 class Semver(object):
   @staticmethod
@@ -639,7 +640,7 @@ class JarPublish(Task):
           if self.snapshot:
             opts.append('-overwrite')
 
-          result = binary_utils.runjava_indivisible(jvmargs=jvmargs, classpath=self.ivycp, opts=opts)
+          result = binary_util.runjava_indivisible(jvmargs=jvmargs, classpath=self.ivycp, opts=opts)
           if result != 0:
             raise TaskError('Failed to push %s - ivy failed with %d' % (
               jar_coordinate(jar, newver.version()), result)
@@ -659,7 +660,8 @@ class JarPublish(Task):
             if self.snapshot:
               opts.append('-overwrite')
 
-            result = binary_utils.runjava_indivisible(jvmargs=jvmargs, classpath=self.ivycp, opts=opts)
+            result = binary_util.runjava_indivisible(jvmargs=jvmargs, classpath=self.ivycp,
+                                                     opts=opts)
             if result != 0:
               raise TaskError('Failed to push %s - ivy failed with %d' % (
                 jar_coordinate(jar, newver.version()), result)
