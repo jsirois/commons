@@ -264,7 +264,7 @@ public class ServerSetImpl implements ServerSet {
         serviceInstance.setShard(shardId.get());
       }
 
-      LOG.info("updating endpoint data to:\n\t" + serviceInstance);
+      LOG.debug("updating endpoint data to:\n\t" + serviceInstance);
       try {
         return ServerSets.serializeServiceInstance(serviceInstance, codec);
       } catch (IOException e) {
