@@ -16,22 +16,23 @@
 
 from twitter.pants.targets.jvm_target import JvmTarget
 
+
 class ExportableJvmLibrary(JvmTarget):
   """A baseclass for java targets that support being exported to an artifact repository."""
+
   def __init__(self,
                name,
                sources,
                provides = None,
                dependencies = None,
                excludes = None,
-               buildflags = None,
-               is_meta = False):
+               buildflags = None):
 
     # it's critical provides is set 1st since _provides() is called elsewhere in the constructor
     # flow
     self.provides = provides
 
-    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags, is_meta)
+    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags)
     self.add_label('exportable')
 
   def _provides(self):

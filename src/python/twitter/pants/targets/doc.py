@@ -39,14 +39,14 @@ class Wiki(Target):
   def __init__(self, name, url_builder):
     """:url_builder a function that accepts a page target and an optional wiki :config dict and
     returns a tuple of (alias, fully qualified url)."""
-    Target.__init__(self, name, is_meta=False)
+    Target.__init__(self, name)
     self.url_builder = url_builder
 
 
 class Page(InternalTarget, TargetWithSources):
   """A target that identifies a single documentation page."""
   def __init__(self, name, source, dependencies=None, resources=None):
-    InternalTarget.__init__(self, name, dependencies, is_meta=False)
+    InternalTarget.__init__(self, name, dependencies)
     TargetWithSources.__init__(self, name, sources=[source])
 
     self.resources = self._resolve_paths(self.target_base, resources) if resources else []

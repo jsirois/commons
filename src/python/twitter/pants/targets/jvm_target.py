@@ -26,10 +26,9 @@ class JvmTarget(InternalTarget, TargetWithSources):
   def __init__(self, name, sources, dependencies,
                excludes=None,
                buildflags=None,
-               is_meta=False,
                configurations=None):
-    InternalTarget.__init__(self, name, dependencies, is_meta)
-    TargetWithSources.__init__(self, name, is_meta)
+    InternalTarget.__init__(self, name, dependencies)
+    TargetWithSources.__init__(self, name, sources)
 
     self.declared_dependencies = set(dependencies or [])
     self.add_label('jvm')

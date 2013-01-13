@@ -32,8 +32,8 @@ class TargetWithSources(Target):
   def register_source(cls, source, target):
     cls._source_to_targets[source].add(target)
 
-  def __init__(self, name, is_meta=False):
-    Target.__init__(self, name, is_meta)
+  def __init__(self, name, sources=None):
+    Target.__init__(self, name, is_meta=False)
 
     self.add_label('sources')
     self.target_base = SourceRoot.find(self)
@@ -83,9 +83,8 @@ class TargetWithSources(Target):
         ~/workspace/src/resources/com/twitter/common/base
     """
 
-    # meta targets are composed of already-resolved paths
-    if not paths or self.is_meta:
-      return paths
+    if not paths:
+      return []
 
     def flatten_paths(*items):
       """Flattens one or more items into a list.  If the item is iterable each of its items is

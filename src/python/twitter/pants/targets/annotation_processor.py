@@ -26,8 +26,7 @@ class AnnotationProcessor(ExportableJvmLibrary, WithLegacyResources):
                dependencies = None,
                excludes = None,
                resources = None,
-               processors = None,
-               is_meta = False):
+               processors = None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -48,10 +47,9 @@ class AnnotationProcessor(ExportableJvmLibrary, WithLegacyResources):
                                   provides,
                                   dependencies,
                                   excludes,
-                                  (),
-                                  is_meta)
+                                  ())
 
-    WithLegacyResources.__init__(self, name, is_meta=is_meta, sources=sources, resources=resources)
+    WithLegacyResources.__init__(self, name, sources=sources, resources=resources)
 
     self.add_label('java')
     self.add_label('apt')

@@ -110,7 +110,7 @@ class JvmApp(Target):
   """Defines a jvm app package consisting of a binary plus additional bundles of files."""
 
   def __init__(self, name, binary, bundles, basename=None):
-    Target.__init__(self, name, is_meta=False)
+    Target.__init__(self, name)
 
     if not binary:
       raise TargetDefinitionException(self, 'binary is required')

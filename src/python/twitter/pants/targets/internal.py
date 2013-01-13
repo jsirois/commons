@@ -144,8 +144,8 @@ class InternalTarget(Target):
 
     return InternalTarget.coalesce_targets([ self ], discriminator)
 
-  def __init__(self, name, dependencies, is_meta):
-    Target.__init__(self, name, is_meta)
+  def __init__(self, name, dependencies):
+    Target.__init__(self, name)
 
     self._injected_deps = []
     self.processed_dependencies = resolve(dependencies)
@@ -156,17 +156,13 @@ class InternalTarget(Target):
     self.internal_dependencies = OrderedSet()
     self.jar_dependencies = OrderedSet()
 
-    # TODO(John Sirois): if meta targets were truly built outside parse contexts - we could instead
-    # just use the more general check: if parsing: delay(doit) else: doit()
+    # TODO(John Sirois): just use the more general check: if parsing: delay(doit) else: doit()
     # Fix how target _ids are built / addresses to not require a BUILD file - ie: support anonymous,
     # non-addressable targets - which is what meta-targets really are once created.
-    if is_meta:
-      # Meta targets are built outside any parse context - so update dependencies immediately
-      self.update_dependencies(self.processed_dependencies)
-    else:
-      # Defer dependency resolution after parsing the current BUILD file to allow for forward
-      # references
-      self._post_construct(self.update_dependencies, self.processed_dependencies)
+
+    # Defer dependency resolution after parsing the current BUILD file to allow for forward
+    # references
+    self._post_construct(self.update_dependencies, dependencies)
 
     self._post_construct(self.inject_dependencies)
 

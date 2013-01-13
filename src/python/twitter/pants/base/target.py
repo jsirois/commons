@@ -133,7 +133,7 @@ class Target(object):
 
   def locate(self):
     parse_context = ParseContext.locate()
-    return Address(parse_context.buildfile, self.name, self.is_meta)
+    return Address(parse_context.buildfile, self.name)
 
   def register(self):
     existing = self._targets_by_address.get(self.address)

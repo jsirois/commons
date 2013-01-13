@@ -28,8 +28,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                excludes = None,
                compiler = 'thrift',
                languages = None,
-               buildflags = None,
-               is_meta = False):
+               buildflags = None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -50,8 +49,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                                   provides,
                                   dependencies,
                                   excludes,
-                                  buildflags,
-                                  is_meta)
+                                  buildflags)
     self.add_label('java')
     self.add_label('codegen')
     self.compiler = compiler

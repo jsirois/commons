@@ -36,6 +36,7 @@ class JarLibrary(Target):
         self.dependency_addresses.add(dependency.address)
 
   def resolve(self):
+    yield self
     for dependency in self.dependencies:
       for resolved_dependency in dependency.resolve():
         yield resolved_dependency

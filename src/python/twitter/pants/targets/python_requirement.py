@@ -29,7 +29,7 @@ class PythonRequirement(Target, ExternalDependency):
     self._dynamic = dynamic
     self._repository = repository
     self._version_filter = version_filter or (lambda: True)
-    Target.__init__(self, self._name, False)
+    Target.__init__(self, self._name)
 
   def size(self):
     return 1

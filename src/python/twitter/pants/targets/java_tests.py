@@ -27,8 +27,7 @@ class JavaTests(JvmTarget):
                dependencies = None,
                excludes = None,
                resources = None,
-               buildflags = None,
-               is_meta = False):
+               buildflags = None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -41,7 +40,7 @@ class JavaTests(JvmTarget):
     buildflags: A list of additional command line arguments to pass to the underlying build system
         for this target"""
 
-    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags, is_meta)
+    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags)
 
     self.resources = list(self.resolve_all(resources, Resources))
     self.add_label('java')

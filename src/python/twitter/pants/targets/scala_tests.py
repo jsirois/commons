@@ -28,8 +28,7 @@ class ScalaTests(JvmTarget):
                dependencies = None,
                excludes = None,
                resources = None,
-               buildflags = None,
-               is_meta = False):
+               buildflags = None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -48,8 +47,7 @@ class ScalaTests(JvmTarget):
                        sources,
                        dependencies,
                        excludes,
-                       buildflags,
-                       is_meta)
+                       buildflags)
     self.add_label('scala')
     self.add_label('tests')
     self.java_sources = java_sources
