@@ -66,7 +66,7 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
-CASCADING2_REV = '2.0.2'
+CASCADING2_REV = '2.0.7'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
