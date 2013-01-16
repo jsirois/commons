@@ -15,6 +15,7 @@
 # ==================================================================================================
 
 import os
+import os.path
 import pytest
 import unittest
 
@@ -34,7 +35,7 @@ class AddressTest(unittest.TestCase):
       with pushd(root_dir):
         for buildfile in buildfiles:
           touch(os.path.join(root_dir, buildfile))
-        yield root_dir
+        yield os.path.realpath(root_dir)
 
   def assertAddress(self, root_dir, path, name, address):
     self.assertEqual(root_dir, address.buildfile.root_dir)

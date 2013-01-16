@@ -58,7 +58,6 @@ def set_buildroot(path):
   global _BUILDROOT
   _BUILDROOT = os.path.realpath(path)
 
-from functools import reduce
 
 from twitter.pants.scm import Scm
 
@@ -80,29 +79,14 @@ def set_scm(scm):
 
 from twitter.common.dirutil import Fileset
 
-
-def globs(*globspecs):
-  """Returns a Fileset that combines the lists of files returned by glob.glob for each globspec."""
-
-  def combine(files, globspec):
-    return files ^ set(glob.glob(globspec))
-  return Fileset(lambda: reduce(combine, globspecs, set()))
+globs = Fileset.globs
+rglobs = Fileset.rglobs
 
 
-def rglobs(*globspecs):
-  """Returns a Fileset that does a recursive scan under the current directory combining the lists of
-  files returned that would be returned by glob.glob for each globspec."""
-
-  root = os.curdir
-  def recursive_globs():
-    for base, _, files in os.walk(root):
-      for filename in files:
-        path = os.path.relpath(os.path.normpath(os.path.join(base, filename)), root)
-        for globspec in globspecs:
-          if fnmatch.fnmatch(path, globspec):
-            yield path
-
-  return Fileset(lambda: set(recursive_globs()))
+def is_concrete(target):
+  """Returns true if a target resolves to itself."""
+  targets = list(target.resolve())
+  return len(targets) == 1 and targets[0] == target
 
 
 from twitter.pants.targets import *
@@ -113,7 +97,6 @@ artifact = Artifact
 bundle = Bundle
 credentials = Credentials
 dependencies = jar_library = JarLibrary
-doc = Doc
 egg = PythonEgg
 exclude = Exclude
 fancy_pants = Pants
@@ -128,6 +111,7 @@ java_thrift_library = JavaThriftLibrary
 java_thriftstore_dml_library = JavaThriftstoreDMLLibrary
 jvm_binary = JvmBinary
 jvm_app = JvmApp
+oink_query = OinkQuery
 page = Page
 python_artifact = setup_py = PythonArtifact
 python_binary = PythonBinary
@@ -138,6 +122,7 @@ python_thrift_library = PythonThriftLibrary
 python_tests = PythonTests
 python_test_suite = PythonTestSuite
 repo = Repository
+resources = Resources
 scala_library = ScalaLibrary
 scala_specs = scala_tests = ScalaTests
 scalac_plugin = ScalacPlugin
@@ -267,7 +252,6 @@ __all__ = (
   'bundle',
   'credentials',
   'dependencies',
-  'doc',
   'exclude',
   'egg',
   'get_buildroot',
@@ -278,7 +262,6 @@ __all__ = (
   'group',
   'is_apt',
   'is_codegen',
-  'is_doc',
   'is_exported',
   'is_internal',
   'is_jar_library',
@@ -299,6 +282,8 @@ __all__ = (
   'junit_tests',
   'jvm_app',
   'jvm_binary',
+  'maven_layout',
+  'oink_query',
   'page',
   'pants',
   'phase',
@@ -311,6 +296,7 @@ __all__ = (
   'python_test_suite',
   'python_thrift_library',
   'repo',
+  'resources',
   'rglobs',
   'scala_library',
   'scala_specs',

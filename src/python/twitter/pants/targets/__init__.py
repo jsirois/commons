@@ -45,6 +45,7 @@ from .java_protobuf_library import JavaProtobufLibrary
 from .java_tests import JavaTests
 from .jvm_binary import Bundle, JvmApp, JvmBinary
 from .jvm_target import JvmTarget
+from .oink_query import OinkQuery
 from .pants_target import Pants
 from .python_artifact import PythonArtifact
 from .python_binary import PythonBinary
@@ -84,6 +85,7 @@ __all__ = [
   'JvmApp',
   'JvmBinary',
   'JvmTarget',
+  'OinkQuery',
   'Page',
   'Pants',
   'PythonArtifact',
