@@ -27,7 +27,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                dependencies = None,
                excludes = None,
                compiler = 'thrift',
-               languages = None,
+               language = None,
                buildflags = None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
@@ -39,7 +39,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
     compiler: An optional compiler used to compile the thrift files.
-    languages: The languages used to generate the output files.
+    language: The language used to generate the output files.
     buildflags: A list of additional command line arguments to pass to the underlying build system
         for this target"""
 
@@ -53,7 +53,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
     self.add_label('java')
     self.add_label('codegen')
     self.compiler = compiler
-    self.languages = languages
+    self.language = language
 
   def _as_jar_dependency(self):
     return ExportableJvmLibrary._as_jar_dependency(self).with_sources()
