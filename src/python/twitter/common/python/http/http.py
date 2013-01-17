@@ -62,7 +62,7 @@ class Web(object):
 
   def _resolves(self, fullurl):
     try:
-      return socket.gethostbyname(fullurl.netloc)
+      return socket.gethostbyname(fullurl.hostname)
     except socket.gaierror:
       return ''
 
@@ -70,7 +70,7 @@ class Web(object):
     port = fullurl.port if fullurl.port else self.SCHEME_TO_PORT.get(fullurl.scheme, 80)
     try:
       conn = socket.create_connection(
-          (fullurl.netloc, port), timeout=self.CONN_TIMEOUT.as_(Time.SECONDS))
+          (fullurl.hostname, port), timeout=self.CONN_TIMEOUT.as_(Time.SECONDS))
       conn.close()
       return True
     except (socket.error, socket.timeout):
@@ -93,7 +93,7 @@ class Web(object):
           TRACER.log('Failed to resolve %s' % url)
           return False
     except Timeout:
-      TRACER.log('Timed out resolving %s' % fullurl.netloc)
+      TRACER.log('Timed out resolving %s' % fullurl.hostname)
       return False
     with TRACER.timed('Connecting', V=2):
       return self._reachable(fullurl)
