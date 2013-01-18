@@ -34,6 +34,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.MapMaker;
+import com.google.common.util.concurrent.AtomicDouble;
 
 import com.twitter.common.base.MorePreconditions;
 
@@ -250,6 +251,42 @@ public class Stats {
    */
   public static AtomicLong exportLong(String name, long initialValue) {
     return export(name, new AtomicLong(initialValue));
+  }
+
+  /**
+   * Exports an {@link AtomicDouble}, which will be included in time series tracking.
+   *
+   * @param name The name to export the stat with.
+   * @param doubleVar The variable to export.
+   * @return A reference to the {@link AtomicDouble} provided.
+   */
+  public static AtomicDouble export(String name, final AtomicDouble doubleVar) {
+    export(new StatImpl<Double>(name) {
+      @Override public Double read() { return doubleVar.doubleValue(); }
+    });
+
+    return doubleVar;
+  }
+
+  /**
+   * Creates and exports an {@link AtomicDouble}.
+   *
+   * @param name The name to export the stat with.
+   * @return A reference to the {@link AtomicDouble} created.
+   */
+  public static AtomicDouble exportDouble(String name) {
+    return exportDouble(name, 0.0);
+  }
+
+  /**
+   * Creates and exports an {@link AtomicDouble} with initial value.
+   *
+   * @param name The name to export the stat with.
+   * @param initialValue The initial stat value.
+   * @return A reference to the {@link AtomicDouble} created.
+   */
+  public static AtomicDouble exportDouble(String name, double initialValue) {
+    return export(name, new AtomicDouble(initialValue));
   }
 
   /**
