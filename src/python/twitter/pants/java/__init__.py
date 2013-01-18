@@ -15,7 +15,7 @@
 # ==================================================================================================
 
 import os
-import tempfile
+import stat
 import zipfile
 
 from contextlib import contextmanager
@@ -47,8 +47,9 @@ def open_jar(path, *args, **kwargs):
         parent_path = os.path.dirname(arcpath)
         mkdirs(parent_path)
 
-        # Any real directory will do so we pick the system tmp dir as a convenient cross-platform
-        # available dir.  We store directories without compression since they have no contents and
+        zipinfo = zipfile.ZipInfo(arcpath if arcpath.endswith('/') else arcpath + '/')
+
+        # We store directories without compression since they have no contents and
         # attempts to store them with compression lead to corrupted zip files as such:
         # $ unzip -t junit-runner-0.0.19.jar
         # Archive:  junit-runner-0.0.19.jar
@@ -63,13 +64,45 @@ def open_jar(path, *args, **kwargs):
         # testing: com/twitter/common/testing/runner/
         # error:  invalid compressed data to inflate
         # testing: com/twitter/common/testing/runner/StreamSource.class   OK
-        real_write(tempfile.gettempdir(), arcpath, zipfile.ZIP_STORED)
+        zipinfo.compress_type = zipfile.ZIP_STORED
+
+        # PKZIP says external_attr is a 4 byte field that is host system dependant:
+        #   http://www.pkware.com/documents/casestudies/APPNOTE.TXT
+        # These notes do mention the low order byte will carry DOS file attributes for DOS host
+        # system zips.  The DOS file attribute bits are described here:
+        #   http://www.xxcopy.com/xxcopy06.htm
+        #
+        # More details are only found reading source, for example in BSD:
+        #   ftp://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/i386/1.0-RELEASE/ports/info-zip/zipinfo/zipinfo.c
+        # These sources reveal the 2 high order bytes contain unix file attribute bits.
+        #
+        # In summary though the full 32 bit field layout is:
+        # TTTTsstrwxrwxrwx0000000000ADVSHR
+        # ^^^^____________________________ stat.h file type: S_IFXXX
+        #     ^^^_________________________ setuid, setgid, sticky
+        #        ^^^^^^^^^________________ permissions
+        #                 ^^^^^^^^________ ???
+        #                         ^^^^^^^^ DOS attribute bits
+
+        # Setup unix directory perm bits: drwxr-xr-x
+        zipinfo.external_attr = (
+          stat.S_IFDIR                                  # file type dir
+          | stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR  # u+rwx
+          | stat.S_IRGRP | stat.S_IXGRP                 # g+rx
+          | stat.S_IROTH | stat.S_IXOTH                 # o+rx
+        ) << 16
+
+        # Add DOS directory bit
+        zipinfo.external_attr |= 0x10
+
+        real_writestr(zipinfo, '')
 
     def write(path, arcname=None, **kwargs):
-      mkdirs(os.path.dirname(path)
-             if not arcname
-             else os.path.dirname(arcname))
-      real_write(path, arcname, **kwargs)
+      if os.path.isdir(path):
+        mkdirs(arcname or path)
+      else:
+        mkdirs(os.path.dirname(arcname or path))
+        real_write(path, arcname, **kwargs)
 
     def writestr(zinfo_or_arcname, *args, **kwargs):
       mkdirs(os.path.dirname(zinfo_or_arcname))

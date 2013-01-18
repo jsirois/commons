@@ -14,7 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
+import errno
 import os
+import pytest
 import sys
 import unittest
 
@@ -44,8 +46,15 @@ class OpenJarTest(unittest.TestCase):
 
     if Compatibility.PY2 and sys.version_info[1] <= 6:
       # Empty zip files in python 2.6 or lower cannot be read normally.
+      # Although BadZipFile should be raised, Apple's python 2.6.1 is sloppy and lets an IOError
+      # bubble, so we check for that case explicitly.
       from zipfile import BadZipfile
-      self.assertRaises(BadZipfile, assert_mkdirs, '')
+      with pytest.raises(Exception) as raised_info:
+        assert_mkdirs('')
+      raised = raised_info.value
+      self.assertTrue(isinstance(raised, (BadZipfile, IOError)))
+      if isinstance(raised, IOError):
+        self.assertEqual(errno.EINVAL, raised.errno)
     else:
       assert_mkdirs('')
 
