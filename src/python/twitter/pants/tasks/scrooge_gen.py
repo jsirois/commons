@@ -126,11 +126,11 @@ class ScroogeGen(NailgunTask):
         opts.extend(('--language', lang,
                      '--dest', compiler_lang_info['outdir']))
 
-        # TODO(Robert Nielsen): we need --namespace-map configurable in the BUILD file
-        # AWESOME-1543
-
         for base in bases:
           opts.extend(('--import-path', base))
+
+        for lhs, rhs in namespace_map(compiler_lang_targets).items():
+          opts.extend(('--namespace-map', '%s=%s' % (lhs, rhs)))
 
         with temporary_file() as gen_file_map:
           gen_file_map.close()
@@ -159,7 +159,7 @@ class ScroogeGen(NailgunTask):
           genmap.add(gentarget, get_buildroot(), [langtarget])
           for dep in gentarget.internal_dependencies:
             if is_gentarget(dep):
-              self.updatedependencies(langtarget, langtarget_by_gentarget[dep])
+              langtarget.update_dependencies([langtarget_by_gentarget[dep]])
 
   def createtarget(self, gentarget, dependees, gen_files_for_source):
     assert is_gentarget(gentarget)
@@ -249,10 +249,24 @@ def is_gentarget(target):
 
 
 def compiler_to_lang_to_targets(targets):
-  result = defaultdict(dict)
+  result = defaultdict(lambda: defaultdict(set))
   for target in targets:
-    assert is_gentarget(target)
-    if target.language not in result[target.compiler]:
-      result[target.compiler][target.language] = set()
     result[target.compiler][target.language].add(target)
+  return result
+
+
+def namespace_map(targets):
+  result = dict()
+  target_for_lhs = dict()
+  for target in targets:
+    if target.namespace_map:
+      for lhs, rhs in target.namespace_map.items():
+        current_rhs = result.get(lhs)
+        if None == current_rhs:
+          result[lhs] = rhs
+          target_for_lhs[lhs] = target
+        elif current_rhs != rhs:
+          raise TaskError("Conflicting namespace_map values:\n\t%s {'%s': '%s'}\n\t%s {'%s': '%s'}" %
+                          (target_for_lhs[lhs], lhs, current_rhs,
+                           target, lhs, rhs))
   return result
