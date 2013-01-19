@@ -337,8 +337,10 @@ class JUnitRun(JvmTask):
     classes_by_source = self.context.products.get('classes')
     def relpath_toclassname(path):
       classes = classes_by_source.get(path)
-      if classes is None:  # Some files may yield no classes (e.g., tests that have been commented out).
-        self.context.log.warn('No classes found for file %s' % path)
+      if not classes:
+        # Its perfectly valid - if questionable - to have a source file with no classes when, for
+        # example, the source file has all its code commented out.
+        self.context.log.warn('File %s contains no classes' % os.path.join(basedir, path))
       else:
         for base, classes in classes.items():
           for cls in classes:

@@ -20,7 +20,7 @@ import os
 import sys
 
 
-_VERSION = '0.0.5'
+_VERSION = '0.0.7'
 
 
 def get_version():
