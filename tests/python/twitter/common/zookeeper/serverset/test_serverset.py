@@ -56,6 +56,14 @@ class TestServerSet(unittest.TestCase):
     assert list(ss1) == [ServiceInstance(self.INSTANCE1), ServiceInstance(self.INSTANCE2)]
     assert list(ss2) == [ServiceInstance(self.INSTANCE1), ServiceInstance(self.INSTANCE2)]
 
+  def test_shard_id_registers(self):
+    ss1 = ServerSet(ZooKeeper(self._server.ensemble), self.SERVICE_PATH)
+    ss2 = ServerSet(ZooKeeper(self._server.ensemble), self.SERVICE_PATH)
+    ss1.join(self.INSTANCE1, shard=0)
+    ss2.join(self.INSTANCE2, shard=1)
+    assert list(ss1) == [ServiceInstance(self.INSTANCE1, shard=0), ServiceInstance(self.INSTANCE2, shard=1)]
+    assert list(ss2) == [ServiceInstance(self.INSTANCE1, shard=0), ServiceInstance(self.INSTANCE2, shard=1)]
+
   def test_canceled_join_long_time(self):
     zk = ZooKeeper(self._server.ensemble)
     session_id = zk.session_id()

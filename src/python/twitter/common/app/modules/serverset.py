@@ -66,6 +66,9 @@ class ServerSetModule(app.Module):
     'serverset-primary': options.Option('--serverset-primary',
         type='int', metavar='PORT', dest='serverset_module_primary_port', default=None,
         help='Port on which to bind the primary endpoint.'),
+    'serverset-shard-id': options.Option('--serverset-shard-id',
+        type='int', metavar='INT', dest='serverset_module_shard_id', default=None,
+        help='Shard id to assign this serverset entry.'),
     'serverset-extra': options.Option('--serverset-extra',
         default={}, type='string', nargs=1, action='callback', metavar='NAME:PORT',
         callback=add_port_to('serverset_module_extra'), dest='serverset_module_extra',
@@ -132,11 +135,14 @@ class ServerSetModule(app.Module):
     self._zookeeper = ZooKeeper(options.serverset_module_ensemble)
     self._serverset = ServerSet(self._zookeeper, options.serverset_module_path)
     self._join_args = (primary, additional)
+    self._join_kwargs = ({'shard': options.serverset_module_shard_id}
+                         if options.serverset_module_shard_id else {})
 
   def _join(self):
     log.debug('ServerSet module joining serverset.')
     primary, additional = self._join_args
-    self._membership = self._serverset.join(primary, additional, expire_callback=self.on_expiration)
+    self._membership = self._serverset.join(primary, additional, expire_callback=self.on_expiration,
+        **self._join_kwargs)
 
   def on_expiration(self):
     if self._torndown:
