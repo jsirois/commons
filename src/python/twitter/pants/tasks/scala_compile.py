@@ -91,6 +91,15 @@ class ScalaCompile(NailgunTask):
     artifact_cache_spec = context.config.getlist('scala-compile', 'artifact_caches')
     self.setup_artifact_cache(artifact_cache_spec)
 
+    # If we are compiling scala libraries with circular deps on java libraries we need to make sure
+    # those cycle deps are present.
+    self._inject_java_cycles()
+
+  def _inject_java_cycles(self):
+    for scala_target in self.context.targets(lambda t: isinstance(t, ScalaLibrary)):
+      for java_target in scala_target.java_sources:
+        self.context.add_target(java_target)
+
   def product_type(self):
     return 'classes'
 

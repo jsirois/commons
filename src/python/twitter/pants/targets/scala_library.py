@@ -14,12 +14,17 @@
 # limitations under the License.
 # ==================================================================================================
 
+from twitter.common.collections import maybe_list
+
+from twitter.pants.base import Target
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
 from twitter.pants.targets.resources import WithLegacyResources
 
+from . import JavaLibrary
+
 
 class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
-  """Defines a target that produces a scala library."""
+  """Defines the source code and dependencies of a scala library."""
 
   def __init__(self, name,
                sources = None,
@@ -31,21 +36,24 @@ class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
                deployjar = False,
                buildflags = None):
 
-    """name: The name of this module target, addressable via pants via the portion of the spec
-        following the colon
-    sources: A list of paths containing the scala source files this module's jar is compiled from
-    java_sources: An optional list of paths containing the java sources this module's jar is in part
-        compiled from
-    provides: An optional Dependency object indicating the The ivy artifact to export
-    dependencies: An optional list of Dependency objects specifying the binary (jar) dependencies of
-        this module.
-    excludes: An optional list of dependency exclude patterns to filter all of this module's
-        transitive dependencies against.
-    resources: An optional list of paths containing (filterable) text file resources to place in
-        this module's jar
-    deployjar: An optional boolean that turns on generation of a monolithic deploy jar
-    buildflags: A list of additional command line arguments to pass to the underlying build system
-        for this target"""
+    """name:      The name of this target, addressable via pants via the portion of the address spec
+                  following the colon.
+    sources:      A list of paths containing the scala source files this scala library is composed
+                  of.
+    java_sources: An optional JavaLibrary target or list of targets containing the java libraries
+                  this library has a circular dependency on.  Prefer using dependencies to express
+                  non-circular dependencies.
+    provides:     An optional Dependency object indicating the The ivy artifact to export
+    dependencies: An optional list of local and remote dependencies of this library.
+    excludes:     An optional list of dependency Exclude objects to filter all of this module's
+                  transitive dependencies against.
+    resources:    An optional list of paths (DEPRECATED) or Resource targets containing resources
+                  that belong on this library's classpath.
+    deployjar:    DEPRECATED - An optional boolean that turns on generation of a monolithic deploy
+                  jar - now ignored.
+    buildflags:   DEPRECATED - A list of additional command line arguments to pass to the underlying
+                  build system for this target - now ignored.
+    """
 
     ExportableJvmLibrary.__init__(self,
                                   name,
@@ -58,5 +66,20 @@ class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
     WithLegacyResources.__init__(self, name, sources=sources, resources=resources)
 
     self.add_label('scala')
-    self.java_sources = java_sources
     self.deployjar = deployjar
+
+    # Defer resolves until done parsing the current BUILD file, certain source_root arrangements
+    # might allow java and scala sources to co-mingle and so have targets in the same BUILD.
+    self._post_construct(self._link_java_cycles, java_sources)
+
+  def _link_java_cycles(self, java_sources):
+    if java_sources:
+      self.java_sources = list(Target.resolve_all(maybe_list(java_sources, Target), JavaLibrary))
+    else:
+      self.java_sources = []
+
+    # We have circular java/scala dep, add an inbound dependency edge from java to scala in this
+    # case to force scala compilation to precede java - since scalac supports generating java stubs
+    # for these cycles and javac does not this is both necessary and always correct.
+    for java_target in self.java_sources:
+      java_target.update_dependencies([self])
