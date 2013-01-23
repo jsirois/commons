@@ -25,9 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import com.twitter.common.text.token.TokenStream;
-import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.TokenType;
-import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Tokenizes text based on regular expressions of word delimiters and punctuation characters.
@@ -41,13 +39,8 @@ public class RegexTokenizer extends TokenStream {
   private List<TokenType> tokenTypes;
   private int tokenIndex = 0;
 
-  private CharSequenceTermAttribute termAttr;
-  private TokenTypeAttribute typeAttr;
-
   // please use Builder instead.
   protected RegexTokenizer() {
-    termAttr = addAttribute(CharSequenceTermAttribute.class);
-    typeAttr = addAttribute(TokenTypeAttribute.class);
   }
 
   protected void setDelimiterPattern(Pattern delimiterPattern) {
@@ -70,9 +63,8 @@ public class RegexTokenizer extends TokenStream {
 
     CharBuffer token = tokens.get(tokenIndex);
 
-    termAttr.setOffset(token.position());
-    termAttr.setLength(token.limit() - token.position());
-    typeAttr.setType(tokenTypes.get(tokenIndex));
+    updateOffsetAndLength(token.position(), token.limit() - token.position());
+    updateType(tokenTypes.get(tokenIndex));
 
     tokenIndex++;
 
@@ -82,7 +74,7 @@ public class RegexTokenizer extends TokenStream {
   @Override
   public void reset(CharSequence input) {
     // reset termAttr
-    termAttr.setCharSequence(input);
+    updateInputCharSequence(input);
 
     // reset tokens
     tokens = Lists.newArrayList();

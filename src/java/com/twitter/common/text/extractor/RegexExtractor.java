@@ -16,29 +16,22 @@
 
 package com.twitter.common.text.extractor;
 
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 
 import com.twitter.common.text.token.TokenStream;
-import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 
 /**
  * Extracts entities from text according to a given regular expression.
  */
 public class RegexExtractor extends TokenStream {
-  private static final Logger LOG = Logger.getLogger(RegexExtractor.class.getName());
-  private final CharSequenceTermAttribute charSeqTermAtt =
-    addAttribute(CharSequenceTermAttribute.class);
-
   private Pattern regexPattern;
   private int startGroup = 0;
   private int endGroup = 0;
   private char triggeringChar = 0;
   private Matcher matcher = null;
-  private static final byte SPACE = 0x20;
 
 
   /**
@@ -91,7 +84,7 @@ public class RegexExtractor extends TokenStream {
    */
   public void reset(CharSequence input) {
     Preconditions.checkNotNull(input);
-    charSeqTermAtt.setTermBuffer(input);
+    updateInputCharSequence(input);
 
     if (triggeringChar > 0) {
       // triggeringChar is specified.
@@ -121,12 +114,10 @@ public class RegexExtractor extends TokenStream {
       int end = matcher.end(endGroup);
 
       clearAttributes();
-      charSeqTermAtt.setOffset(start);
-      charSeqTermAtt.setLength(end - start);
-      if (end > 0 && (charSeqTermAtt.getCharSequence().charAt(end - 1) == SPACE)) {
+      if (end > 0 && Character.isWhitespace(inputCharSequence().charAt(end - 1))) {
         end = end - 1;
       }
-      charSeqTermAtt.setLength(end - start);
+      updateOffsetAndLength(start, end - start);
       return true;
     } else {
       return false;

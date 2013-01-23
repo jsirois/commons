@@ -27,16 +27,13 @@ import com.twitter.common.text.token.TokenProcessor;
 import com.twitter.common.text.token.TokenStream;
 import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.TokenType;
-import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Combines multiple tokens into a single one if they define an entity identified
  * by an extractor TokenStream.
  */
 public class ExtractorBasedTokenCombiner extends TokenProcessor {
-  private final CharSequenceTermAttribute termAttr;
   private final CharSequenceTermAttribute inputTermAttr;
-  private final TokenTypeAttribute typeAttr;
 
   private TokenStream extractor = null;
   private CharSequenceTermAttribute extractorTermAttr;
@@ -51,8 +48,6 @@ public class ExtractorBasedTokenCombiner extends TokenProcessor {
   public ExtractorBasedTokenCombiner(TokenStream inputStream) {
     super(inputStream);
     Preconditions.checkArgument(hasAttribute(CharSequenceTermAttribute.class));
-    termAttr = getAttribute(CharSequenceTermAttribute.class);
-    typeAttr = addAttribute(TokenTypeAttribute.class);
     inputTermAttr = inputStream.getAttribute(CharSequenceTermAttribute.class);
   }
 
@@ -93,15 +88,15 @@ public class ExtractorBasedTokenCombiner extends TokenProcessor {
       restoreState(getInputStream().captureState());
     }
 
-    if (offsetMap.containsKey(termAttr.getOffset())) {
-      int startOffset = termAttr.getOffset();
+    if (offsetMap.containsKey(offset())) {
+      int startOffset = offset();
       int endOffset = offsetMap.get(startOffset);
 
       // if the current token matches the given pattern,
       // simply update its TypeAttribute.
       if (endOffset == inputTermAttr.getOffset() + inputTermAttr.getLength()) {
         if (type != null) {
-          typeAttr.setType(type);
+          updateType(type);
         }
         return true;
       }
@@ -112,9 +107,9 @@ public class ExtractorBasedTokenCombiner extends TokenProcessor {
         int currentEndOffset = inputTermAttr.getOffset() + inputTermAttr.getLength();
         if (currentEndOffset == endOffset) {
           //found it!
-          termAttr.setLength(endOffset - startOffset);
+          updateOffsetAndLength(startOffset, endOffset - startOffset);
           if (type != null) {
-            typeAttr.setType(type);
+            updateType(type);
           }
           state = null;
 

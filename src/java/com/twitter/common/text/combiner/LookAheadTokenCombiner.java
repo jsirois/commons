@@ -20,7 +20,6 @@ import com.twitter.common.text.token.TokenProcessor;
 import com.twitter.common.text.token.TokenStream;
 import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.TokenType;
-import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Combiner that looks ahead to the next token and combines it with the current token based on
@@ -31,18 +30,12 @@ public abstract class LookAheadTokenCombiner extends TokenProcessor {
 
   private final CharSequenceTermAttribute inputTermAttr;
 
-  private final CharSequenceTermAttribute termAttr;
-  private final TokenTypeAttribute typeAttr;
-
   private State nextState = null;
 
   public LookAheadTokenCombiner(TokenStream inputStream) {
     super(inputStream);
 
     inputTermAttr = inputStream.getAttribute(CharSequenceTermAttribute.class);
-
-    termAttr = getAttribute(CharSequenceTermAttribute.class);
-    typeAttr = getAttribute(TokenTypeAttribute.class);
   }
 
   @Override
@@ -68,8 +61,8 @@ public abstract class LookAheadTokenCombiner extends TokenProcessor {
         CharSequence term = inputTermAttr.getTermCharSequence();
         if (canBeCombinedWithPreviousToken(term)) {
           // combine
-          termAttr.setLength(termAttr.getLength() + term.length());
-          typeAttr.setType(type);
+          updateOffsetAndLength(offset(), length() + term.length());
+          updateType(type);
 
           nextState = null;
         }

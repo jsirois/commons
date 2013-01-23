@@ -16,15 +16,11 @@
 
 package com.twitter.common.text.token;
 
-import com.google.common.base.Preconditions;
-
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
-import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.PartOfSpeechAttribute;
 import com.twitter.common.text.token.attribute.TokenGroupAttribute;
 import com.twitter.common.text.token.attribute.TokenGroupAttributeImpl;
-import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Reproduces the result of tokenization if an input text is an instance of
@@ -34,8 +30,6 @@ import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 public class TokenizedCharSequenceStream extends TokenStream {
   private final TokenStream inputStream;
 
-  private final CharSequenceTermAttribute termAttr;
-  private final TokenTypeAttribute typeAttr;
   private final PartOfSpeechAttribute posAttr;
   private final PositionIncrementAttribute incAttr;
   private final TokenGroupAttributeImpl groupAttr;
@@ -54,8 +48,6 @@ public class TokenizedCharSequenceStream extends TokenStream {
     super(inputStream.cloneAttributes());
 
     this.inputStream = inputStream;
-    termAttr = addAttribute(CharSequenceTermAttribute.class);
-    typeAttr = addAttribute(TokenTypeAttribute.class);
     if (hasAttribute(PartOfSpeechAttribute.class)) {
       posAttr = getAttribute(PartOfSpeechAttribute.class);
     } else {
@@ -79,8 +71,6 @@ public class TokenizedCharSequenceStream extends TokenStream {
    */
   public TokenizedCharSequenceStream() {
     this.inputStream = null;
-    termAttr = addAttribute(CharSequenceTermAttribute.class);
-    typeAttr = addAttribute(TokenTypeAttribute.class);
     posAttr = addAttribute(PartOfSpeechAttribute.class);
     incAttr = addAttribute(PositionIncrementAttribute.class);
     groupAttr = (TokenGroupAttributeImpl) addAttribute(TokenGroupAttribute.class);
@@ -107,9 +97,8 @@ public class TokenizedCharSequenceStream extends TokenStream {
 
     TokenizedCharSequence.Token token = tokenized.getTokens().get(currentIndex);
 
-    termAttr.setOffset(token.getOffset());
-    termAttr.setLength(token.getLength());
-    typeAttr.setType(token.getType());
+    updateOffsetAndLength(token.getOffset(), token.getLength());
+    updateType(token.getType());
     if (posAttr != null) {
       posAttr.setPOS(token.getPartOfSpeech());
     }
@@ -130,7 +119,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
     if (input instanceof TokenizedCharSequence) {
       tokenized = (TokenizedCharSequence) input;
       currentIndex = 0;
-      termAttr.setCharSequence(tokenized);
+      updateInputCharSequence(tokenized);
     } else if (inputStream == null) {
       // If no inputStream is provided, throw an exception.
       throw new IllegalArgumentException("Input must be an instance of TokenizedCharSequence"

@@ -24,14 +24,12 @@ import com.twitter.common.text.token.TokenProcessor;
 import com.twitter.common.text.token.TokenStream;
 import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.TokenType;
-import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Updates {@code TypeAttribute} of a token if the term matches a given regular expression.
  */
 public class RegexDetector extends TokenProcessor {
   private CharSequenceTermAttribute inputCharSeqTermAttr;
-  private TokenTypeAttribute typeAttr;
 
   private Pattern regexPattern;
   private TokenType type;
@@ -39,7 +37,6 @@ public class RegexDetector extends TokenProcessor {
   protected RegexDetector(TokenStream inputStream) {
     super(inputStream);
     inputCharSeqTermAttr = inputStream.getAttribute(CharSequenceTermAttribute.class);
-    typeAttr = addAttribute(TokenTypeAttribute.class);
   }
 
   protected void setRegexPattern(Pattern regex) {
@@ -62,7 +59,7 @@ public class RegexDetector extends TokenProcessor {
 
     CharSequence term = inputCharSeqTermAttr.getTermCharSequence();
     if (regexPattern.matcher(term).matches()) {
-      typeAttr.setType(type);
+      updateType(type);
     }
 
     return true;
