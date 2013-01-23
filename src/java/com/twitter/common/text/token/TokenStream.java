@@ -25,6 +25,8 @@ import org.apache.lucene.util.AttributeSource;
 
 import com.twitter.common.text.example.TokenizerUsageExample;
 import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
+import com.twitter.common.text.token.attribute.TokenType;
+import com.twitter.common.text.token.attribute.TokenTypeAttribute;
 
 /**
  * Abstraction to enumerate a sequence of tokens. This class represents the central abstraction in
@@ -41,6 +43,9 @@ import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
  * {@link TokenizerUsageExample}.
  */
 public abstract class TokenStream extends AttributeSource {
+  private CharSequenceTermAttribute termAttribute = addAttribute(CharSequenceTermAttribute.class);
+  private TokenTypeAttribute typeAttribute = addAttribute(TokenTypeAttribute.class);
+
   /**
    * Constructs a {@code TokenStream} using the default attribute factory.
    */
@@ -90,15 +95,8 @@ public abstract class TokenStream extends AttributeSource {
   public List<String> toStringList() {
     List<String> tokens = Lists.newArrayList();
 
-    if (hasAttribute(CharSequenceTermAttribute.class)) {
-      CharSequenceTermAttribute termAttr = getAttribute(CharSequenceTermAttribute.class);
-
-      while (incrementToken()) {
-        tokens.add(termAttr.getTermString());
-      }
-    } else {
-      throw new UnsupportedOperationException("This instance does not support toStringList()"
-          + " because it does not support CharSequenceTermAttribute.");
+    while (incrementToken()) {
+      tokens.add(termAttribute.getTermString());
     }
 
     return tokens;
@@ -116,5 +114,80 @@ public abstract class TokenStream extends AttributeSource {
       return cls.cast(this);
     }
     return null;
+  }
+
+  /**
+   * Returns the offset of the current token.
+   *
+   * @return offset of the current token.
+   */
+  public int offset() {
+    return termAttribute.getOffset();
+  }
+
+  /**
+   * Returns the length of the current token.
+   *
+   * @return length of the current token.
+   */
+  public int length() {
+    return termAttribute.getLength();
+  }
+
+  /**
+   * Returns the {@code CharSequence} of the current token.
+   *
+   * @return {@code CharSequence} of the current token
+   */
+  public CharSequence term() {
+    return termAttribute.getTermCharSequence();
+  }
+
+  /**
+   * Returns the input {@code CharSequence}.
+   *
+   * @return input {@code CharSequence}
+   */
+  public CharSequence inputCharSequence() {
+    return termAttribute.getCharSequence();
+  }
+
+  /**
+   * Returns the type of the current token.
+   *
+   * @return type of the current token.
+   */
+  public TokenType type() {
+    return typeAttribute.getType();
+  }
+
+  /**
+   * Sets the input {@code CharSequence}.
+   *
+   * @param inputCharSequence {@code CharSequence} analyzed by this
+   *     {@code TokenStream}
+   */
+  protected void updateInputCharSequence(CharSequence inputCharSequence) {
+    termAttribute.setCharSequence(inputCharSequence);
+  }
+
+  /**
+   * Updates the offset and length of the current token.
+   *
+   * @param offset new offset
+   * @param length new length
+   */
+  protected void updateOffsetAndLength(int offset, int length) {
+    termAttribute.setOffset(offset);
+    termAttribute.setLength(length);
+  }
+
+  /**
+   * Updates the type of the current token.
+   *
+   * @param type new type
+   */
+  protected void updateType(TokenType type) {
+    typeAttribute.setType(type);
   }
 }
