@@ -522,13 +522,6 @@ jar_library(name = 'util-zk-common',
 jar_library(name = 'vertica',
             dependencies = [ jar(org = 'com.vertica', name = 'vertica', rev = '4.1.2') ])
 
-jar_library(name = 'visualization-datasource',
-            dependencies = [
-              jar(org = 'com.google.visualization', name = 'visualization-datasource',
-                  rev = '1.0.2')
-                  .exclude(org = 'com.google.collections', name = 'google-collections')
-            ])
-
 jar_library(name = 'zookeeper',
             dependencies = [
               jar(org = 'org.apache.zookeeper', name = 'zookeeper', rev = '3.3.4').with_sources()

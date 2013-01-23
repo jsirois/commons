@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-
-
 java_library(name = 'http',
   provides = artifact(
     org = 'com.twitter.common',
@@ -33,7 +31,10 @@ java_library(name = 'http',
   ],
   sources = globs('*.java'),
   resources = [
-    'dygraph-combined.js',
-    'graphview.html',
+    'graphview/dygraph-combined.js',
+    'graphview/dygraph-extra.js',
+    'graphview/grapher.js',
+    'graphview/parser.js',
+    'graphview/graphview.html',
   ]
 )

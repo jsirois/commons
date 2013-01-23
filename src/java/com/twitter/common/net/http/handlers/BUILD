@@ -109,12 +109,12 @@ java_library(name = 'time-series',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:guava',
-    '3rdparty:guice',
-    '3rdparty:servlet-api',
-    '3rdparty:visualization-datasource',
-    'src/java/com/twitter/common/collections',
-    'src/java/com/twitter/common/stats:time-series',
+    pants('3rdparty:gson'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:servlet-api'),
+    pants('src/java/com/twitter/common/collections'),
+    pants('src/java/com/twitter/common/stats:time-series'),
   ],
   sources = TIME_SERIES_SOURCES
 )
