@@ -496,6 +496,9 @@ class ZooKeeper(object):
         self.create(child, "", acl, 0)
       except zookeeper.NodeExistsException:
         continue
+      except zookeeper.NoAuthException:
+        if not self.exists(child):
+          raise
     return child
 
   def safe_delete(self, path):

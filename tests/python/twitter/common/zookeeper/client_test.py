@@ -276,3 +276,21 @@ def test_safe_operations():
     assert delete_event.is_set()
     assert not zk.exists('/a')
     assert not zk.exists('/foo')
+
+def test_safe_create():
+  with ZookeeperServer() as server:
+    zk_auth = ZooKeeper(server.ensemble, authentication=('digest', 'jack:jill'))
+
+    zk_auth.safe_create('/a', acl=ZooDefs.Acls.EVERYONE_READ_CREATOR_ALL)
+    assert zk_auth.exists('/a')
+
+    zk_noauth = ZooKeeper(server.ensemble)
+    with pytest.raises(zookeeper.NoAuthException):
+      zk_noauth.safe_create('/a/b')
+    assert not zk_auth.exists('/a/b')
+
+    zk_auth.safe_create('/a/b', acl=ZooDefs.Acls.OPEN_ACL_UNSAFE)
+    assert zk_noauth.exists('/a/b')
+
+    zk_noauth.safe_create('/a/b/c')
+    assert zk_noauth.exists('/a/b/c')
