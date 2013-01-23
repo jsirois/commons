@@ -273,7 +273,12 @@ class Distiller(object):
       tempdir = tempfile.mkdtemp()
       filename = os.path.join(tempdir, self._package_name())
 
-    with closing(zipfile.ZipFile(filename, 'w', compression=zipfile.ZIP_DEFLATED)) as zf:
+    # Filename exists already, assume pre-distilled
+    if os.path.exists(filename):
+      self._log('Found pre-cached artifact: %s, skipping distillation.' % filename)
+      return filename
+
+    with closing(zipfile.ZipFile(filename + '~', 'w', compression=zipfile.ZIP_DEFLATED)) as zf:
       for fn in self._installed_files:
         rel_fn = self._relpath(fn)
         if not self._is_top_level(fn):
@@ -303,6 +308,7 @@ class Distiller(object):
       for fn, content in self._egg_info():
         zf.writestr(fn, content)
 
+    os.rename(filename + '~', filename)
     return filename
 
 
