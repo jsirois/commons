@@ -596,4 +596,3 @@ jar_library(name = 'tl4j',
                 .exclude(org = 'junit', name='junit')
             ]
            )
-
