@@ -210,7 +210,9 @@ jar_library(name = 'gdata-core',
             dependencies = [ jar(org = 'com.google.gdata', name = 'core', rev = '1.47.1') ])
 
 jar_library(name = 'gson',
-            dependencies = [ jar(org = 'com.google.code.gson', name = 'gson', rev = '2.1') ])
+            dependencies = [
+              jar(org = 'com.google.code.gson', name = 'gson', rev = '2.2.2').with_sources()
+            ])
 
 jar_library(name = 'guava',
             dependencies = [
