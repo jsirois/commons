@@ -37,7 +37,7 @@ class StatsHttpClient(object):
 
   def _get_client(self):
     if self._client is None:
-      self._client = httplib.HTTPConnection(self._host, self._port)
+      self._client = httplib.HTTPConnection(self._host, self._port, timeout=2)
     return self._client
 
   def push_stats(self, json_stats):
