@@ -820,6 +820,14 @@ goal(
                              ' digraph dotfile for the dependency set of a target')
 
 
+from twitter.pants.tasks.dependencies import Dependencies
+
+goal(
+  name='dependencies',
+  action=Dependencies
+).install().with_description('Extract textual infomation about the dependencies of a target')
+
+
 from twitter.pants.tasks.filemap import Filemap
 
 goal(

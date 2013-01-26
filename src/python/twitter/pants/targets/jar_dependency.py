@@ -46,7 +46,7 @@ class Artifact(object):
     self.conf = conf
 
 
-class JarDependency(ExternalDependency):
+class  JarDependency(ExternalDependency):
   """Represents a binary jar dependency ala maven or ivy.  For the ivy dependency defined by:
     <dependency org="com.google.guava" name="guava" rev="r07"/>
 
