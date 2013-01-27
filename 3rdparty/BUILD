@@ -56,6 +56,12 @@ jar_library(name = 'asm-commons',
             ]
            )
 
+jar_library(name = 'aws-java-sdk',
+            dependencies = [
+              jar(org = 'com.amazonaws', name = 'aws-java-sdk', rev = '1.3.27'),
+            ]
+           )
+
 jar_library(name = 'cascading-core',
             dependencies = [ jar(org = 'cascading', name = 'cascading-core', rev = '1.2.3',
                              force = True )]
