@@ -51,7 +51,7 @@ class BuildTimeStats(object):
   def __init__(self, context, cmd=None, socket_ins=None, stats_http=None, psutil=None):
     self._cmd = cmd or CommandUtil()
     self._psutil = psutil or None
-    self._socket = socket_ins
+    self._socket = socket_ins or socket
     self._context = context
     self._stats_http = stats_http or StatsHttpClient(
                                 context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_URL),
@@ -140,10 +140,10 @@ class BuildTimeStats(object):
       stats["git"]["branch"] = git_branch.strip()
     #Network IP
     try:
-      stats["ip"] = self._socket.gethostbyname(self._socket.gethostname())
+        stats["ip"] = self._socket.gethostbyname(self._socket.gethostname())
     except Exception as e:
       log.debug("Exception %s. Cannot get ip stats" % e)
-
+    log.debug("Done stats")
     #Read the stats file and check if number of records reached
     stats_file_nm = stats_file_nm if stats_file_nm  else self._pants_stat_file
 
