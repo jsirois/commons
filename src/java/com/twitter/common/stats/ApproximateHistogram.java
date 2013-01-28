@@ -317,8 +317,13 @@ public final class ApproximateHistogram implements Histogram {
     long[] output) {
 
     int totalWeight = leftWeight + rightWeight;
-    int cnt0 = -totalWeight / 2, cnt1 = -cnt0;
-    int i = 0, j = 0, k = 0, cnt = cnt0, weight;
+    int halfTotalWeight = (totalWeight / 2) - 1;
+    int cnt = 0;
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+    int weight;
     long smallest;
 
     while (i < left.length || j < right.length) {
@@ -332,13 +337,13 @@ public final class ApproximateHistogram implements Histogram {
         j++;
       }
 
-      if (cnt <= 0 && 0 < cnt + weight) {
+      int cur = (cnt + halfTotalWeight) / totalWeight;
+      cnt += weight;
+      int next = (cnt + halfTotalWeight) / totalWeight;
+
+      for(; cur < next; cur++) {
         output[k] = smallest;
         k++;
-      }
-      cnt += weight;
-      if (cnt1 <= cnt) {
-        cnt = cnt0 + cnt - cnt1 - 1;
       }
     }
   }

@@ -27,6 +27,13 @@ public class ApproximateHistogramTest extends TestCase {
 
     hist.collapse(buf1, 2, buf2, 3, result);
     assertArrayEquals(result, expected);
+
+    long[] buf3 = {2, 5, 7, 9};
+    long[] buf4 = {3, 8, 9, 12};
+    long[] expected2 = {3, 7, 9, 12};
+    long[] result2 = new long[4];
+    hist.collapse(buf3, 2, buf4, 2, result2);
+    assertArrayEquals(expected2, result2);
   }
 
   public void testRecCollapse() {
