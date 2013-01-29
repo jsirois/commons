@@ -400,6 +400,12 @@ jar_library(name = 'scala-library',
             ]
            )
 
+jar_library(name = 'scalacheck',
+            dependencies = [
+              jar(org='org.scalacheck', name='scalacheck_2.9.2', rev='1.10.0').with_sources()
+            ]
+           )
+
 # NOTE(rschonberger): Note that this library needs to be updated every scal compiler update.
 jar_library(name = 'scalatest',
             dependencies = [
