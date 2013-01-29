@@ -14,19 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-import os
-import unittest
-
 from contextlib import closing
 from optparse import OptionGroup, OptionParser
-from tempfile import mkdtemp
 from StringIO import StringIO
 
 from twitter.common.contextutil import temporary_file
-from twitter.common.dirutil import safe_open, safe_rmtree
 
-from twitter.pants import set_buildroot
-from twitter.pants.base import Address, Config, Target
+from twitter.pants.base import Config
+from twitter.pants.build_root_test import BuildRootTest
 from twitter.pants.commands.goal import SpecParser
 from twitter.pants.goal import Context, Mkflag
 from twitter.pants.tasks import Task
@@ -63,47 +58,8 @@ def prepare_task(task_type, config=None, args=None, targets=None, **kwargs):
   return task_type(context, **kwargs)
 
 
-class TaskTest(unittest.TestCase):
+class TaskTest(BuildRootTest):
   """A baseclass useful for testing Tasks."""
-
-  @classmethod
-  def build_path(cls, relpath):
-    """Returns the canonical BUILD file path for the given relative build path."""
-    if os.path.basename(relpath).startswith('BUILD'):
-      return relpath
-    else:
-      return os.path.join(relpath, 'BUILD')
-
-  @classmethod
-  def create_target(cls, relpath, target):
-    """Adds the given target specification to the BUILD file at relpath.
-
-    relpath: The relative path to the BUILD file from the build root.
-    target: A string containing the target definition as it would appear in a BUILD file.
-    """
-    relpath = cls.build_path(relpath)
-    with safe_open(os.path.join(cls.build_root, relpath), 'a') as buildfp:
-      buildfp.write(target)
-
-  @classmethod
-  def setUpClass(cls):
-    cls.build_root = mkdtemp(suffix='_BUILD_ROOT')
-    set_buildroot(cls.build_root)
-    Target._clear_all_addresses()
-
-  @classmethod
-  def tearDownClass(cls):
-    safe_rmtree(cls.build_root)
-
-  @classmethod
-  def target(cls, address):
-    """Resolves the given target address to a Target object.
-
-    address: The BUILD target address to resolve.
-
-    Returns the corresponding Target or else None if the address does not point to a defined Target.
-    """
-    return Target.get(Address.parse(cls.build_root, address, is_relative=False))
 
   @classmethod
   def targets(cls, spec):

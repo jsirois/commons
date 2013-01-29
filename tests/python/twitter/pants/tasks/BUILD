@@ -14,10 +14,10 @@
 # limitations under the License.
 # ==================================================================================================
 
-python_tests(name = 'tasks',
-  sources = globs('*.py'),
-  dependencies = [
-    'src/python/twitter/pants:pants-lib',
-    'tests/python/twitter/pants/testutils'
+python_tests(name='tasks',
+  sources=globs('*.py'),
+  dependencies=[
+    pants('src/python/twitter/pants:pants-lib'),
+    pants('tests/python/twitter/pants:base-test'),
   ]
 )
