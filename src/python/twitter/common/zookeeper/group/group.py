@@ -11,6 +11,7 @@ except ImportError:
   import logging as log
 
 from twitter.common.concurrent import Future
+from twitter.common.exceptions import ExceptionalThread
 from twitter.common.zookeeper.constants import ReturnCode
 
 
@@ -180,7 +181,7 @@ class Group(GroupInterface):
     self._acl = acl or zk.DEFAULT_ACL
 
   def _prepare_path(self, event):
-    class Background(threading.Thread):
+    class Background(ExceptionalThread):
       def run(_):
         child = '/'
         failures = set()

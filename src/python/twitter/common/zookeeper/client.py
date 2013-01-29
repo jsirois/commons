@@ -272,6 +272,9 @@ class ZooKeeper(object):
               break
           if self._zk._stopped.is_set():
             raise ZooKeeper.Stopped('ZooKeeper is stopped.')
+        except Exception as e:
+          self._logger('%s excepted unexpectedly: %s' % (self, e))
+          raise
 
   def __init__(self,
                servers=None,
