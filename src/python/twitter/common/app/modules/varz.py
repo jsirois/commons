@@ -82,7 +82,7 @@ class VarsEndpoint(object):
 
   @HttpServer.route("/vars")
   @HttpServer.route("/vars/:var")
-  def handle_vars(self, var = None):
+  def handle_vars(self, var=None):
     HttpServer.set_content_type('text/plain; charset=iso-8859-1')
     samples = self._monitor.sample()
 
@@ -96,7 +96,7 @@ class VarsEndpoint(object):
         HttpServer.abort(404, 'Unknown exported variable')
 
   @HttpServer.route("/vars.json")
-  def handle_vars_json(self, var = None, value = None):
+  def handle_vars_json(self, var=None, value=None):
     return self._monitor.sample()
 
   def shutdown(self):

@@ -59,6 +59,19 @@ class Metrics(MetricRegistry, MetricProvider):
 
   class Error(Exception): pass
 
+  @classmethod
+  def coerce_value(cls, value):
+    if isinstance(value, Compatibility.numeric + Compatibility.string + (bool,)):
+      return value
+    elif value is None:
+      return value
+    elif isinstance(value, list):
+      return [cls.coerce_value(v) for v in value]
+    elif isinstance(value, dict):
+      return dict((cls.coerce_value(k), cls.coerce_value(v)) for (k, v) in value.items())
+    else:
+      return str(value)
+
   def __init__(self):
     self._metrics = {}
     self._children = {}
@@ -81,7 +94,11 @@ class Metrics(MetricRegistry, MetricProvider):
   def sample(self, sample_prefix=''):
     samples = {}
     for name, metric in self._metrics.items():
-      samples[sample_prefix + name] = str(metric.read())
+      try:
+        samples[sample_prefix + name] = self.coerce_value(metric.read())
+      except ValueError as e:
+        # TODO(wickman) Provide error logger to be passed in.
+        continue
     for scope_name in self._children:
       samples.update(self.scope(scope_name)
                          .sample(sample_prefix=sample_prefix + scope_name + '.'))
