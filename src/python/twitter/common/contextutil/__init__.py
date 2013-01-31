@@ -203,8 +203,15 @@ class Timer(object):
   """
   def __enter__(self):
     self.start = time.time()
+    self.finish = None
     return self
+
+  @property
+  def elapsed(self):
+    if self.finish:
+      return self.finish - self.start
+    else:
+      return time.time() - self.start
 
   def __exit__(self, typ, val, traceback):
     self.finish = time.time()
-    self.elapsed = self.finish - self.start
