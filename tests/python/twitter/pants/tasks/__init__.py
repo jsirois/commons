@@ -17,6 +17,7 @@
 from contextlib import closing
 from optparse import OptionGroup, OptionParser
 from StringIO import StringIO
+import pytest
 
 from twitter.common.contextutil import temporary_file
 
@@ -154,5 +155,5 @@ class ConsoleTaskTest(TaskTest):
     **kwargs: additional kwargs are passed to the task constructor except for config args, targets
               and extra_targets which are passed to execute_console_task.
     """
-    with self.assertRaises(exception):
+    with pytest.raises(exception):
       self.execute_console_task(**kwargs)
