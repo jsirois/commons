@@ -204,6 +204,16 @@ def is_java(target):
   return target.has_label('java')
 
 
+def is_jvm_app(target):
+  """Returns True if the target produces a java application with bundled auxiliary files."""
+  return isinstance(target, JvmApp)
+
+
+def is_thrift(target):
+  """Returns True if the target has thrift IDL sources."""
+  return isinstance(target, JavaThriftLibrary)
+
+
 def is_apt(target):
   """Returns True if the target exports an annotation processor."""
   return target.has_label('apt')

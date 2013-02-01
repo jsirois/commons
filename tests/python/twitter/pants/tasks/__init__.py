@@ -147,3 +147,12 @@ class ConsoleTaskTest(TaskTest):
               and extra_targets which are passed to execute_console_task.
     """
     self.assertEqual(sorted(output), sorted(self.execute_console_task(**kwargs)))
+
+  def assert_console_raises(self, exception, **kwargs):
+    """Verifies the expected exception is raised by the console task under test.
+
+    **kwargs: additional kwargs are passed to the task constructor except for config args, targets
+              and extra_targets which are passed to execute_console_task.
+    """
+    with self.assertRaises(exception):
+      self.execute_console_task(**kwargs)
