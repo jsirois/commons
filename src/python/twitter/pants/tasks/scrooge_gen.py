@@ -188,6 +188,7 @@ class ScroogeGen(NailgunTask):
       has_service = has_service or services
       files.extend(genfiles)
     deps = geninfo.deps['service' if has_service else 'structs']
+    deps.update(target.dependencies)
     compiler_lang_info = self.compilers[target.compiler][target.language]
     outdir = compiler_lang_info['outdir']
     target_type = INFO_FOR_LANG[target.language]['target_type']
