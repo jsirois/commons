@@ -207,28 +207,32 @@ class NailgunTask(Task):
     return int(match.group(1))
 
   def _await_nailgun_server(self):
+    nailgun_timeout_seconds = 5
+    max_socket_connect_attempts = 10
     nailgun = None
+    port_parse_start = time.time()
     with _safe_open(self._ng_out, 'r') as ng_out:
-      while True:
+      while not nailgun:
         started = ng_out.readline()
         if started:
           port = self._parse_nailgun_port(started)
-          if os.path.exists(self._pidfile):
-            # The child tine has written the pid, so we may now add the port.
-            with open(self._pidfile, 'a') as pidfile:
-              pidfile.write(':%d\n' % port)
-            nailgun = self._create_ngclient(port)
-            log.debug('Detected ng server up on port %d' % port)
-            break
-        time.sleep(0.1)
+          with open(self._pidfile, 'a') as pidfile:
+            pidfile.write(':%d\n' % port)
+          nailgun = self._create_ngclient(port)
+          log.debug('Detected ng server up on port %d' % port)
+        elif time.time() - port_parse_start > nailgun_timeout_seconds:
+          raise NailgunError('Failed to read ng output after %s seconds' % nailgun_timeout_seconds)
 
     attempt = 0
-    while True:
+    while nailgun:
       sock = nailgun.try_connect()
       if sock:
         sock.close()
         log.info('Connected to ng server pid: %d @ port: %d' % self._get_nailgun_endpoint())
         return nailgun
+      elif attempt > max_socket_connect_attempts:
+        raise NailgunError('Failed to connect to ng output after %d connect attempts'
+                            % max_socket_connect_attempts)
       attempt += 1
       log.debug('Failed to connect on attempt %d' % attempt)
       time.sleep(0.1)
