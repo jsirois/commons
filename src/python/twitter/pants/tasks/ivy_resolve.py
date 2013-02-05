@@ -14,11 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
+from __future__ import print_function
+
 import hashlib
 import os
 import pkgutil
 import re
 import shutil
+import time
 
 from contextlib import contextmanager
 
@@ -226,6 +229,24 @@ class IvyResolve(NailgunTask):
       genmap.add("ivy", conf, [ivyinfo])
 
   def _generate_ivy_report(self):
+    def make_empty_report(report, organisation, module, conf):
+      no_deps_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="ivy-report.xsl"?>
+<ivy-report version="1.0">
+	<info
+		organisation="%(organisation)s"
+		module="%(module)s"
+		revision="latest.integration"
+		conf="%(conf)s"
+		confs="%(conf)s"
+		date="%(timestamp)s"/>
+</ivy-report>""" % dict(organisation=organisation,
+                        module=module,
+                        conf=conf,
+                        timestamp=time.strftime('%Y%m%d%H%M%S'))
+      with open(report, 'w') as report_handle:
+        print(no_deps_xml, file=report_handle)
+
     classpath = self.profile_classpath(self._profile)
 
     reports = []
@@ -238,7 +259,10 @@ class IvyResolve(NailgunTask):
         name=name,
         conf=conf
       )
-      xml = self._ivy_utils.xml_report_path(conf)
+      xml = os.path.join(self._cachedir, '%(org)s-%(name)s-%(conf)s.xml' % params)
+      if not os.path.exists(xml):
+        make_empty_report(xml, org, name, conf)
+      #xml = self._ivy_utils.xml_report_path(conf)
       out = os.path.join(self._outdir, '%(org)s-%(name)s-%(conf)s.html' % params)
       opts = ['-IN', xml, '-XSL', xsl, '-OUT', out]
       if 0 != self.runjava_indivisible('org.apache.xalan.xslt.Process', classpath=classpath, opts=opts):
