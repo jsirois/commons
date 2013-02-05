@@ -75,6 +75,7 @@ public class RegexTokenizer extends TokenStream {
   public void reset(CharSequence input) {
     // reset termAttr
     updateInputCharSequence(input);
+    clearAttributes();
 
     // reset tokens
     tokens = Lists.newArrayList();

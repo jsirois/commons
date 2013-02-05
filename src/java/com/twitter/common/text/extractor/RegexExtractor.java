@@ -85,6 +85,7 @@ public class RegexExtractor extends TokenStream {
   public void reset(CharSequence input) {
     Preconditions.checkNotNull(input);
     updateInputCharSequence(input);
+    clearAttributes();
 
     if (triggeringChar > 0) {
       // triggeringChar is specified.
@@ -113,7 +114,6 @@ public class RegexExtractor extends TokenStream {
       int start = matcher.start(startGroup);
       int end = matcher.end(endGroup);
 
-      clearAttributes();
       if (end > 0 && Character.isWhitespace(inputCharSequence().charAt(end - 1))) {
         end = end - 1;
       }

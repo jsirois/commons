@@ -45,7 +45,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
    * @param inputStream a token stream to tokenize a text if it's not tokenized yet.
    */
   public TokenizedCharSequenceStream(TokenStream inputStream) {
-    super(inputStream.cloneAttributes());
+    super(inputStream);
 
     this.inputStream = inputStream;
     if (hasAttribute(PartOfSpeechAttribute.class)) {
@@ -83,11 +83,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
 
     if (tokenized == null) {
       // Input is not tokenized; let inputStream tokenize it.
-      if (!inputStream.incrementToken()) {
-        return false;
-      }
-      restoreState(inputStream.captureState());
-      return true;
+      return inputStream.incrementToken();
     }
 
     if (currentIndex >= tokenized.getTokens().size()) {

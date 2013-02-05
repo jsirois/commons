@@ -24,8 +24,6 @@ import com.google.common.base.Preconditions;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 
-import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
-
 /**
  * Converts a Lucene {@link Tokenizer} instance into {@link TokenStream} instance.
  */

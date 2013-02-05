@@ -22,21 +22,17 @@ import com.google.common.base.Preconditions;
 
 import com.twitter.common.text.token.TokenProcessor;
 import com.twitter.common.text.token.TokenStream;
-import com.twitter.common.text.token.attribute.CharSequenceTermAttribute;
 import com.twitter.common.text.token.attribute.TokenType;
 
 /**
  * Updates {@code TypeAttribute} of a token if the term matches a given regular expression.
  */
 public class RegexDetector extends TokenProcessor {
-  private CharSequenceTermAttribute inputCharSeqTermAttr;
-
   private Pattern regexPattern;
   private TokenType type;
 
   protected RegexDetector(TokenStream inputStream) {
     super(inputStream);
-    inputCharSeqTermAttr = inputStream.getAttribute(CharSequenceTermAttribute.class);
   }
 
   protected void setRegexPattern(Pattern regex) {
@@ -49,16 +45,11 @@ public class RegexDetector extends TokenProcessor {
 
   @Override
   public boolean incrementToken() {
-    TokenStream inputStream = getInputStream();
-
-    if (!inputStream.incrementToken()) {
+    if (!incrementInputStream()) {
       return false;
     }
-    clearAttributes();
-    restoreState(inputStream.captureState());
 
-    CharSequence term = inputCharSeqTermAttr.getTermCharSequence();
-    if (regexPattern.matcher(term).matches()) {
+    if (regexPattern.matcher(term()).matches()) {
       updateType(type);
     }
 

@@ -22,6 +22,7 @@ import java.io.ObjectStreamException;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.apache.lucene.util.AttributeImpl;
@@ -54,8 +55,8 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
   public void copyTo(AttributeImpl obj) {
     if (obj instanceof TokenGroupAttributeImpl) {
       TokenGroupAttributeImpl attr = (TokenGroupAttributeImpl) obj;
-      attr.attributeSource = this.attributeSource;
-      attr.states = Lists.newArrayList(this.states);
+      attr.setAttributeSource(attributeSource);
+      attr.setStates(Lists.newArrayList(states));
       attr.seq = this.seq;
     }
   }
@@ -89,7 +90,7 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
    * Sets the list of states for this group. Invalidates any previously set sequence.
    */
   public void setStates(List<AttributeSource.State> states) {
-    this.states = states;
+    this.states = ImmutableList.copyOf(states);
     this.seq = null;
   }
 

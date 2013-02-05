@@ -29,19 +29,21 @@ public abstract class TokenProcessor extends TokenStream {
    * @param inputStream input {@code TokenStream}
    */
   public TokenProcessor(TokenStream inputStream) {
-    // This clones all attributes of the input stream to this one.
-    super(inputStream.cloneAttributes());
+    super(inputStream);
     this.inputStream = inputStream;
   }
 
   @Override
   public void reset(CharSequence input) {
-    clearAttributes();
     inputStream.reset(input);
   }
 
-  protected TokenStream getInputStream() {
-    return inputStream;
+  /**
+   * Increment the underlying input stream.
+   * @return true if the input stream has more token. False otherwise.
+   */
+  protected boolean incrementInputStream() {
+    return inputStream.incrementToken();
   }
 
   @Override
@@ -51,4 +53,5 @@ public abstract class TokenProcessor extends TokenStream {
     }
     return inputStream.getInstanceOf(cls);
   }
+
 }
