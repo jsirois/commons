@@ -90,10 +90,10 @@ parser.Rate.prototype.evaluate = function(vars) {
   var newY = this.arg.evaluate(vars);
   var newT = this.timeInput.evaluate(vars);
   this.samples.push([newY, newT]);
+  var oldest = this.samples[0];
   if (this.samples.length > this.winLen) {
-    this.samples = this.samples.splice(0, this.winLen);
+    this.samples.splice(0, this.samples.length - this.winLen);
   }
-  var oldest = this.samples[this.samples.length - 1];
   var denom = newT - oldest[1];
   // Assumes time unit is milliseconds.
   return (denom == 0) ? 0 : ((1000 * (newY - oldest[0])) / denom);
