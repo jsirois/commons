@@ -26,7 +26,7 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                provides = None,
                dependencies = None,
                excludes = None,
-               compiler = 'thrift',
+               compiler = None,
                language = None,
                namespace_map = None,
                buildflags = None):
@@ -54,7 +54,10 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                                   buildflags)
     self.add_label('java')
     self.add_label('codegen')
-    self.compiler = compiler
+
+    # TODO(John Sirois): the default compiler should be grabbed from the workspace config
+    self.compiler = compiler or 'thrift'
+
     self.language = language
     self.namespace_map = namespace_map
 

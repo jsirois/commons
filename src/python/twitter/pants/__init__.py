@@ -256,10 +256,20 @@ goal = Goal
 group = Group
 phase = Phase
 
+
+# TODO(John Sirois): Update to dynamic linking when http://jira.local.twitter.com/browse/AWESOME-243
+# is avaiable.
+# bind twitter-specific idl helper
+from twitter.pants.tasks.extract import Extract
+
+compiled_idl = Extract.compiled_idl
+
+
 __all__ = (
   'annotation_processor',
   'artifact',
   'bundle',
+  'compiled_idl',
   'credentials',
   'dependencies',
   'exclude',

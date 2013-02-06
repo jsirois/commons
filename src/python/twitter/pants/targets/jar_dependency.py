@@ -129,12 +129,6 @@ class  JarDependency(ExternalDependency):
     self.artifacts.append(artifact)
     return self
 
-  def with_idl(self):
-    """Marks this jar as containing IDL files that should be fetched and processed locally."""
-    self._configurations.append('idl')
-    self.with_artifact(configuration='idl', classifier='idl')
-    return self
-
   # TODO: This is necessary duck-typing because in some places JarDependency is treated like
   # a Target, even though it doesn't extend Target. Probably best to fix that.
   def has_label(self, label):

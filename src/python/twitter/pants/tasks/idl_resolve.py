@@ -18,7 +18,6 @@ __author__ = 'Phil Hom'
 
 import os
 
-from twitter.pants import is_internal
 from twitter.pants.tasks.ivy_resolve import IvyResolve
 
 
@@ -29,32 +28,15 @@ class IdlResolve(IvyResolve):
   def __init__(self, context):
     super(IdlResolve, self).__init__(context, ['idl'])
 
-  def execute(self, targets):
-    super(IdlResolve, self).execute(targets)
-    self._populate_idl_list()
-
-  def _populate_idl_list(self):
-    with self._cachepath(self._classpath_file) as classpath:
-      jars = {}
-      for path in classpath:
-        if self._is_idl(path):
-          deps = []
-          for target in self.context.targets(predicate=is_internal):
-            for dep in target.dependencies:
-              if os.path.basename(path).replace('-idl.jar','') in dep.id:
-                deps.append(target)
-          jars.update({path:deps})
-      self.context.log.debug('Fetched idl jars: %s' % jars)
-      self.context.products.idl_jars = jars
-
-  def _is_idl(self, path):
-    return path.endswith('-idl.jar')
-
   # Carve out the custom behavior we need in the base machinery with a few overrides:
+  # + don't do a classpath resolve, we only want to resolve individual idl jar closures
   # + don't generate ivy reports, let IvyResolve handle this
   # + only map idl jars: an idl dependency graph should be pure idl jars
   # + warn about idl classpaths that have non-idl jars
-  # + only map idl jars when explicitly requested
+
+  def _extract_classpathdeps(self, targets):
+    # IDL files don't contribute to classpaths.
+    return set()
 
   def _generate_ivy_report(self):
     pass
@@ -66,7 +48,7 @@ class IdlResolve(IvyResolve):
     return os.path.join(self._work_dir, 'mapped-idls')
 
   def _map_jar(self, path):
-    is_idl = self._is_idl(path)
+    is_idl = path.endswith('-idl.jar')
     if not is_idl and super(IdlResolve, self)._map_jar(path):
       self.context.log.warn('Ignoring invalid idl dependency: %s' % path)
     return is_idl

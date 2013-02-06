@@ -193,6 +193,20 @@ class IvyResolve(NailgunTask):
       for target in filter(create_jardeps_for, targets):
         self._mapjars(genmap, target)
 
+  def _extract_classpathdeps(self, targets):
+    """Subclasses can override to filter out a set of targets that should be resolved for classpath
+    dependencies.
+    """
+    def is_classpath(target):
+      return is_jar(target) or (
+        is_internal(target) and any(jar for jar in target.jar_dependencies if jar.rev)
+      )
+
+    classpath_deps = OrderedSet()
+    for target in targets:
+      classpath_deps.update(filter(is_classpath, filter(is_concrete, target.resolve())))
+    return classpath_deps
+
   def _generate_ivy(self, jars, excludes, ivyxml):
     org, name = self._ivy_utils.identify()
     template_data = TemplateData(
