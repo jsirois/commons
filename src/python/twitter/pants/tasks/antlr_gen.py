@@ -27,23 +27,17 @@ from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
-CONFIG_KEY = 'antlr-gen'
-
 class AntlrGen(CodeGen, NailgunTask):
+
+  # Maps the compiler attribute of a target to the config key in pants.ini
+  _CONFIG_SECTION_BY_COMPILER = {
+    'antlr3': 'antlr-gen',
+    'antlr4': 'antlr4-gen',
+  }
 
   def __init__(self, context):
     CodeGen.__init__(self, context)
     NailgunTask.__init__(self, context)
-
-    def resolve_deps(key):
-      deps = OrderedSet()
-      for dep in context.config.getlist(CONFIG_KEY, 'javadeps'):
-        deps.update(context.resolve(dep))
-      return deps
-
-    self.antlr_profile = context.config.get(CONFIG_KEY, 'antlr_profile')
-    self.java_out = os.path.join(context.config.get(CONFIG_KEY, 'workdir'), 'gen-java')
-    self.javadeps = resolve_deps('javadeps')
 
   def is_gentarget(self, target):
     return isinstance(target, JavaAntlrLibrary)
@@ -57,17 +51,38 @@ class AntlrGen(CodeGen, NailgunTask):
   def genlang(self, lang, targets):
     if lang != 'java':
       raise TaskError('Unrecognized antlr gen lang: %s' % lang)
-    sources = self._calculate_sources(targets)
-    safe_mkdir(self.java_out)
 
-    antlr_classpath = self.profile_classpath(self.antlr_profile)
-    antlr_opts = ["-o", self.java_out ]
+    # TODO: Instead of running the compiler for each target, collect the targets
+    # by type and invoke it twice, once for antlr3 and once for antlr4.
 
-    if 0 != self.runjava_indivisible("org.antlr.Tool", classpath=antlr_classpath, opts=antlr_opts, args=sources):
-      raise TaskError
+    for target in targets:
+      java_out = self._java_out(target)
+      safe_mkdir(java_out)
+
+      antlr_profile = self._antlr_profile(target)
+      antlr_classpath = self.profile_classpath(antlr_profile)
+      antlr_opts = ["-o", java_out]
+
+      java_main = None
+
+      if target.compiler == 'antlr3':
+        java_main = 'org.antlr.Tool'
+      elif target.compiler == 'antlr4':
+        antlr_opts.append("-visitor") # Generate Parse Tree Vistor As Well
+        java_main = 'org.antlr.v4.Tool'
+      else:
+        raise TaskError("Unknown ANTLR compiler: {}".format(target.compiler))
+
+      sources = self._calculate_sources([target])
+      result = self.runjava_indivisible(java_main, classpath=antlr_classpath,
+                                        opts=antlr_opts, args=sources)
+      if result != 0:
+        raise TaskError
+
 
   def _calculate_sources(self, targets):
     sources = set()
+
     def collect_sources(target):
       if self.is_gentarget(target):
         sources.update(os.path.join(target.target_base, source) for source in target.sources)
@@ -81,22 +96,46 @@ class AntlrGen(CodeGen, NailgunTask):
     return self._create_java_target(gentarget, dependees)
 
   def _create_java_target(self, target, dependees):
+    antlr_files_suffix = ["Lexer.java", "Parser.java"]
+    if (target.compiler == 'antlr4'):
+      antlr_files_suffix = ["BaseListener.java", "BaseVisitor.java",
+                            "Listener.java", "Visitor.java"] + antlr_files_suffix
+
     generated_sources = []
     for source in target.sources:
       # Antlr enforces that generated sources are relative to the base filename, and that
       # each grammar filename must match the resulting grammar Lexer and Parser classes.
       source_base, source_ext = os.path.splitext(source)
-      generated_sources.append(os.path.join(target.target_base, source_base + "Lexer.java"))
-      generated_sources.append(os.path.join(target.target_base, source_base + "Parser.java"))
+      for suffix in antlr_files_suffix:
+          full_path = os.path.join(target.target_base, source_base + suffix)
+          generated_sources.append(full_path)
 
-    tgt = self.context.add_new_target(self.java_out,
+    deps = self._resolve_java_deps(target)
+
+    tgt = self.context.add_new_target(self._java_out(target),
                                       JavaLibrary,
                                       name=target.id,
                                       provides=target.provides,
                                       sources=generated_sources,
-                                      dependencies=self.javadeps)
+                                      dependencies=deps)
     tgt.id = target.id
     tgt.is_codegen = True
     for dependee in dependees:
       dependee.update_dependencies([tgt])
     return tgt
+
+  def _resolve_java_deps(self, target):
+    key = self._CONFIG_SECTION_BY_COMPILER[target.compiler]
+
+    deps = OrderedSet()
+    for dep in self.context.config.getlist(key, 'javadeps'):
+        deps.update(self.context.resolve(dep))
+    return deps
+
+  def _antlr_profile(self, target):
+    key = self._CONFIG_SECTION_BY_COMPILER[target.compiler]
+    return self.context.config.get(key, 'antlr_profile')
+
+  def _java_out(self, target):
+    key = self._CONFIG_SECTION_BY_COMPILER[target.compiler]
+    return os.path.join(self.context.config.get(key, 'workdir'), 'gen-java')

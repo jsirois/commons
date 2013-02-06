@@ -27,7 +27,8 @@ class JavaAntlrLibrary(ExportableJvmLibrary):
                sources,
                provides = None,
                dependencies = None,
-               excludes = None):
+               excludes = None,
+               compiler = 'antlr3'):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -36,7 +37,9 @@ class JavaAntlrLibrary(ExportableJvmLibrary):
     dependencies: An optional list of Dependency objects specifying the binary (jar) dependencies of
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
-        transitive dependencies against."""
+        transitive dependencies against.
+    compiler: The name of the compiler used to compile the ANTLR files.
+        Currently only supports 'antlr3' and 'antlr4'"""
 
     ExportableJvmLibrary.__init__(self,
                                   name,
@@ -46,6 +49,11 @@ class JavaAntlrLibrary(ExportableJvmLibrary):
                                   excludes)
 
     self.is_codegen = True
+
+    if compiler not in ['antlr3', 'antlr4']:
+        raise ValueError("Illegal value for 'compiler': {}".format(compiler))
+
+    self.compiler = compiler
 
   def _as_jar_dependency(self):
     return ExportableJvmLibrary._as_jar_dependency(self).with_sources()
