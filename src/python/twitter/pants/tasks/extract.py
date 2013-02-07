@@ -107,9 +107,15 @@ class Extract(Task):
     depmap = self.context.products.get('idl_dependencies')
     for representative, placeholders in self.placeholders.items():
       sources = set()
-      for basedir, jars in depmap.get(representative).items():
-        for jar in jars:
-          sources.update(self._extract(os.path.join(basedir, jar)))
+      mappings = depmap.get(representative)
+      # When a BUILD file is eval'ed all its target constructors get run potentially registering
+      # compiled_idl jars that are not actually used in the active target graph.  If the
+      # compiled_idl is not active it will not have an 'idl_dependencies' mapping from the upstream
+      # idl resolve - guard for this case.
+      if mappings:
+        for basedir, jars in mappings.items():
+          for jar in jars:
+            sources.update(self._extract(os.path.join(basedir, jar)))
       for placeholder in placeholders:
         placeholder.sources = sources
 
