@@ -46,7 +46,7 @@ make_dep('paramiko')
 make_dep('pil', 'PIL==1.1.7')
 make_dep('ply')
 make_dep('porterstemmer', 'PorterStemmer==0.3')
-make_dep('poster', 'poster==0.8.1')
+make_dep('poster', 'poster==0.8.2') # Twitter's monkeypatched poster
 make_dep('protobuf')
 make_dep('psutil')
 make_dep('pycrypto')
