@@ -311,7 +311,7 @@ jar_library(name = 'kryo-serializers',
             ]
            )
 
-LUCENE_REV = '4.0.0'
+LUCENE_REV = '4.1.0'
 
 jar_library(name = 'lucene-core',
             dependencies = [
