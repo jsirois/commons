@@ -19,12 +19,19 @@ package com.twitter.common.zookeeper;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 
@@ -42,7 +49,8 @@ import com.twitter.thrift.Status;
 public class SingletonService {
   private static final Logger LOG = Logger.getLogger(SingletonService.class.getName());
 
-  private static final String LEADER_ELECT_NODE_PREFIX = "singleton_candidate_";
+  @VisibleForTesting
+  static final String LEADER_ELECT_NODE_PREFIX = "singleton_candidate_";
 
   /**
    * Creates a candidate that can be combined with an existing server set to form a singleton
@@ -207,6 +215,81 @@ public class SingletonService {
      * @param status A handle on the endpoint status for the advertised leader.
      */
     public void onDefeated(@Nullable EndpointStatus status);
+  }
+
+  /**
+   * A leadership listener that decorates another listener by automatically defeating a
+   * leader that has dropped its connection to ZooKeeper.
+   * Note that the decision to use this over session-based mutual exclusion should not be taken
+   * lightly.  Any momentary connection loss due to a flaky network or a ZooKeeper server process
+   * exit will cause a leader to abort.
+   */
+  public static class DefeatOnDisconnectLeader implements LeadershipListener {
+
+    private final LeadershipListener wrapped;
+    private Optional<LeaderControl> maybeControl = Optional.absent();
+
+    /**
+     * Creates a new leadership listener that will delegate calls to the wrapped listener, and
+     * invoke {@link #onDefeated(EndpointStatus)} if a ZooKeeper disconnect is observed while
+     * leading.
+     *
+     * @param zkClient The ZooKeeper client to watch for disconnect events.
+     * @param wrapped The leadership listener to wrap.
+     */
+    public DefeatOnDisconnectLeader(ZooKeeperClient zkClient, LeadershipListener wrapped) {
+      this.wrapped = Preconditions.checkNotNull(wrapped);
+
+      zkClient.register(new Watcher() {
+        @Override public void process(WatchedEvent event) {
+          if ((event.getType() == EventType.None)
+              && (event.getState() == KeeperState.Disconnected)) {
+            disconnected();
+          }
+        }
+      });
+    }
+
+    private synchronized void disconnected() {
+      if (maybeControl.isPresent()) {
+        LOG.warning("Disconnected from ZooKeeper while leading, committing suicide.");
+        try {
+          wrapped.onDefeated(null);
+          maybeControl.get().leave();
+        } catch (UpdateException e) {
+          LOG.log(Level.WARNING, "Failed to leave singleton service: " + e, e);
+        } catch (JoinException e) {
+          LOG.log(Level.WARNING, "Failed to leave singleton service: " + e, e);
+        } finally {
+          setControl(null);
+        }
+      } else {
+        LOG.info("Disconnected from ZooKeeper, but that's fine because I'm not the leader.");
+      }
+    }
+
+    private synchronized void setControl(@Nullable LeaderControl control) {
+      this.maybeControl = Optional.fromNullable(control);
+    }
+
+    @Override public void onLeading(final LeaderControl control) {
+      setControl(control);
+      wrapped.onLeading(new LeaderControl() {
+        @Override public void advertise() throws JoinException, InterruptedException {
+          control.advertise();
+        }
+
+        @Override public void leave() throws UpdateException, JoinException {
+          setControl(null);
+          control.leave();
+        }
+      });
+    }
+
+    @Override public void onDefeated(@Nullable EndpointStatus status) {
+      setControl(null);
+      wrapped.onDefeated(status);
+    }
   }
 
   /**
