@@ -6,6 +6,7 @@ import sys
 import time
 
 from twitter.common.contextutil import mutable_sys
+from twitter.common.dirutil import safe_mkdir
 from twitter.common.lang import Compatibility
 from twitter.common.python.dirwrapper import PythonDirectoryWrapper
 from twitter.common.python.interpreter import PythonInterpreter
@@ -135,7 +136,17 @@ class PEX(object):
     if args:
       sys.argv = args
     runner = cls.execute_pkg_resources if ":" in entry_point else cls.execute_module
-    runner(entry_point)
+
+    if 'PEX_PROFILE' not in os.environ:
+      runner(entry_point)
+    else:
+      import pstats, cProfile
+      profile_output = os.environ['PEX_PROFILE']
+      safe_mkdir(os.path.dirname(profile_output))
+      cProfile.runctx('runner(entry_point)', globals=globals(), locals=locals(),
+                      filename=profile_output)
+      pstats.Stats(profile_output).sort_stats(
+          os.environ.get('PEX_PROFILE_SORT', 'cumulative')).print_stats(1000)
 
   @staticmethod
   def execute_module(module_name):
