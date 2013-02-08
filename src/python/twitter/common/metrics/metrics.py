@@ -15,7 +15,7 @@
 # ==================================================================================================
 
 
-from twitter.common.lang import Compatibility
+from twitter.common.lang import Compatibility, Singleton
 from .gauge import (
   Gauge,
   MutatorGauge,
@@ -105,18 +105,12 @@ class Metrics(MetricRegistry, MetricProvider):
     return samples
 
 
-class RootMetrics(Metrics):
+class RootMetrics(Metrics, Singleton):
   """
     Root singleton instance of the metrics.
   """
 
-  _SINGLETON = None
   _INIT = False
-
-  def __new__(cls, *args, **kwargs):
-    if cls._SINGLETON is None:
-      cls._SINGLETON = super(RootMetrics, cls).__new__(cls, *args, **kwargs)
-    return cls._SINGLETON
 
   def __init__(self):
     if not RootMetrics._INIT:

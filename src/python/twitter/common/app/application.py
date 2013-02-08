@@ -121,7 +121,7 @@ class Application(object):
        options.Option('--app_daemon_stdout',
            default='/dev/null',
            dest='twitter_common_app_daemon_stdout',
-           help="Direct this app's stdout to this file if daemonized ."),
+           help="Direct this app's stdout to this file if daemonized."),
 
     'daemon_stderr':
        options.Option('--app_daemon_stderr',

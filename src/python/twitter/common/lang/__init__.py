@@ -42,12 +42,8 @@ class SingletonMetaclass(type):
   """
     Singleton metaclass.
   """
-  def __init__(cls, name, bases, attrs):
-    super(SingletonMetaclass, cls).__init__(name, bases, attrs)
-    cls.instance = None
-
   def __call__(cls, *args, **kw):
-    if cls.instance is None:
+    if not hasattr(cls, 'instance'):
       cls.instance = super(SingletonMetaclass, cls).__call__(*args, **kw)
     return cls.instance
 
@@ -177,3 +173,7 @@ class InheritDocstringsMetaclass(type):
             value.__doc__ = getattr(parent, key).__doc__
             break
     return type.__new__(self, class_name, bases, namespace)
+
+
+class InterfaceMetaclass(ABCMeta, InheritDocstringsMetaclass): pass
+Interface = InterfaceMetaclass('Interface', (object, ), {})
