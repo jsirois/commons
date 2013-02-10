@@ -109,7 +109,7 @@ class ScroogeGen(NailgunTask):
     return profile_classpath(compiler_config)
 
   def execute(self, targets):
-    gentargets_by_dependee = self.context.dependants(
+    gentargets_by_dependee = self.context.dependents(
       on_predicate=is_gentarget,
       from_predicate=lambda t: not is_gentarget(t)
     )

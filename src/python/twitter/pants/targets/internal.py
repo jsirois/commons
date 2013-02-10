@@ -17,7 +17,7 @@
 from twitter.common.collections import OrderedSet
 import collections
 
-from twitter.pants.base import Config, Target
+from twitter.pants.base import Target
 from twitter.pants.targets.util import resolve
 
 class InternalTarget(Target):
@@ -30,9 +30,6 @@ class InternalTarget(Target):
       Exception.__init__(self, 'Cycle detected:\n\t%s' % (
         ' ->\n\t'.join(str(target.address) for target in cycle)
       ))
-
-
-  _config = Config.load()
 
   @classmethod
   def sort_targets(cls, internal_targets):

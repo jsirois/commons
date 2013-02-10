@@ -221,26 +221,36 @@ def _runjava_cmd(jvmargs=None, classpath=None, main=None, opts=None, args=None):
   return cmd
 
 
-def runjava_indivisible(jvmargs=None, classpath=None, main=None, opts=None, args=None, **kwargs):
+def runjava_indivisible(jvmargs=None, classpath=None, main=None, opts=None, args=None,
+                        only_write_cmd_line_to=None, **kwargs):
   """Spawns a java process with the supplied configuration and returns its exit code.
   The args list is indivisable so it can't be split across multiple invocations of the command
   similiar to xargs.
   Passes kwargs through to subproccess.call.
   """
   cmd_with_args = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts, args=args)
-  with safe_classpath():
-    return _subprocess_call(cmd_with_args, **kwargs)
+  if only_write_cmd_line_to is not None:
+    only_write_cmd_line_to.write(' '.join(cmd_with_args))
+    return 0
+  else:
+    with safe_classpath():
+      return _subprocess_call(cmd_with_args, **kwargs)
 
 
-def runjava(jvmargs=None, classpath=None, main=None, opts=None, args=None, **kwargs):
+def runjava(jvmargs=None, classpath=None, main=None, opts=None, args=None,
+            only_write_cmd_line_to=None, **kwargs):
   """Spawns a java process with the supplied configuration and returns its exit code.
   The args list is divisable so it can be split across multiple invocations of the command
   similiar to xargs.
   Passes kwargs through to subproccess.call.
   """
   cmd = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts)
-  with safe_classpath():
-    return _subprocess_call_with_args(cmd, args, **kwargs)
+  if only_write_cmd_line_to is not None:
+    only_write_cmd_line_to.write(' '.join(cmd))
+    return 0
+  else:
+    with safe_classpath():
+      return _subprocess_call_with_args(cmd, args, **kwargs)
 
 
 def _split_args(i):

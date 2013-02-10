@@ -29,7 +29,7 @@ python_tests(name = 'descriptors',
     pants('src/python/twitter/thrift/descriptors'),
     pants('src/python/twitter/thrift/text'),
     pants('src/thrift/com/twitter/thrift/descriptors:descriptors-py'),
-    ':test_data'
+    pants(':test_data')
   ],
   sources = globs('*.py'),
 )

@@ -20,6 +20,7 @@ import os
 
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
+from functools import partial
 
 from twitter.common.dirutil import safe_mkdir
 from twitter.common.lang import Compatibility
@@ -59,12 +60,12 @@ class SourceScope(object):
 
 
 NO_SOURCES = SourceScope.for_selector(lambda t: ())
-TARGET_SOURCES = SourceScope.for_selector(
-  lambda t: t.expand_files(recursive=False, include_buildfile=False)
-)
-TRANSITIVE_SOURCES = SourceScope.for_selector(
-  lambda t: t.expand_files(recursive=True, include_buildfile=False)
-)
+
+def get_target_sources(recursive, include_buildfile, t):
+  return t.expand_files(recursive, include_buildfile) if hasattr(t, "expand_files") else []
+
+TARGET_SOURCES = SourceScope.for_selector(partial(get_target_sources, False, False))
+TRANSITIVE_SOURCES = SourceScope.for_selector(partial(get_target_sources, True, False))
 
 
 class CacheKeyGenerator(object):

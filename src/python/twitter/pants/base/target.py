@@ -17,8 +17,10 @@
 import collections
 import os
 
-from twitter.common.collections import OrderedSet
+from twitter.common.collections import OrderedSet, maybe_list
 from twitter.common.decorators import deprecated_with_warning
+
+from twitter.pants import is_concrete
 from twitter.pants.base.address import Address
 from twitter.pants.base.hash_utils import hash_all
 from twitter.pants.base.parse_context import ParseContext
@@ -98,11 +100,22 @@ class Target(object):
       ParseContext(address.buildfile).parse()
       return lookup()
 
-  def __init__(self, name, is_meta, reinit_check=True):
+  @classmethod
+  def resolve_all(cls, targets, *expected_types):
+    """Yield the resolved concrete targets checking each is a subclass of one of the expected types
+    if specified.
+    """
+    if targets:
+      for target in maybe_list(targets, expected_type=Target):
+        for resolved in filter(is_concrete, target.resolve()):
+          if expected_types and not isinstance(resolved, expected_types):
+            raise TypeError('%s requires types: %s and found %s' % (cls, expected_types, resolved))
+          yield resolved
+
+  def __init__(self, name, reinit_check=True):
     # This check prevents double-initialization in multiple-inheritance situations.
     if not reinit_check or not hasattr(self, '_initialized'):
       self.name = name
-      self.is_meta = is_meta
       self.description = None
 
       self.address = self.locate()

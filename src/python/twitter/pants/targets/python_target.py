@@ -28,7 +28,7 @@ class PythonTarget(TargetWithSources):
     self.add_label('python')
     self.sources = self._resolve_paths(self.target_base, sources)
     self.resources = self._resolve_paths(self.target_base, resources) if resources else OrderedSet()
-    self.dependencies = OrderedSet(processed_dependencies) if processed_dependencies else OrderedSet()
+    self.dependencies = OrderedSet(processed_dependencies or ())
     self.provides = provides
     if self.provides:
       self.provides.library = self

@@ -134,6 +134,11 @@ class  JarDependency(ExternalDependency):
     self._configurations.append('docs')
     return self
 
+  # TODO: This is necessary duck-typing because in some places JarDependency is treated like
+  # a Target, even though it doesn't extend Target. Probably best to fix that.
+  def has_label(self, label):
+    return False
+
   def with_artifact(self, name=None, type_=None, ext=None, url=None, configuration=None,
                     classifier=None):
     """Sets an alternative artifact to fetch or adds additional artifacts if called multiple times.

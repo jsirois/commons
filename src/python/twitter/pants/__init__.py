@@ -132,13 +132,6 @@ source_root = SourceRoot
 wiki = Wiki
 
 
-def is_codegen(target):
-  """Returns True if the target is synthesized from generated sources or represents a set of idl
-  files that generate sources.
-  """
-  return target.has_label('codegen')
-
-
 def has_sources(target, extension=None):
   """Returns True if the target has sources.
 
@@ -147,7 +140,8 @@ def has_sources(target, extension=None):
   """
   return (target.has_label('sources')
           and (not extension
-               or any(filter(lambda source: source.endswith(extension), target.sources))))
+               or (hasattr(target, 'sources')
+                   and any(filter(lambda source: source.endswith(extension), target.sources)))))
 
 
 def has_resources(target):
@@ -194,6 +188,11 @@ def extract_jvm_targets(targets):
     for real_target in target.resolve():
       if is_jvm(real_target):
         yield real_target
+
+
+def is_codegen(target):
+  """Returns True if the target is a codegen target."""
+  return target.has_label('codegen')
 
 
 def is_jar_library(target):
@@ -263,6 +262,11 @@ def maven_layout():
   source_root('src/test/scala', junit_tests, page, scala_library, scala_specs)
 
 
+def is_jar_dependency(dep):
+  """Returns True if the dependency is an external jar."""
+  return isinstance(dep, JarDependency)
+
+
 # bind this as late as possible
 pants = fancy_pants
 
@@ -306,6 +310,7 @@ __all__ = (
   'is_internal',
   'is_jar_library',
   'is_jar',
+  'is_jar_library',
   'is_java',
   'is_jvm',
   'is_python',

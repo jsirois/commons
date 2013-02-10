@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
+import StringIO
 import os
 import re
 import signal
@@ -107,18 +108,24 @@ class NailgunTask(Task):
 
       try:
         if cp:
-          nailgun('ng-cp', *[os.path.relpath(jar, get_buildroot()) for jar in cp])
+          call_nailgun('ng-cp', *[os.path.relpath(jar, get_buildroot()) for jar in cp])
         opts_args = []
         if opts:
           opts_args.extend(opts)
         if args:
           opts_args.extend(args)
-        return nailgun(main, *opts_args)
+        return call_nailgun(main, *opts_args)
       except NailgunError as e:
         self._ng_shutdown()
         raise e
     else:
-      return binary_util.runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs)
+      only_write_cmd_line_to = StringIO.StringIO() if self.dry_run else None
+      ret = runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs,
+                    only_write_cmd_line_to=only_write_cmd_line_to)
+      if only_write_cmd_line_to:
+        print('********** Direct Java dry run: %s' % only_write_cmd_line_to.getvalue())
+        only_write_cmd_line_to.close()
+      return ret
 
   def runjava(self, main, classpath=None, opts=None, args=None, jvmargs=None):
     """Runs the java main using the given classpath and args.
@@ -307,12 +314,12 @@ if plat.startswith('linux') or plat.startswith('macosx'):
       piped_return_codes = [int(x) for x in stdout_data_lines[-1].split(' ') if x]
     except ValueError:
       raise NailgunError('Failed to parse result (%s) for command (%s)' % (stdout_data_lines, cmd))
-    # Drop the echoing of PIPESTATUS, which our caller doesn't care about.
+      # Drop the echoing of PIPESTATUS, which our caller doesn't care about.
     stdout_data_lines = stdout_data_lines[:-1]
     failed = any(piped_return_codes)
     if failed:
-      raise NailgunError('Failed to execute cmd: "%s". Exit codes: %s. Output: "%s"' % \
-                        (cmd, piped_return_codes, ''.join(stdout_data_lines)))
+      raise NailgunError('Failed to execute cmd: "%s". Exit codes: %s. Output: "%s"' %\
+                         (cmd, piped_return_codes, ''.join(stdout_data_lines)))
     return stdout_data_lines
 
   def _find_matching_pids(strs):

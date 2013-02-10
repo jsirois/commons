@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 
 import os
@@ -43,11 +42,13 @@ class Context(object):
     def info(self, msg): pass
     def warn(self, msg): pass
 
-  def __init__(self, config, options, target_roots, requested_goals=None, lock=Lock.unlocked(), log=None, timer=None):
+  def __init__(self, config, options, target_roots, requested_goals=None, lock=Lock.unlocked(),
+               log=None, timer=None, target_base=None):
     self._config = config
     self._options = options
     self._lock = lock
     self._log = log or Context.Log()
+    self._target_base = target_base or Target
     self._state = {}
     self._products = Products()
     self._buildroot = get_buildroot()
@@ -128,16 +129,16 @@ class Context(object):
 
     self._targets = OrderedSet()
     for target in target_roots:
-      self._add_target(target)
+      self.add_target(target)
     self.id = Target.identify(self._targets)
 
-  def _add_target(self, target):
+  def add_target(self, target):
     """Adds a target and its transitive dependencies to the run context.
 
     The target is not added to the target roots.
     """
     def add_targets(tgt):
-      self._targets.update(tgt.resolve())
+      self._targets.update(tgt for tgt in tgt.resolve() if isinstance(tgt, self._target_base))
     target.walk(add_targets)
 
   def add_new_target(self, target_base, target_type, *args, **kwargs):

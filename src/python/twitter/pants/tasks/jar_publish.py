@@ -228,7 +228,7 @@ class DependencyWriter(object):
 
 class PomWriter(DependencyWriter):
   def __init__(self, get_db):
-    super(PomWriter, self).__init__(get_db, os.path.join('jar_publish', 'pom.mustache'))
+    super(PomWriter, self).__init__(get_db, os.path.join('templates', 'jar_publish', 'pom.mustache'))
 
   def templateargs(self, target_jar, confs=None, synth=False):
     return dict(artifact=target_jar)
@@ -244,13 +244,13 @@ class PomWriter(DependencyWriter):
     )
 
   def internaldep(self, jar_dependency, dep=None, synth=False):
-    classifier = 'idl' if is_codegen(dep) and synth else None
+    classifier = 'idl' if dep and is_codegen(dep) and synth else None
     return self.jardep(jar_dependency, classifier=classifier)
 
 
 class IvyWriter(DependencyWriter):
   def __init__(self, get_db):
-    super(IvyWriter, self).__init__(get_db, os.path.join('ivy_resolve', 'ivy.mustache'))
+    super(IvyWriter, self).__init__(get_db, os.path.join('templates', 'ivy_resolve', 'ivy.mustache'))
 
   def templateargs(self, target_jar, confs=None, synth=False):
     return dict(lib=target_jar.extend(
@@ -279,7 +279,7 @@ class IvyWriter(DependencyWriter):
     )
 
   def internaldep(self, jar_dependency, dep=None, synth=False):
-    classifier = 'idl' if is_codegen(dep) and synth else None
+    classifier = 'idl' if dep and is_codegen(dep) and synth else None
     return self._jardep(jar_dependency, classifier=classifier)
 
 
@@ -523,10 +523,14 @@ class JarPublish(Task):
 
       def copy(tgt, typename, suffix='', artifact_ext=''):
         genmap = self.context.products.get(typename)
-        for basedir, jars in genmap.get(tgt).items():
-          for artifact in jars:
-            path = artifact_path(suffix=suffix, artifact_ext=artifact_ext)
-            shutil.copy(os.path.join(basedir, artifact), path)
+        mapping = genmap.get(tgt)
+        if not mapping:
+          print('no mapping for %s' % tgt)
+        else:
+          for basedir, jars in mapping.items():
+            for artifact in jars:
+              path = artifact_path(suffix=suffix, artifact_ext=artifact_ext)
+              shutil.copy(os.path.join(basedir, artifact), path)
 
       copy(target, typename='jars')
       copy(target, typename='source_jars', suffix='-sources')
@@ -772,14 +776,15 @@ class JarPublish(Task):
       raise TaskError(failuremsg or '%s failed with exit code %d' % (' '.join(cmd), result))
 
   def generate_ivysettings(self, publishedjars, publish_local=None):
-    template = pkgutil.get_data(__name__, os.path.join('jar_publish', 'ivysettings.mustache'))
+    template_relpath = os.path.join('templates', 'jar_publish', 'ivysettings.mustache')
+    template = pkgutil.get_data(__name__, template_relpath)
     with safe_open(os.path.join(self.outdir, 'ivysettings.xml'), 'w') as wrapper:
       generator = Generator(template,
-        ivysettings=self.ivysettings,
-        dir=self.outdir,
-        cachedir=self.cachedir,
-        published=[TemplateData(org=jar.org, name=jar.name)
-                   for jar in publishedjars],
-        publish_local=publish_local)
+                            ivysettings=self.ivysettings,
+                            dir=self.outdir,
+                            cachedir=self.cachedir,
+                            published=[TemplateData(org=jar.org, name=jar.name)
+                                       for jar in publishedjars],
+                            publish_local=publish_local)
       generator.write(wrapper)
       return wrapper.name

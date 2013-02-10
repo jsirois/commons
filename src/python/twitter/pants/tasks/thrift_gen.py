@@ -106,6 +106,10 @@ class ThriftGen(CodeGen):
       if self.context.products.isrequired(lang):
         self.gen_langs.add(lang)
 
+    self.thrift_binary = select_thrift_binary(
+      context.config,
+      version=context.options.thrift_version
+    )
 
   def invalidate_for(self):
     return self.gen_langs
@@ -126,11 +130,6 @@ class ThriftGen(CodeGen):
     return dict(java=is_jvm, python=is_python)
 
   def genlang(self, lang, targets):
-    thrift_binary = select_thrift_binary(
-      self.context.config,
-      version=self.context.options.thrift_version
-    )
-
     bases, sources = calculate_compile_roots(targets, self.is_gentarget)
 
     if lang == 'java':
@@ -141,7 +140,7 @@ class ThriftGen(CodeGen):
       raise TaskError('Unrecognized thrift gen lang: %s' % lang)
 
     args = [
-      thrift_binary,
+      self.thrift_binary,
       '--gen', gen,
       '-recurse',
     ]

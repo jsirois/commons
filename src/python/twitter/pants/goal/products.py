@@ -2,8 +2,8 @@ from collections import defaultdict
 
 class Products(object):
   class ProductMapping(object):
-    """
-      Maps products of a given type by target. Each product is a map from basedir to a list of files in that dir.
+    """Maps products of a given type by target. Each product is a map from basedir to a list of
+    files in that dir.
     """
 
     def __init__(self, typename):
@@ -30,8 +30,9 @@ class Products(object):
 
     def get(self, target):
       """
-        Returns the product mapping for the given target as a map of <basedir> -> <products list>,
-        or None if no such product exists.
+        Returns the product mapping for the given target as a map of <basedir> -> <products list>.
+        If no mapping exists, returns an empty map whose values default to empty lists. So you
+        can use the result without checking for None.
       """
       return self.by_target.get(target)
 

@@ -31,7 +31,7 @@ from twitter.common.dirutil import safe_mkdir, safe_open
 from twitter.pants import binary_util, get_buildroot, is_internal, is_jar, is_jvm, is_concrete
 from twitter.pants.base.generator import Generator, TemplateData
 from twitter.pants.base.revision import Revision
-from twitter.pants import TaskError
+from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.ivy_utils import IvyUtils
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
@@ -67,7 +67,7 @@ class IvyResolve(NailgunTask):
                             help="Emit ivy report outputs in to this directory.")
 
     option_group.add_option(mkflag("cache"), dest="ivy_resolve_cache",
-                            help="Use this directory as the ivy cache, instead of the " \
+                            help="Use this directory as the ivy cache, instead of the "
                                  "default specified in pants.ini.")
 
     option_group.add_option(mkflag("args"), dest="ivy_args", action="append", default=[],
@@ -100,10 +100,11 @@ class IvyResolve(NailgunTask):
 
     self._profile = context.config.get('ivy-resolve', 'profile')
 
-    self._template_path = os.path.join('ivy_resolve', 'ivy.mustache')
+    self._template_path = os.path.join('templates', 'ivy_resolve', 'ivy.mustache')
 
     self._work_dir = context.config.get('ivy-resolve', 'workdir')
     self._classpath_file = os.path.join(self._work_dir, 'classpath')
+    self._classpath_dir = os.path.join(self._work_dir, 'mapped')
 
     self._outdir = context.options.ivy_resolve_outdir or os.path.join(self._work_dir, 'reports')
     self._open = context.options.ivy_resolve_open
@@ -176,7 +177,7 @@ class IvyResolve(NailgunTask):
         ] + self._confs)
 
     if not os.path.exists(target_classpath_file):
-      raise TaskError, 'Ivy failed to create classpath file at %s' % target_classpath_file
+      raise TaskError('Ivy failed to create classpath file at %s' % target_classpath_file)
 
     def safe_link(src, dest):
       if os.path.exists(dest):
@@ -191,20 +192,21 @@ class IvyResolve(NailgunTask):
     target_ivyxml = os.path.join(target_workdir, 'ivy.xml')
     safe_link(target_ivyxml, ivyxml_symlink)
 
-    with self._cachepath(self._classpath_file) as classpath:
-      with self.context.state('classpath', []) as cp:
-        for path in classpath:
-          if self._map_jar(path):
-            for conf in self._confs:
-              cp.append((conf, path.strip()))
+    if os.path.exists(self._classpath_file):
+      with self._cachepath(self._classpath_file) as classpath:
+        with self.context.state('classpath', []) as cp:
+          for path in classpath:
+            if self._map_jar(path):
+              for conf in self._confs:
+                cp.append((conf, path.strip()))
 
     if self._report:
       self._generate_ivy_report()
 
-    create_jardeps_for = self.context.products.isrequired(self._mapfor_typename())
     if self.context.products.isrequired("ivy_jar_products"):
       self._populate_ivy_jar_products()
 
+    create_jardeps_for = self.context.products.isrequired(self._mapfor_typename())
     if create_jardeps_for:
       genmap = self.context.products.get(self._mapfor_typename())
       for target in filter(create_jardeps_for, targets):
@@ -239,8 +241,8 @@ class IvyResolve(NailgunTask):
     safe_mkdir(os.path.dirname(ivyxml))
     with open(ivyxml, 'w') as output:
       generator = Generator(pkgutil.get_data(__name__, self._template_path),
-        root_dir = get_buildroot(),
-        lib = template_data)
+                            root_dir = get_buildroot(),
+                            lib = template_data)
       generator.write(output)
 
   def _populate_ivy_jar_products(self):
@@ -281,7 +283,7 @@ class IvyResolve(NailgunTask):
     classpath = self.profile_classpath(self._profile)
 
     reports = []
-    org, name = self._ivy_utils.identify()
+    org, name = self._identify()
     xsl = os.path.join(self._cachedir, 'ivy-report.xsl')
     safe_mkdir(self._outdir, clean=True)
     for conf in self._confs:
@@ -331,7 +333,9 @@ class IvyResolve(NailgunTask):
         for jar in target.jar_dependencies:
           if jar.rev:
             add_jar(jar)
-      if target.excludes:
+
+      # Lift jvm target-level excludes up to the global excludes set
+      if is_jvm(target) and target.excludes:
         excludes.update(target.excludes)
 
     for target in targets:

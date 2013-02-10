@@ -23,16 +23,16 @@ from contextlib import contextmanager
 from multiprocessing.pool import ThreadPool
 
 from twitter.common.collections.orderedset import OrderedSet
+
 from twitter.pants.base.artifact_cache import create_artifact_cache
 from twitter.pants.base.build_invalidator import CacheKeyGenerator
 from twitter.pants.tasks.cache_manager import CacheManager, InvalidationCheck
-from twitter.pants.base.build_cache import BuildCache, NO_SOURCES, TARGET_SOURCES
-from twitter.pants.targets import JarDependency
-from twitter.pants.targets.external_dependency import ExternalDependency
+from twitter.pants.tasks.cache_manager import CacheManager, VersionedTargetSet
 
 
 class TaskError(Exception):
   """Raised to indicate a task has failed."""
+
 
 class Task(object):
   @classmethod
@@ -49,8 +49,8 @@ class Task(object):
     self.dry_run = self.can_dry_run() and self.context.options.dry_run
     self._cache_key_generator = CacheKeyGenerator()
     self._artifact_cache = None
-    self._build_invalidator_dir = \
-      os.path.join(context.config.get('tasks', 'build_invalidator'), self.product_type())
+    self._build_invalidator_dir = os.path.join(context.config.get('tasks', 'build_invalidator'),
+                                               self.product_type())
 
   def setup_artifact_cache(self, spec):
     """Subclasses can call this in their __init__() to set up artifact caching for that task type.

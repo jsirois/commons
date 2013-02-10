@@ -43,6 +43,7 @@ from twitter.pants import get_buildroot, goal, group, has_sources, is_apt, is_sc
 from twitter.pants.base import Address, BuildFile, Config, ParseContext, Target, Timer
 from twitter.pants.base.rcfile import RcFile
 from twitter.pants.commands import Command
+from twitter.pants.targets import InternalTarget
 from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.nailgun_task import NailgunTask
 from twitter.pants.goal import Context, GoalError, Phase
@@ -335,7 +336,7 @@ class Goal(Command):
       # Bootstrap goals by loading any configured bootstrap BUILD files
       with self.check_errors('The following bootstrap_buildfiles cannot be loaded:') as error:
         with self.timer.timing('parse:bootstrap'):
-          for path in self.config.getlist('goals', 'bootstrap_buildfiles', default = []):
+          for path in self.config.getlist('goals', 'bootstrap_buildfiles', default=[]):
             try:
               buildfile = BuildFile(get_buildroot(), os.path.relpath(path, get_buildroot()))
               ParseContext(buildfile).parse()
@@ -347,22 +348,23 @@ class Goal(Command):
       # Bootstrap user goals by loading any BUILD files implied by targets
       spec_parser = SpecParser(self.root_dir)
       with self.check_errors('The following targets could not be loaded:') as error:
-        for spec in specs:
-          try:
-            for target, address in spec_parser.parse(spec):
-              if target:
-                self.targets.append(target)
-                # Force early BUILD file loading if this target is an alias that expands to others.
-                unused = list(target.resolve())
-              else:
-                siblings = Target.get_all_addresses(address.buildfile)
-                prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'
-                error('%s => %s?:\n    %s' % (address, prompt,
-                                              '\n    '.join(str(a) for a in siblings)))
-          except (TypeError, ImportError, TaskError, GoalError):
-            error(spec, include_traceback=True)
-          except (IOError, SyntaxError):
-            error(spec)
+        with self.timer.timing('parse:BUILD'):
+          for spec in specs:
+            try:
+              for target, address in spec_parser.parse(spec):
+                if target:
+                  self.targets.append(target)
+                  # Force early BUILD file loading if this target is an alias that expands to others.
+                  unused = list(target.resolve())
+                else:
+                  siblings = Target.get_all_addresses(address.buildfile)
+                  prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'
+                  error('%s => %s?:\n    %s' % (address, prompt,
+                                                '\n    '.join(str(a) for a in siblings)))
+            except (TypeError, ImportError, TaskError, GoalError):
+              error(spec, include_traceback=True)
+            except (IOError, SyntaxError):
+              error(spec)
 
       self.phases = [Phase(goal) for goal in goals]
 
@@ -396,6 +398,14 @@ class Goal(Command):
   def run(self, lock):
     if self.options.dry_run:
       print('****** Dry Run ******')
+
+    with self.check_errors("Target contains a dependency cycle") as error:
+      with self.timer.timing('parse:check_cycles'):
+        for target in self.targets:
+          try:
+            InternalTarget.check_cycles(target)
+          except InternalTarget.CycleException as e:
+            error(target.id)
 
     logger = None
     if self.options.log or self.options.log_level:
@@ -461,7 +471,6 @@ class Goal(Command):
       NailgunTask.killall(log)
     sys.exit(1)
 
-
 # Install all default pants provided goals
 from twitter.pants import junit_tests
 from twitter.pants.targets import (
@@ -518,38 +527,42 @@ goal(
   dependencies=['invalidate']
 ).install().with_description('Cleans all intermediate build output')
 
-def async_safe_rmtree(root):
-  new_path = root + '.deletable.%f' % time.time()
-  if os.path.exists(root):
+
+try:
+  import daemon
+
+  def async_safe_rmtree(root):
+    new_path = root + '.deletable.%f' % time.time()
     os.rename(root, new_path)
     with daemon.DaemonContext():
       safe_rmtree(new_path)
 
-goal(
-  name='clean-all-async',
-  action=lambda ctx: async_safe_rmtree(ctx.config.getdefault('pants_workdir')),
-  dependencies=['invalidate']
-).install().with_description('Cleans all intermediate build output in a background process')
+  goal(
+    name='clean-all-async',
+    action=lambda ctx: async_safe_rmtree(ctx.config.getdefault('pants_workdir')),
+    dependencies=['invalidate']
+  ).install().with_description('Cleans all intermediate build output in a background process')
+except ImportError:
+  pass
 
 
-class NailgunKillall(Task):
-  @classmethod
-  def setup_parser(cls, option_group, args, mkflag):
-    option_group.add_option(mkflag("everywhere"), dest="ng_killall_everywhere",
-                            default=False, action="store_true",
-                            help="[%default] Kill all nailguns servers launched by pants for "
-                                 "all workspaces on the system.")
+if NailgunTask.killall:
+  class NailgunKillall(Task):
+    @classmethod
+    def setup_parser(cls, option_group, args, mkflag):
+      option_group.add_option(mkflag("everywhere"), dest="ng_killall_everywhere",
+                              default=False, action="store_true",
+                              help="[%default] Kill all nailguns servers launched by pants for "
+                                   "all workspaces on the system.")
 
-  def execute(self, targets):
-    if NailgunTask.killall:
-      NailgunTask.killall(self.context.log, everywhere=self.context.options.ng_killall_everywhere)
-    else:
-      raise NotImplementedError, 'NailgunKillall not implemented on this platform'
+    def execute(self, targets):
+      if NailgunTask.killall:
+        NailgunTask.killall(self.context.log, everywhere=self.context.options.ng_killall_everywhere)
 
-ng_killall = goal(name='ng-killall', action=NailgunKillall)
-ng_killall.install().with_description('Kill any running nailgun servers spawned by pants.')
+  ng_killall = goal(name='ng-killall', action=NailgunKillall)
+  ng_killall.install().with_description('Kill any running nailgun servers spawned by pants.')
 
-ng_killall.install('clean-all', first=True)
+  ng_killall.install('clean-all', first=True)
 
 
 # TODO(John Sirois): Resolve eggs

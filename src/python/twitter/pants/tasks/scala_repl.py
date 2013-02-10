@@ -57,7 +57,7 @@ class ScalaRepl(JvmTask):
         jvmargs=self.jvm_args,
         classpath=self.classpath(profile_classpath(self.profile), confs=self.confs),
         main=self.main,
-        args=[]
+        args=self.args
       )
     except KeyboardInterrupt:
       # TODO(John Sirois): Confirm with Steve Gury that finally does not work on mac and an

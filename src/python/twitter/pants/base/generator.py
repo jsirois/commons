@@ -37,7 +37,8 @@ def _expand(map):
   return ret
 
 class TemplateData(dict):
-  """Encapsulates data for a mustache template as a property-addressable read-only map-like struct."""
+  """Encapsulates data for a mustache template as a property-addressable read-only map-like struct.
+  """
 
   def __init__(self, **kwargs):
     dict.__init__(self, _expand(kwargs))
@@ -72,5 +73,5 @@ class Generator(object):
   def write(self, stream):
     """Applies the template to the template data and writes the result to the given file-like
     stream."""
-    stream.write(pystache.render(self._template, self.template_data))
 
+    stream.write(pystache.render(self._template, self.template_data))

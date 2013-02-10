@@ -57,12 +57,14 @@ class EclipseGen(IdeGen):
   def __init__(self, context):
     IdeGen.__init__(self, context)
 
-    eclipse_version = _VERSIONS[context.options.eclipse_gen_version]
-    self.project_template = os.path.join(_TEMPLATE_BASEDIR, 'project-%s.mustache' % eclipse_version)
-    self.classpath_template = os.path.join(_TEMPLATE_BASEDIR, 'classpath-%s.mustache' % eclipse_version)
-    self.apt_template = os.path.join(_TEMPLATE_BASEDIR, 'factorypath-%s.mustache' % eclipse_version)
-    self.pydev_template = os.path.join(_TEMPLATE_BASEDIR, 'pydevproject-%s.mustache' % eclipse_version)
-    self.debug_template = os.path.join(_TEMPLATE_BASEDIR, 'debug-launcher-%s.mustache' % eclipse_version)
+    version = _VERSIONS[context.options.eclipse_gen_version]
+    self.project_template = os.path.join(_TEMPLATE_BASEDIR, 'project-%s.mustache' % version)
+    self.classpath_template = os.path.join(_TEMPLATE_BASEDIR, 'classpath-%s.mustache' % version)
+    self.apt_template = os.path.join(_TEMPLATE_BASEDIR, 'factorypath-%s.mustache' % version)
+    self.pydev_template = os.path.join(_TEMPLATE_BASEDIR, 'pydevproject-%s.mustache' % version)
+    self.debug_template = os.path.join(_TEMPLATE_BASEDIR, 'debug-launcher-%s.mustache' % version)
+    self.coreprefs_template = os.path.join(_TEMPLATE_BASEDIR,
+                                           'org.eclipse.jdt.core.prefs-%s.mustache' % version)
 
     self.project_filename = os.path.join(self.cwd, '.project')
     self.classpath_filename = os.path.join(self.cwd, '.classpath')

@@ -54,5 +54,6 @@ class JavaLibrary(ExportableJvmLibrary, WithLegacyResources):
 
     WithLegacyResources.__init__(self, name, sources=sources, resources=resources)
 
+    self.add_label('java')
     self.deployjar = deployjar
     self.add_label('java')

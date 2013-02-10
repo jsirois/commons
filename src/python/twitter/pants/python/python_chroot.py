@@ -28,6 +28,7 @@ from twitter.common.dirutil import safe_rmtree
 from twitter.common.python.interpreter import PythonIdentity
 from twitter.common.python.pex_builder import PEXBuilder
 from twitter.common.python.platforms import Platform
+
 from twitter.pants import is_concrete
 from twitter.pants.base import Config
 from twitter.pants.base.artifact_cache import FileBasedArtifactCache
@@ -39,7 +40,6 @@ from twitter.pants.targets import (
     PythonRequirement,
     PythonTests,
     PythonThriftLibrary)
-
 
 from .antlr_builder import PythonAntlrBuilder
 from .thrift_builder import PythonThriftBuilder
@@ -110,6 +110,10 @@ class PythonChroot(object):
     def __init__(self, target):
       Exception.__init__(self, "Not a valid Python dependency! Found: %s" % target)
 
+  class BuildFailureException(Exception):
+    def __init__(self, msg):
+      Exception.__init__(self, msg)
+
   def __init__(self, target, root_dir, extra_targets=None, builder=None, conn_timeout=None):
     self._config = Config.load()
     self._target = target
@@ -177,8 +181,7 @@ class PythonChroot(object):
     self._dump_built_library(library, PythonAntlrBuilder(library, self._root))
 
   def _dump_built_library(self, library, builder):
-    # TODO(wickman) Have antlr/thrift generate sdists then leverage the rest of the
-    #   Fetcher pipeline.
+    # TODO(wickman): Port this over to the Installer+Distiller and stop using ArtifactCache.
     absolute_sources = library.expand_files()
     absolute_sources.sort()
     cache_key = self._key_generator.key_for(library.id, absolute_sources)

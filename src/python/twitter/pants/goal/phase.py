@@ -152,7 +152,6 @@ class Phase(PhaseBase):
         context.timer.log('Timing report')
         context.timer.log('=============')
         for phase, timings in executed.items():
-          phase_time = None
           for goal, times in timings.items():
             if len(times) > 1:
               context.timer.log('[%(phase)s:%(goal)s(%(numsteps)d)] %(timings)s -> %(total).3fs' % {

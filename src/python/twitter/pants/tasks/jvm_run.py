@@ -17,8 +17,10 @@
 __author__ = 'Benjy Weinberger'
 
 import shlex
+import sys
 
 from twitter.common.dirutil import safe_open
+
 from twitter.pants.binary_util import runjava_indivisible
 from twitter.pants.targets import JvmBinary
 from twitter.pants.tasks import Task, TaskError
@@ -75,7 +77,6 @@ class JvmRun(JvmTask):
 
     self.context.lock.release()
     # Run the first target that is a binary.
-    self.context.lock.release()
     binaries = filter(is_binary, targets)
     if len(binaries) > 0:  # We only run the first one.
       main = binaries[0].main

@@ -22,9 +22,8 @@ import shlex
 from twitter.common.dirutil import safe_open, safe_mkdir
 
 from twitter.pants import has_sources, is_apt
-from twitter.pants.base import Target
-from twitter.pants.tasks import Task, TaskError
-from twitter.pants.tasks.binary_utils import nailgun_profile_classpath
+from twitter.pants.base.target import Target
+from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.jvm_compiler_dependencies import Dependencies
 from twitter.pants.tasks.nailgun_task import NailgunTask
 
@@ -74,21 +73,22 @@ class JavaCompile(NailgunTask):
                             help="[%default] Compile java code with all configured warnings "
                                  "enabled.")
 
-    option_group.add_option(mkflag("partition-size-hint"), dest="java_compile_partition_size_hint",
-      action="store", type="int", default=-1,
-      help="Roughly how many source files to attempt to compile together. Set to a large number to compile "\
-           "all sources together. Set this to 0 to compile target-by-target. Default is set in pants.ini.")
-
     option_group.add_option(mkflag("args"), dest="java_compile_args", action="append",
                             help = "Pass these extra args to javac.")
+
+    option_group.add_option(mkflag("partition-size-hint"), dest="java_compile_partition_size_hint",
+                            action="store", type="int", default=-1,
+                            help="Roughly how many source files to attempt to compile together. Set to a large number to compile "\
+                                 "all sources together. Set this to 0 to compile target-by-target. Default is set in pants.ini.")
 
   def __init__(self, context):
     NailgunTask.__init__(self, context, workdir=context.config.get('java-compile', 'nailgun_dir'))
 
-    self._partition_size_hint = \
-      context.options.java_compile_partition_size_hint \
-      if context.options.java_compile_partition_size_hint != -1 \
-      else context.config.getint('java-compile', 'partition_size_hint')
+    if context.options.java_compile_partition_size_hint != -1:
+      self._partition_size_hint = context.options.java_compile_partition_size_hint
+    else:
+      self._partition_size_hint = context.config.getint('java-compile', 'partition_size_hint',
+                                                        default=1000)
 
     workdir = context.config.get('java-compile', 'workdir')
     self._classes_dir = os.path.join(workdir, 'classes')
@@ -156,20 +156,20 @@ class JavaCompile(NailgunTask):
       if not self.dry_run:
         if self.context.products.isrequired('classes'):
           genmap = self.context.products.get('classes')
-
           # Map generated classes to the owning targets and sources.
           for target, classes_by_source in self._deps.findclasses(java_targets).items():
             for source, classes in classes_by_source.items():
               genmap.add(source, self._classes_dir, classes)
               genmap.add(target, self._classes_dir, classes)
+
           # TODO(John Sirois): Map target.resources in the same way
           # 'Map' (rewrite) annotation processor service info files to the owning targets.
           for target in java_targets:
             if is_apt(target) and target.processors:
-                basedir = os.path.join(self._resources_dir, Target.maybe_readable_identify([target]))
-                processor_info_file = os.path.join(basedir, _PROCESSOR_INFO_FILE)
-                self.write_processor_info(processor_info_file, target.processors)
-                genmap.add(target, basedir, [_PROCESSOR_INFO_FILE])
+              basedir = os.path.join(self._resources_dir, Target.maybe_readable_identify([target]))
+              processor_info_file = os.path.join(basedir, _PROCESSOR_INFO_FILE)
+              self.write_processor_info(processor_info_file, target.processors)
+              genmap.add(target, basedir, [_PROCESSOR_INFO_FILE])
 
         # Produce a monolithic apt processor service info file for further compilation rounds
         # and the unit test classpath.
