@@ -198,12 +198,12 @@ class JUnitRun(JvmTask):
           result = 0
           for batch in self._partition(tests):
             with binary_util.safe_args(batch) as batch_tests:
-              result += binary_util.runjava_indivisible(
+              result += abs(binary_util.runjava_indivisible(
                 jvmargs=(jvmargs or []) + self.java_args,
                 classpath=classpath,
                 main=main,
                 opts=self.opts, args=batch_tests
-              )
+              ))
               if result != 0 and self.fail_fast:
                 break
           if result != 0:
