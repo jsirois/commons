@@ -35,6 +35,8 @@ def parse_time(timestring):
   return total_time
 
 
+
+
 class InvalidData(ValueError):
   def __init__(self, datastring):
     ValueError.__init__(self, "Invalid size: %s" % datastring)
@@ -74,13 +76,24 @@ def parse_data(datastring):
       datastring, ' '.join(BASES)))
 
 
+def parse_amount_into(parse_function, option_name, default=None):
+  def parse_amount_callback(option, opt, value, parser):
+    try:
+      setattr(parser.values, option_name, parse_function(value or default))
+    except Exception as e:
+      raise OptionValueError('Failed to parse: %s' % e)
+  return parse_amount_callback
+
+
+def parse_time_into(option_name, default=None):
+  """
+    An optparse-compatible callback for populating Amounts of Time.
+  """
+  return parse_amount_into(parse_time, option_name, default=default)
+
+
 def parse_data_into(option_name, default=None):
   """
     An optparse-compatible callback for populating Amounts of Data.
   """
-  def parse_data_callback(option, opt, value, parser):
-    try:
-      setattr(parser.values, option_name, parse_data(value or default))
-    except Exception as e:
-      raise OptionValueError('Failed to parse: %s' % e)
-  return parse_data_callback
+  return parse_amount_into(parse_data, option_name, default=default)

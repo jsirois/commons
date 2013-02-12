@@ -344,7 +344,7 @@ class ReviewBoardServer:
       self.die('Unable to access %s. The host path may be invalid\n%s' %
                (url, e))
     except urllib2.HTTPError, e:
-      return self. die('Unable to access %s (%s). The host path may be invalid'
+      return self.die('Unable to access %s (%s). The host path may be invalid'
                        '\n%s' % (url, e.code, e.read()))
 
   def api_call(self, path, fields=None, files=None, method=None):
