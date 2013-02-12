@@ -70,6 +70,9 @@ class IvyResolve(NailgunTask):
                             help="Use this directory as the ivy cache, instead of the " \
                                  "default specified in pants.ini.")
 
+    option_group.add_option(mkflag("args"), dest="ivy_args", action="append", default=[],
+                            help = "Pass these extra args to ivy.")
+
   def __init__(self, context, confs=None):
     classpath = context.config.getlist('ivy', 'classpath')
     nailgun_dir = context.config.get('ivy-resolve', 'nailgun_dir')
@@ -80,6 +83,7 @@ class IvyResolve(NailgunTask):
     self._confs = confs or context.config.getlist('ivy-resolve', 'confs')
     self._transitive = context.config.getbool('ivy-resolve', 'transitive')
     self._opts = context.config.getlist('ivy-resolve', 'args')
+    self._ivy_args = context.options.ivy_args
 
     self._profile = context.config.get('ivy-resolve', 'profile')
 
@@ -440,6 +444,7 @@ class IvyResolve(NailgunTask):
     if not self._transitive:
       ivy_opts.append('-notransitive')
     ivy_opts.extend(self._opts)
+    ivy_opts.extend(self._ivy_args)
 
     result = self.runjava_indivisible('org.apache.ivy.Main', opts=ivy_opts)
     if result != 0:
