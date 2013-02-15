@@ -121,12 +121,12 @@ class ThriftstoreDMLGen(CodeGen):
     else:
       raise TaskError('Unrecognized thrift gen lang: %s' % lang)
 
-  def _calculate_genfiles(self, source):
+  def _calculate_genfiles(self, sources):
     args = [
       self.thriftstore_codegen,
-      'parse',
-      source
+      'parse'
     ]
+    args.extend(sources)
     self.context.log.debug('Executing: %s' % ' '.join(args))
     p = subprocess.Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, error = p.communicate()
@@ -136,8 +136,6 @@ class ThriftstoreDMLGen(CodeGen):
     return thriftstore_classes
 
   def _create_java_target(self, target):
-    genfiles = []
-    for source in target.sources:
-      genfiles.extend(self._calculate_genfiles(os.path.join(target.target_base, source)))
-    self.gen_dml_jls[target].sources = genfiles
+    source_files = [os.path.join(target.target_base, source) for source in target.sources]
+    self.gen_dml_jls[target].sources = self._calculate_genfiles(source_files)
     return self.gen_dml_jls[target]
