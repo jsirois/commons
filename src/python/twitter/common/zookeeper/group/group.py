@@ -156,6 +156,7 @@ class Group(GroupInterface):
   """
 
   class GroupError(Exception): pass
+  class InvalidMemberError(GroupError): pass
 
   MEMBER_PREFIX = 'member_'
 
@@ -185,12 +186,14 @@ class Group(GroupInterface):
       def run(_):
         child = '/'
         failures = set()
-        for component in self._path.split('/'):
+        for component in self._path.split('/')[1:]:
           child = posixpath.join(child, component)
           try:
             self._zk.create(child, "", self._acl)
           except zookeeper.NoAuthException:
-            failures.add(child)
+            if not self._zk.exists(child):
+              event.set(False)
+              return
           except zookeeper.NodeExistsException:
             continue
         event.set(self._path not in failures)
@@ -205,6 +208,9 @@ class Group(GroupInterface):
     return self.info(member)
 
   def info(self, member, callback=None):
+    if member == Membership.error():
+      raise self.InvalidMemberError('Cannot get info on error member!')
+
     promise = Promise(callback)
 
     def do_info():

@@ -393,6 +393,15 @@ class TestGroup(unittest.TestCase):
     assert zkg2.info(m1) == Membership.error()
     assert zkg2.info(m2) == 'herp derp'
 
+  def test_hard_root_acl(self):
+    secure_zk = self.make_zk(self._server.ensemble, authentication=('digest', 'username:password'))
+    secure_zk.create('/test', '', ZooDefs.Acls.EVERYONE_READ_CREATOR_ALL)
+    secure_zk.set_acl('/', 0, ZooDefs.Acls.READ_ACL_UNSAFE)
+    secure_zkg = self.GroupImpl(secure_zk, '/test', acl=ZooDefs.Acls.EVERYONE_READ_CREATOR_ALL)
+    membership = secure_zkg.join('secure hello world')
+    assert membership != Membership.error()
+    assert secure_zkg.info(membership) == 'secure hello world'
+
 
 class TestActiveGroup(TestGroup):
   GroupImpl = ActiveGroup
