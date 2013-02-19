@@ -50,6 +50,7 @@ def create_artifact_cache(context, artifact_root, spec):
 class ArtifactCacheError(Exception):
   pass
 
+
 class ArtifactCache(object):
   """
     A map from cache key to a set of build artifacts.
@@ -136,8 +137,8 @@ class FileBasedArtifactCache(ArtifactCache):
     """
     ArtifactCache.__init__(self, context, artifact_root)
     self._cache_root = cache_root
-    self._copy_fn = copy_fn if copy_fn else \
-      lambda src, rel_dst: shutil.copy(src, os.path.join(self.artifact_root, rel_dst))
+    self._copy_fn = copy_fn if copy_fn else\
+    lambda src, rel_dst: shutil.copy(src, os.path.join(self.artifact_root, rel_dst))
     safe_mkdir(self._cache_root)
 
   def try_insert(self, cache_key, build_artifacts):
@@ -145,8 +146,8 @@ class FileBasedArtifactCache(ArtifactCache):
     safe_rmtree(cache_dir)
     for artifact in build_artifacts or ():
       rel_path = os.path.relpath(artifact, self.artifact_root)
-      assert not rel_path.startswith('..'), \
-        'Artifact %s is not under artifact root %s' % (artifact, self.artifact_root)
+      assert not rel_path.startswith('..'),\
+      'Artifact %s is not under artifact root %s' % (artifact, self.artifact_root)
       artifact_dest = os.path.join(cache_dir, rel_path)
       safe_mkdir(os.path.dirname(artifact_dest))
       if os.path.isdir(artifact):

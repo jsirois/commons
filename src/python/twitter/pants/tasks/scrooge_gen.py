@@ -251,7 +251,8 @@ class ScroogeGen(NailgunTask):
     target_type = INFO_FOR_LANG[target.language]['target_type']
     tgt = create_target(files, deps, outdir, target_type)
     tgt.id = target.id
-    tgt.is_codegen = True
+    tgt.derived_from=target
+    tgt.add_label('codegen')
     for dependee in dependees:
       dependee.update_dependencies([tgt])
     return tgt

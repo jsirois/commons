@@ -153,7 +153,7 @@ class Context(object):
     else:
       derived_from = None
     target = self._create_new_target(target_base, target_type, *args, **kwargs)
-    self._add_target(target)
+    self.add_target(target)
     if derived_from:
       target.derived_from = derived_from
     return target

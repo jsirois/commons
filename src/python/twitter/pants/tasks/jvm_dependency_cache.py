@@ -17,6 +17,7 @@
 __author__ = 'Mark C. Chu-Carroll'
 
 import os
+
 from collections import defaultdict
 
 from twitter.pants.base.target import Target
@@ -37,10 +38,10 @@ class JvmDependencyCache(object):
     intransitive dependency errors, where a target has a dependency on another target which
     it doesn't declare, but which is part of its transitive dependency graph. If this is set
     to "none", intransitive errors won't be reported. If "warn", then it will print warning
-    messages, but will not cause the build to fail, and will not populate build products with 
-    the errors. If "error", then the messages will be printed, build products populated, and 
+    messages, but will not cause the build to fail, and will not populate build products with
+    the errors. If "error", then the messages will be printed, build products populated, and
     the build will fail.
-  - check_unnecessary_deps: if set to True, then warning messages will be printed about 
+  - check_unnecessary_deps: if set to True, then warning messages will be printed about
     dependencies that are declared, but not actually required.
   """
 
@@ -64,7 +65,7 @@ class JvmDependencyCache(object):
 
     See scala_compile.py for an example.
     """
-    option_group.add_option(mkflag("check-missing-deps"), mkflag("check-missing-deps", 
+    option_group.add_option(mkflag("check-missing-deps"), mkflag("check-missing-deps",
                                                                  negate=True),
                             dest="scala_check_missing_deps",
                             action="callback", callback=mkflag.set_bool,
@@ -105,7 +106,7 @@ class JvmDependencyCache(object):
     # expending the cost of reading every class file to find its name.
     # The package prefixes are the names of the root packages - typically
     # "com", "org", "net".
-    self.package_prefixes = context.config.getlist('scala-compile', 
+    self.package_prefixes = context.config.getlist('scala-compile',
                                                    'dep-analysis-package-prefixes')
     if self.package_prefixes is None:
       self.package_prefixes = [ 'com', 'org', 'net', 'scala' ]
@@ -126,7 +127,7 @@ class JvmDependencyCache(object):
 
     # Maps between targets and the source files that are provided by those targets.
     self.targets_by_source = None
-    self.sources_by_target = None   
+    self.sources_by_target = None
 
     # Maps between targets and the classes that are provided by those targets.
     self.targets_by_class = None
@@ -156,7 +157,7 @@ class JvmDependencyCache(object):
   def _compute_jardep_contents(self):
     """ Compute the relations between jar dependencies and jar files.
 
-    Returns: a pair of maps, (jars_by_target, targets_by_jar) describing the mappings between 
+    Returns: a pair of maps, (jars_by_target, targets_by_jar) describing the mappings between
        jars and the targets that contain those jars.
     """
 
@@ -216,7 +217,7 @@ class JvmDependencyCache(object):
     if self.binary_deps_by_target is None:
       self._compute_classfile_dependency_relations()
     return self.binary_deps_by_target
-      
+
   def _compute_classfile_dependency_relations(self):
     """ Compute the dependency relations based on binary and classname deps.
 
@@ -230,7 +231,7 @@ class JvmDependencyCache(object):
      - targets_by_class is a map from product classes to the targets that provided them, and
      - binary_deps_by_target is a map from targets to the classes that zinc reported they
        have a binary dependency on.
-    """    
+    """
     zinc_analysis = self.get_analysis_collection()
     targets_by_class = defaultdict(set)
     binary_deps_by_target = defaultdict(set)
@@ -239,7 +240,7 @@ class JvmDependencyCache(object):
     for target in self.targets:
       for src in target.sources:
         srcpath = self._normalize_source_path(target, src)
-        # the classes produced by a target can be specified in zinc relations by 
+        # the classes produced by a target can be specified in zinc relations by
         # an entry in the products, or an entry in the classes, or both. Where it appears
         # depends on the specifics of the last compilation call.
         for product in zinc_analysis.product_classes[srcpath]:
@@ -280,7 +281,7 @@ class JvmDependencyCache(object):
       if len(targets_by_source[s]) > 1:
         overlapping_sources.add(s)
         print "Error: source file %s included in multiple targets %s" % (s, targets_by_source[s])
-    
+
   def get_computed_jar_dependency_relations(self):
     """  Compute maps from target to the jars that the target provides """
     # Figure out which jars are in which targets, and then use with the zinc
@@ -340,7 +341,7 @@ class JvmDependencyCache(object):
       for classdep in self.class_deps_by_target[fromtarget]:
         if classdep in targets_by_class:
           self.computed_deps[fromtarget] |= targets_by_class[classdep]
-    
+
     # Figure out which jars are in which targets, and then use with the zinc
     # binary dependencies to figure out which jars belong to which targets.
 
@@ -465,7 +466,7 @@ class JvmDependencyCache(object):
       target: the target to be checked for undeclared dependencies
       computed_deps: the actual dependencies computed for that target.
     """
-    # Sometimes if there was an error, the processed_dependencies for a target will be 
+    # Sometimes if there was an error, the processed_dependencies for a target will be
     # None; if so, we need to skip that target.
     if target.processed_dependencies is not None:
       declared_deps = \
@@ -474,7 +475,7 @@ class JvmDependencyCache(object):
       if len(overdeps) > 0:
         for deptarget in overdeps:
           if isinstance(deptarget, JvmTarget) and not deptarget.has_label('synthetic'):
-            print ("Warning: target %s declares un-needed dependency on: %s" % 
+            print ("Warning: target %s declares un-needed dependency on: %s" %
                    (target, deptarget))
 
 

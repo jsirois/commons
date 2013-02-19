@@ -66,6 +66,17 @@ class Address(object):
       ret = dirname
     return ret
 
+  def reference(self, referencing_buildfile_path=None):
+    """How to reference this address in a BUILD file."""
+    dirname = os.path.dirname(self.buildfile.relpath)
+    if referencing_buildfile_path and dirname == os.path.dirname(referencing_buildfile_path):
+      return ':%s' % self.target_name
+    if os.path.basename(dirname) != self.target_name:
+      ret = '%s:%s' % (dirname, self.target_name)
+    else:
+      ret = dirname
+    return ret
+
   def __eq__(self, other):
     result = other and (
       type(other) == Address) and (

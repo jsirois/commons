@@ -118,7 +118,6 @@ class AntlrGen(CodeGen, NailgunTask):
                                       sources=generated_sources,
                                       dependencies=deps)
     tgt.id = target.id
-    tgt.is_codegen = True
     for dependee in dependees:
       dependee.update_dependencies([tgt])
     return tgt

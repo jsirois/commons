@@ -283,7 +283,7 @@ class IvyResolve(NailgunTask):
     classpath = self.profile_classpath(self._profile)
 
     reports = []
-    org, name = self._identify()
+    org, name = self._ivy_utils.identify()
     xsl = os.path.join(self._cachedir, 'ivy-report.xsl')
     safe_mkdir(self._outdir, clean=True)
     for conf in self._confs:

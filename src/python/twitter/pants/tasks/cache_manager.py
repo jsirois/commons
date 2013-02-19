@@ -325,4 +325,4 @@ class CacheManager(object):
     'transitive',
     '_configurations',
     'artifacts'
-    )
+  )

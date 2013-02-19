@@ -150,7 +150,6 @@ class ProtobufGen(CodeGen):
                                       dependencies=self.javadeps,
                                       derived_from=target)
     tgt.id = target.id + '.protobuf_gen'
-    tgt.add_label('codegen')
     for dependee in dependees:
       dependee.update_dependencies([tgt])
     return tgt
