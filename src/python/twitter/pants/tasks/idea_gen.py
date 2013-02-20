@@ -179,9 +179,8 @@ class IdeaGen(IdeGen):
       root_dir=get_buildroot(),
       path=self.module_filename,
       content_roots=content_roots,
-      has_bash=self.bash,
-      has_python=project.has_python,
-      has_tests=project.has_tests,
+      bash=self.bash,
+      python=project.has_python,
       scala=scala,
       internal_jars=[cp_entry.jar for cp_entry in project.internal_jars],
       internal_source_jars=[cp_entry.source_jar for cp_entry in project.internal_jars

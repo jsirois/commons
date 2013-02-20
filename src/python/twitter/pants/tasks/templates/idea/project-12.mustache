@@ -32,7 +32,7 @@ limitations under the License.
   </component>
 
   <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_STRING" value="-encoding {{project.java_encoding}}" />
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-encoding {{project.java.encoding}}" />
     <option name="MAXIMUM_HEAP_SIZE" value="{{project.java.maximum_heap_size}}" />
   </component>
 
@@ -80,9 +80,9 @@ limitations under the License.
   <component name="libraryTable">
     <library name="scala">
       <CLASSES>
-        {{#project.scala_compiler_classpath}}
+        {{#project.scala.compiler_classpath}}
         <root url="jar://{{.}}!/"/>
-        {{/project.scala_compiler_classpath}}
+        {{/project.scala.compiler_classpath}}
       </CLASSES>
       <JAVADOC />
       <SOURCES />

@@ -255,7 +255,7 @@ class IvyWriter(DependencyWriter):
   def templateargs(self, target_jar, confs=None, synth=False):
     return dict(lib=target_jar.extend(
       is_idl=synth,
-      publications=set(confs) if confs else set(),
+      publications=dict((conf, True) for conf in confs or ()),
     ))
 
   def _jardep(self, jar, transitive=True, configurations='default', classifier=None):
