@@ -29,7 +29,6 @@ import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedOptions;
-import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
@@ -89,7 +88,6 @@ import static com.twitter.common.args.apt.Configuration.VerifierInfo;
  *
  * @author John Sirois
  */
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
 @SupportedOptions({
     CmdLineProcessor.MAIN_OPTION,
     CmdLineProcessor.CHECK_LINKAGE_OPTION
@@ -166,6 +164,11 @@ public class CmdLineProcessor extends AbstractProcessor {
     Map<String, String> options = processingEnv.getOptions();
     isMain = getBooleanOption(options, MAIN_OPTION, false);
     isCheckLinkage = getBooleanOption(options, CHECK_LINKAGE_OPTION, true);
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
   }
 
   @Override
