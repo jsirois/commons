@@ -25,8 +25,10 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.apache.lucene.util.Attribute;
 import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.AttributeSource;
+import org.apache.lucene.util.AttributeSource.State;
 
 import com.twitter.common.text.token.TokenGroupStream;
 import com.twitter.common.text.token.TokenizedCharSequence;
@@ -41,24 +43,45 @@ import com.twitter.common.text.token.TokenizedCharSequenceStream;
 public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroupAttribute {
   private static final long serialVersionUID = 0L;
 
-  private List<AttributeSource.State> states = Collections.emptyList();
-  private AttributeSource attributeSource = null;
+  private ImmutableList<Class<? extends Attribute>> attributeClasses;
+  private List<State> states = Collections.emptyList();
   private TokenizedCharSequence seq = null;
+
+  // this is lazy-initialized and should not be cloned.
+  private TokenGroupStream tokenGroupStream = null;
 
   @Override
   public void clear() {
     states = Collections.emptyList();
     seq = null;
+    tokenGroupStream = null;
   }
 
   @Override
   public void copyTo(AttributeImpl obj) {
     if (obj instanceof TokenGroupAttributeImpl) {
       TokenGroupAttributeImpl attr = (TokenGroupAttributeImpl) obj;
-      attr.setAttributeSource(attributeSource);
-      attr.setStates(Lists.newArrayList(states));
+      attr.attributeClasses = this.attributeClasses;
+      attr.states = this.states;
       attr.seq = this.seq;
+      attr.tokenGroupStream = null;
     }
+  }
+
+  @Override
+  public AttributeImpl clone() {
+    TokenGroupAttributeImpl clone = new TokenGroupAttributeImpl();
+    // we don't need to clone attributeClasses because it's immutable.
+    clone.attributeClasses = attributeClasses;
+    // same here. TokenizedCharSequence is an immutable obj so no need to clone.
+    clone.seq = seq;
+    ImmutableList.Builder<State> builder = ImmutableList.builder();
+    for (State state : states) {
+      builder.add(state.clone());
+    }
+    clone.states = builder.build();
+    clone.tokenGroupStream = null;
+    return clone;
   }
 
   @Override
@@ -90,6 +113,8 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
    * Sets the list of states for this group. Invalidates any previously set sequence.
    */
   public void setStates(List<AttributeSource.State> states) {
+    // A State contains clones of AttributeImpl, so we must make sure that
+    // no AttributeImpl holds a circular reference back to itself.
     this.states = ImmutableList.copyOf(states);
     this.seq = null;
   }
@@ -98,7 +123,7 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
    * Sets the attribute source for this group. Invalidates any previously set sequence.
    */
   public void setAttributeSource(AttributeSource source) {
-    this.attributeSource = source;
+    attributeClasses = ImmutableList.copyOf(source.getAttributeClassesIterator());
     this.seq = null;
   }
 
@@ -109,7 +134,7 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
   public void setSequence(TokenizedCharSequence seq) {
     this.seq = seq;
     this.states = Collections.emptyList();
-    this.attributeSource = null;
+    this.attributeClasses = null;
   }
 
   /**
@@ -122,19 +147,24 @@ public class TokenGroupAttributeImpl extends AttributeImpl implements TokenGroup
   @Override
   public TokenGroupStream getTokenGroupStream() {
     //Lazily process the sequence into a set of states, only do it when getTokenGroupStream is called
-    if ((attributeSource == null || states.isEmpty()) && seq != null) {
+    if ((attributeClasses == null || states.isEmpty()) && seq != null) {
       TokenizedCharSequenceStream ret = new TokenizedCharSequenceStream();
       ret.reset(seq);
 
       //TODO(alewis) This could probably be lazier. Make a new extension of TokenGroupStream?
-      List<AttributeSource.State> states = Lists.newLinkedList();
+      ImmutableList.Builder<State> builder = ImmutableList.builder();
       while (ret.incrementToken()) {
-        states.add(ret.captureState());
+        builder.add(ret.captureState());
       }
-      setAttributeSource(ret.cloneAttributes());
-      setStates(states);
+      setAttributeSource(ret);
+      setStates(builder.build());
     }
-    return new TokenGroupStream(attributeSource, states);
+    // lazy initialize tokenGroupStream
+    if (tokenGroupStream == null) {
+      tokenGroupStream = new TokenGroupStream(attributeClasses);
+    }
+    tokenGroupStream.setStates(states);
+    return tokenGroupStream;
   }
 
   // Explicitly suppress ability to serialize.

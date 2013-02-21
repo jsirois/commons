@@ -113,6 +113,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
   public void reset(CharSequence input) {
     // Check if input is already tokenized or not.
     if (input instanceof TokenizedCharSequence) {
+      clearAttributes();
       tokenized = (TokenizedCharSequence) input;
       currentIndex = 0;
       updateInputCharSequence(tokenized);

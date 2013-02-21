@@ -363,34 +363,31 @@ public class TokenizedCharSequence implements CharSequence {
 
   public static final List<TokenizedCharSequence> createFromTokenGroupsIn(
       TokenStream stream) {
-    CharSequenceTermAttribute termAttr = stream.getAttribute(CharSequenceTermAttribute.class);
     TokenGroupAttribute groupAttr = stream.getAttribute(TokenGroupAttribute.class);
 
     List<TokenizedCharSequence> groups = Lists.newArrayList();
     while (stream.incrementToken()) {
-      Builder builder = new Builder(termAttr.getTermCharSequence());
+      Builder builder = new Builder(stream.term());
 
       TokenStream groupStream = groupAttr.getTokenGroupStream();
-      CharSequenceTermAttribute groupTermAttr = groupStream.getAttribute(CharSequenceTermAttribute.class);
-      TokenTypeAttribute typeAttr = groupStream.getAttribute(TokenTypeAttribute.class);
       PartOfSpeechAttribute posAttr = null;
-      if (stream.hasAttribute(PartOfSpeechAttribute.class)) {
-        posAttr = stream.getAttribute(PartOfSpeechAttribute.class);
+      if (groupStream.hasAttribute(PartOfSpeechAttribute.class)) {
+        posAttr = groupStream.getAttribute(PartOfSpeechAttribute.class);
       }
       PositionIncrementAttribute incAttr = null;
-      if (stream.hasAttribute(PositionIncrementAttribute.class)) {
-        incAttr = stream.getAttribute(PositionIncrementAttribute.class);
+      if (groupStream.hasAttribute(PositionIncrementAttribute.class)) {
+        incAttr = groupStream.getAttribute(PositionIncrementAttribute.class);
       }
 
       TokenGroupAttributeImpl innerGroupAttr = null;
-      if (stream.hasAttribute(TokenGroupAttribute.class)) {
-        innerGroupAttr = (TokenGroupAttributeImpl) stream.getAttribute(TokenGroupAttribute.class);
+      if (groupStream.hasAttribute(TokenGroupAttribute.class)) {
+        innerGroupAttr = (TokenGroupAttributeImpl) groupStream.getAttribute(TokenGroupAttribute.class);
       }
 
       while (groupStream.incrementToken()) {
-        builder.addToken(groupTermAttr.getOffset() - termAttr.getOffset(),
-                         groupTermAttr.getLength(),
-                         typeAttr.getType(),
+        builder.addToken(groupStream.offset() - stream.offset(),
+                         groupStream.length(),
+                         groupStream.type(),
                          posAttr == null ? Token.DEFAULT_PART_OF_SPEECH : posAttr.getPOS(),
                          incAttr == null ? 1 : incAttr.getPositionIncrement(),
                          innerGroupAttr == null || innerGroupAttr.isEmpty() ? null :
