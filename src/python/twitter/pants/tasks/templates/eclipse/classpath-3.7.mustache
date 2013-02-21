@@ -29,12 +29,12 @@ limitations under the License.
   {{#classpath.sourcepaths}}
   <classpathentry kind="src"
                   path="{{base}}"
-                  {{#joined_includes}}
+                  {{#includes}}
                   including="{{.}}"
-                  {{/joined_includes}}
-                  {{#joined_excludes}}
+                  {{/includes}}
+                  {{#excludes}}
                   excluding="{{.}}"
-                  {{/joined_excludes}}
+                  {{/excludes}}
   />
   {{/classpath.sourcepaths}}
 

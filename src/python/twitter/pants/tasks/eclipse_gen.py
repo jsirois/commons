@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==================================================================================================
+
 import os
 import pkgutil
 
 from collections import defaultdict
 
-from twitter.common.collections import OrderedSet
+from twitter.common.collections import OrderedSet, OrderedDict
 from twitter.common.dirutil import safe_delete, safe_mkdir, safe_open
 
 from twitter.pants import get_buildroot
@@ -73,34 +74,32 @@ class EclipseGen(IdeGen):
     self.coreprefs_filename = os.path.join(self.cwd, '.settings', 'org.eclipse.jdt.core.prefs')
 
   def generate_project(self, project):
-    def linked_folder_id(path):
-      return path.replace(os.path.sep, '.')
+    def linked_folder_id(source_set):
+      return source_set.source_base.replace(os.path.sep, '.')
 
     def base_path(source_set):
       return os.path.join(source_set.root_dir, source_set.source_base)
 
-    source_bases = {}
-    def add_source_base(path, id):
-      source_bases[path] = id
-
-    for source_set in project.sources:
-      add_source_base(base_path(source_set), linked_folder_id(source_set.source_base))
-    if project.has_python:
-      for source_set in project.py_sources:
-        add_source_base(base_path(source_set), linked_folder_id(source_set.source_base))
-      for source_set in project.py_libs:
-        add_source_base(base_path(source_set), linked_folder_id(source_set.source_base))
-
-    def create_source_template(base, includes=None, excludes=None):
-      return TemplateData(
-        base=source_bases[base],
-        includes=includes or [],
-        excludes=excludes or [],
-        joined_includes = '|'.join(includes) if includes else '',
-        joined_excludes = '|'.join(excludes) if excludes else '',
+    def create_source_base_template(source_set):
+      source_base = base_path(source_set)
+      return source_base, TemplateData(
+        id=linked_folder_id(source_set),
+        path=source_base
       )
 
-    def create_sourcepath(base, sources):
+    source_bases = dict(map(create_source_base_template, project.sources))
+    if project.has_python:
+      source_bases.update(map(create_source_base_template, project.py_sources))
+      source_bases.update(map(create_source_base_template, project.py_libs))
+
+    def create_source_template(base_id, includes=None, excludes=None):
+      return TemplateData(
+        base=base_id,
+        includes='|'.join(OrderedSet(includes)) if includes else None,
+        excludes='|'.join(OrderedSet(excludes)) if excludes else None,
+      )
+
+    def create_sourcepath(base_id, sources):
       def normalize_path_pattern(path):
         return '%s/' % path if not path.endswith('/') else path
 
@@ -109,15 +108,16 @@ class EclipseGen(IdeGen):
       for source_set in sources:
         excludes.extend(normalize_path_pattern(exclude) for exclude in source_set.excludes)
 
-      return create_source_template(base, includes, excludes)
+      return create_source_template(base_id, includes, excludes)
 
     pythonpaths = []
     if project.has_python:
       for source_set in project.py_sources:
-        pythonpaths.append(create_source_template(base_path(source_set)))
+        pythonpaths.append(create_source_template(linked_folder_id(source_set)))
       for source_set in project.py_libs:
         lib_path = source_set.path if source_set.path.endswith('.egg') else '%s/' % source_set.path
-        pythonpaths.append(create_source_template(base_path(source_set), includes=[lib_path]))
+        pythonpaths.append(create_source_template(linked_folder_id(source_set),
+                                                  includes=[lib_path]))
 
     configured_project = TemplateData(
       name=self.project_name,
@@ -125,9 +125,9 @@ class EclipseGen(IdeGen):
         jdk=self.java_jdk,
         language_level=('1.%d' % self.java_language_level)
       ),
-      has_python=project.has_python,
-      has_scala=project.has_scala and not project.skip_scala,
-      source_bases=source_bases.items(),
+      python=project.has_python,
+      scala=project.has_scala and not project.skip_scala,
+      source_bases=source_bases.values(),
       pythonpaths=pythonpaths,
       debug_port=project.debug_port,
     )
@@ -135,10 +135,10 @@ class EclipseGen(IdeGen):
     outdir = os.path.abspath(os.path.join(self.work_dir, 'bin'))
     safe_mkdir(outdir)
 
-    source_sets = defaultdict(OrderedSet) # base -> source_set
+    source_sets = defaultdict(OrderedSet) # base_id -> source_set
     for source_set in project.sources:
-      source_sets[base_path(source_set)].add(source_set)
-    sourcepaths = [create_sourcepath(base, sources) for base, sources in source_sets.items()]
+      source_sets[linked_folder_id(source_set)].add(source_set)
+    sourcepaths = [create_sourcepath(base_id, sources) for base_id, sources in source_sets.items()]
 
     libs = []
     def add_jarlibs(classpath_entries):
@@ -151,7 +151,7 @@ class EclipseGen(IdeGen):
       sourcepaths=sourcepaths,
       has_tests=project.has_tests,
       libs=libs,
-      has_scala=project.has_scala,
+      scala=project.has_scala,
 
       # Eclipse insists the outdir be a relative path unlike other paths
       outdir=os.path.relpath(outdir, get_buildroot()),
@@ -178,7 +178,7 @@ class EclipseGen(IdeGen):
       # the apt factorypath - this does not seem to hurt eclipse performance in any noticeable way.
       jarpaths=libs
     )
-    apply_template(self.apt_filename, self.apt_template, factorypath =factorypath)
+    apply_template(self.apt_filename, self.apt_template, factorypath=factorypath)
 
     if project.has_python:
       apply_template(self.pydev_filename, self.pydev_template, project=configured_project)
