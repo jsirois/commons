@@ -176,6 +176,8 @@ class Goal(Command):
     Option("-l", "--level", dest="log_level", type="choice", choices=['debug', 'info', 'warn'],
            help="[info] Sets the logging level to one of 'debug', 'info' or 'warn', implies -v "
                 "if set."),
+    Option("--no-colors", dest="no_color", action="store_true", default=turn_off_colored_logging,
+           help="Do not colorize log messages."),
     Option("-n", "--dry-run", action="store_true", dest="dry_run", default=False,
       help="Print the commands that would be run, without actually running them."),
     Option("--read-from-artifact-cache", "--no-read-from-artifact-cache", action="callback",
@@ -232,7 +234,6 @@ class Goal(Command):
 
     return goals, specs
 
-  # TODO(John Sirois): revisit wholesale locking when we move py support into pants new
   @classmethod
   def serialized(cls):
     # Goal serialization is now handled in goal execution during group processing.
@@ -471,6 +472,7 @@ class Goal(Command):
       NailgunTask.killall(log)
     sys.exit(1)
 
+
 # Install all default pants provided goals
 from twitter.pants import junit_tests
 from twitter.pants.targets import (
@@ -690,8 +692,8 @@ goal(
   name='jvm-run-dirty',
   action=JvmRun,
   serialize=False,
-  ).install('run-dirty').with_description('Run a (currently JVM only) binary target, using\n' +
-    'only currently existing binaries, skipping compilation')
+).install('run-dirty').with_description('Run a (currently JVM only) binary target, using\n' +
+  'only currently existing binaries, skipping compilation')
 
 # repl doesn't need the serialization lock. It's reasonable to have
 # a repl running in a workspace while there's a compile going on unrelated code.
@@ -709,7 +711,7 @@ goal(
   serialize=False,
 ).install('repl-dirty').with_description(
   'Run a (currently Scala only) REPL with the classpath set according to the targets, \n' +
-    'using the currently existing binaries, skipping compilation')
+  'using the currently existing binaries, skipping compilation')
 
 goal(
   name='filedeps',

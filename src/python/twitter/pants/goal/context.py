@@ -128,7 +128,7 @@ class Context(object):
     self._target_roots = list(target_roots)
 
     self._targets = OrderedSet()
-    for target in target_roots:
+    for target in self._target_roots:
       self.add_target(target)
     self.id = Target.identify(self._targets)
 

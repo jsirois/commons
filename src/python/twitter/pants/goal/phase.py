@@ -132,50 +132,27 @@ class Phase(PhaseBase):
           yield goal
 
   @staticmethod
-  def attempt(context, phases):
+  def attempt(context, phases, timer=None):
     """
       Attempts to reach the goals for the supplied phases, optionally recording phase timings and
       then logging then when all specified phases have completed.
     """
-    start = context.timer.now()
+    timer = timer or Timer()
+    start = timer.now()
     executed = OrderedDict()
 
     # I'd rather do this in a finally block below, but some goals os.fork and each of these cause
     # finally to run, printing goal timings multiple times instead of once at the end.
     def emit_timings():
-      elapsed = context.timer.now() - start
-      if STATS_COLLECTION:
-        build_stats = BuildTimeStats(context.config.getdefault("user"))
+      elapsed = timer.now() - start
+      if context.config.getbool('build-time-stats', STATS_COLLECTION):
+        build_stats = BuildTimeStats(context)
         build_stats.record_stats(executed, elapsed)
 
       if context.timer:
-        context.timer.log('Timing report')
-        context.timer.log('=============')
         for phase, timings in executed.items():
           for goal, times in timings.items():
-            if len(times) > 1:
-              context.timer.log('[%(phase)s:%(goal)s(%(numsteps)d)] %(timings)s -> %(total).3fs' % {
-                'phase': phase,
-                'goal': goal,
-                'numsteps': len(times),
-                'timings': ','.join('%.3fs' % time for time in times),
-                'total': sum(times)
-              })
-            else:
-              context.timer.log('[%(phase)s:%(goal)s] %(total).3fs' % {
-                'phase': phase,
-                'goal': goal,
-                'total': sum(times)
-              })
-            if not phase_time:
-              phase_time = 0
-            phase_time += sum(times)
-          if len(timings) > 1:
-            context.timer.log('[%(phase)s] total: %(total).3fs' % {
-              'phase': phase,
-              'total': phase_time
-              })
-        context.timer.log('total: %.3fs' % elapsed)
+            context.timer.log('%s:%s' % (phase, goal), times)
 
     try:
       # Prepare tasks roots to leaves and allow for goals introducing new goals in existing phases.
@@ -209,7 +186,7 @@ class Phase(PhaseBase):
         print("Phase [Goal->Task] Order:\n")
 
       for phase in phases:
-        Group.execute(phase, tasks_by_goal, context, executed)
+        Group.execute(phase, tasks_by_goal, context, executed, timer)
 
       emit_timings()
       return 0
@@ -256,7 +233,7 @@ class Phase(PhaseBase):
       after: Places the goal after the named goal in the execution list
     """
 
-    if int(first) + int(replace) + int(bool(before)) + int(bool(after)) > 1:
+    if (first or replace or before or after) and not (first ^ replace ^ bool(before) ^ bool(after)):
       raise GoalError('Can only specify one of first, replace, before or after')
 
     Phase._phase_by_goal[goal] = self
