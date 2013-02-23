@@ -4,7 +4,24 @@ import json
 import os
 import tempfile
 import unittest
-from twitter.pants.buildtimestats import BuildTimeStats
+
+from twitter.common.dirutil.fileset import Fileset
+from twitter.pants.buildtimestats import BuildTimeStats as RealBuildTimeStats
+
+
+class BuildTimeStats(RealBuildTimeStats):
+  def get_stats(self):
+    return self.json_str
+
+  def stats_uploader_daemon(self):
+    stats_upload_dir = self._context.config.get("stats_test","stats_uploader_dir" )
+    for filename in Fileset.walk(stats_upload_dir):
+      with open(os.path.join(stats_upload_dir, filename), 'r') as stats_file:
+       lines = stats_file.readlines()
+       tmp_str = ",".join(lines)
+       tmp_str.strip(',')
+      self.json_str = "[" + tmp_str + "]"
+      os.unlink(stats_file)
 
 class MockPsUtil:
   NUM_CPUS = 1
@@ -21,7 +38,6 @@ class MockContext:
 
 
 class Mockconfig:
-
   def get(self, section, val):
     if val == "stats_collection_url":
       return "http://build_time_stats_collector.smf1.devprod.service.smf1.twitter.com"
@@ -31,18 +47,11 @@ class Mockconfig:
       return "6h"
     elif val =="stats_collection_file":
       return "pants.stats"
+    elif val == "stats_uploader_dir":
+      return "/tmp/stats_file"
+    elif val == "stats_uploader_pid_file":
+      return "/tmp/.pid_file"
 
-class MockStatsHttpClient:
-  def __init__(self):
-    self.called = False
-  def push_stats(self, stats):
-    self.called = True
-    self.stats = stats
-    return True
-  def is_called(self):
-    return self.called
-  def getJson(self):
-    return self.stats
 
 class MockCommandUtil:
   @staticmethod
@@ -74,7 +83,7 @@ class BuildTimeStatsTest(unittest.TestCase):
                       "compile": {'checkstyle': [0.00057005882263183594]},
                       "test": {'junit': [9.1075897216796875e-05], 'specs': [0.0015749931335449219]}
                     }
-    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockStatsHttpClient(), MockPsUtil)
+    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockPsUtil)
     actual_timings = bs.compute_stats(executed_goals, 100)
     expected_timings =[{'phase': 'resolve', 'total': 0.00097703933715820312, 'goal': 'ivy'},
                        {'phase': 'resolve-idl', 'total': 0.00072813034057617188, 'goal': 'idl'},
@@ -99,16 +108,14 @@ class BuildTimeStatsTest(unittest.TestCase):
   def test_record_stats(self):
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
 
-    mock_stats = MockStatsHttpClient()
-    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, mock_stats, MockPsUtil)
+    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockPsUtil)
     temp_filename = tempfile.mktemp()
 
     bs.record_stats(timings, 100, 1, temp_filename)
 
-    json_str = mock_stats.getJson()
+    json_str = bs.get_stats()
     stats = json.loads(json_str)
     self.assertTrue(len(stats) ==1)
-    self.assertTrue(mock_stats.is_called())
     self.assertTrue(stats[0].has_key("cpu_time"))
     self.assertTrue(stats[0].has_key("timings"))
     self.assertTrue(stats[0].has_key("ip"))
@@ -118,18 +125,15 @@ class BuildTimeStatsTest(unittest.TestCase):
 
   def test_record_stats_written(self):
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
-    mock_stats = MockStatsHttpClient()
-    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, mock_stats, MockPsUtil)
+    bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockPsUtil)
     temp_filename = tempfile.mktemp()
 
     bs.record_stats(timings, 100, 2, temp_filename)
-    self.assertFalse(mock_stats.is_called())
     self.assertTrue(os.path.exists(temp_filename))
 
     #Test append
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
     bs.record_stats(timings, 100, 3, temp_filename)
-    self.assertFalse(mock_stats.is_called())
     self.assertTrue(os.path.exists(temp_filename))
     with open(temp_filename, 'r') as stats_file:
       lines = stats_file.readlines()

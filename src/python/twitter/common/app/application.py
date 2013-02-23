@@ -37,47 +37,9 @@ from collections import defaultdict, deque
 from twitter.common import options
 from twitter.common.app.module import AppModule
 from twitter.common.app.inspection import Inspection
-from twitter.common.dirutil import lock_file
 from twitter.common.lang import Compatibility
+from twitter.common.process import daemonize
 from twitter.common.util import topological_sort
-
-_PIDFILE = None
-
-# TODO(wickman)  Leverage PEP-3143 http://pypi.python.org/pypi/python-daemon/
-def daemonize(pidfile=None, stdout='/dev/null', stderr='/dev/null'):
-  global _PIDFILE
-
-  def daemon_fork():
-    try:
-      if os.fork() > 0:
-        os._exit(0)
-    except OSError as e:
-      sys.stderr.write('Failed to fork: %s\n' % e)
-      sys.exit(1)
-
-  daemon_fork()
-  os.setsid()
-  daemon_fork()
-
-  if pidfile:
-    _PIDFILE = lock_file(pidfile, 'w+')
-    if _PIDFILE:
-      pid = os.getpid()
-      sys.stderr.write('Writing pid %s into %s\n' % (pid, pidfile))
-      _PIDFILE.write(str(pid))
-      _PIDFILE.flush()
-    else:
-      sys.stderr.write('Could not acquire pidfile %s, another process running!\n' % pidfile)
-      sys.exit(1)
-
-    def shutdown():
-      os.unlink(pidfile)
-      _PIDFILE.close()
-    atexit.register(shutdown)
-
-  sys.stdin = open('/dev/null', 'r')
-  sys.stdout = open(stdout, 'a+')
-  sys.stderr = open(stderr, 'a+', 1)
 
 
 class Application(object):

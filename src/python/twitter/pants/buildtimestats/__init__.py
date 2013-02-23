@@ -16,9 +16,10 @@
 
 __author__ = 'Tejal Desai'
 
-from .stats_http_client import StatsHttpClient
+from .stats_http_client import StatsHttpClient, StatsUploader
 from .buildtime_stats import BuildTimeStats
 __all__ = (
   'StatsHttpClient',
+  'StatsUploader'
   'BuildTimeStats',
 )

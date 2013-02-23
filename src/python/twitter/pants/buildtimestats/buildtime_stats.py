@@ -18,53 +18,46 @@ from __future__ import print_function
 
 import json
 import os
-import re
 import socket
 import sys
 import time
 
-from twitter.common import log
+from twitter.common import dirutil, log
+from twitter.common.process import spawn_daemon
 from twitter.common.quantity import Amount, Time
 from twitter.common.quantity.parse_simple import parse_time, InvalidTime
 from twitter.common.util.command_util import CommandUtil
-from twitter.pants import get_buildroot, get_version
-from twitter.pants.buildtimestats import StatsHttpClient
+from twitter.pants import get_buildroot
+from twitter.pants.buildtimestats import StatsUploader
+
+STATS_COLLECTION_SECTION = "build-time-stats"
+MAX_UPLOAD_DELAY = "stats_collection_max_upload_delay"
 
 PHASE_TOTAL = "phase_total"
 CMD_TOTAL = "cmd_total"
-
-STATS_COLLECTION_SECTION = "build-time-stats"
-STATS_COLLECTION_URL = "stats_collection_url"
-STATS_COLLECTION_PORT = "stats_collection_port"
-STATS_COLLECTION_ENDPOINT = "stats_collection_http_endpoint"
-
-__author__ = 'Tejal Desai'
-
-
-MAX_RECORDS = 100
-MAX_UPLOAD_DELAY = "stats_collection_max_upload_delay"
 PANTS_STATS_FILE_NM = "stats_collection_file"
 DEFAULT_STATS_FILE = ".pants.stats"
+MAX_RECORDS = 100
+__author__ = 'Tejal Desai'
 
 class BuildTimeStats(object):
 
-  def __init__(self, context, cmd=None, socket_ins=None, stats_http=None, psutil=None):
+  def __init__(self, context, cmd=None, socket_ins=None, psutil=None):
     self._cmd = cmd or CommandUtil()
     self._psutil = psutil or None
     self._socket = socket_ins or socket
     self._context = context
-    self._stats_http = stats_http or StatsHttpClient(
-                                context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_URL),
-                                context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_PORT),
-                                context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_ENDPOINT))
     try:
-      self._max_delay = parse_time(self._context.config.get(STATS_COLLECTION_SECTION, MAX_UPLOAD_DELAY))
-    except InvalidTime as e:
-      log.info("Incorrect time string value for stats_collection_max_upload_delay\nPlease fix your ini file")
+      self._max_delay = parse_time(self._context.config.get(STATS_COLLECTION_SECTION,
+                                                            MAX_UPLOAD_DELAY))
+    except InvalidTime:
+      log.info("Incorrect time string value for stats_collection_max_upload_delay. " +
+                "Please fix your ini file")
       self._max_delay = Amount(6, Time.HOURS)
 
-    self._pants_stat_file = self._context.config.get(STATS_COLLECTION_SECTION, PANTS_STATS_FILE_NM) or self._get_default_stats_file()
-
+    self._pants_stat_file = (self._context.config.get(STATS_COLLECTION_SECTION,
+                                                      PANTS_STATS_FILE_NM) or
+                              self._get_default_stats_file()) 
 
   def _get_default_stats_file(self):
     return os.path.join(get_buildroot(), DEFAULT_STATS_FILE)
@@ -100,6 +93,21 @@ class BuildTimeStats(object):
     timings_array.append(timing)
     return timings_array
 
+  def stats_uploader_daemon(self, stats_file, last_updated_time, debug_max_rec):
+    """
+    Starts the StatsUploader as a daemon process if it is already not running
+    """
+    log.debug("Checking if the statsUploaderDaemon is already running")
+    stats_pid = os.path.join("/tmp", self._context.config.get("DEFAULT", "user"),
+                                      ".pid_stats")
+    stats_uploader_dir = os.path.join("/tmp", self._context.config.get("DEFAULT", "user"))
+    dirutil.safe_mkdir(stats_uploader_dir)
+    if not os.path.exists(stats_pid):
+      log.debug("Starting the daemon")
+      if spawn_daemon(pidfile=stats_pid, quiet=True):
+        su = StatsUploader(self._context, self._max_delay)
+        su.upload_sync(stats_file, last_updated_time, debug_max_rec)
+
   def record_stats(self, timings, elapsed, debug_max_rec=None, stats_file_nm=None):
     """Records all the stats for -x flag
     and the network stats
@@ -130,20 +138,21 @@ class BuildTimeStats(object):
     if ret == 0:
       for url in git_origin.splitlines():
         origin = url.split()
-        str = origin[2].strip("(").strip(")")
+        str1 = origin[2].strip("(").strip(")")
         if origin:
-          stats["git"][str] = origin[1]
+          stats["git"][str1] = origin[1]
 
     #Get git branch
-    (ret, git_branch)= self._cmd.execute_and_get_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    (ret, git_branch) = self._cmd.execute_and_get_output(["git", "rev-parse", "--abbrev-ref",
+                                                          "HEAD"])
     if ret == 0:
       stats["git"]["branch"] = git_branch.strip()
     #Network IP
     try:
-        stats["ip"] = self._socket.gethostbyname(self._socket.gethostname())
+      stats["ip"] = self._socket.gethostbyname(self._socket.gethostname())
     except Exception as e:
       log.debug("Exception %s. Cannot get ip stats" % e)
-    log.debug("Done stats")
+    log.debug("Done collecting stats")
     #Read the stats file and check if number of records reached
     stats_file_nm = stats_file_nm if stats_file_nm  else self._pants_stat_file
 
@@ -155,29 +164,10 @@ class BuildTimeStats(object):
       with open(stats_file_nm, 'a') as stats_file:
         json_response = json.dumps(stats, cls=PythonObjectEncoder)
         stats_file.write(json_response+"\n")
+      self.stats_uploader_daemon(stats_file_nm, last_modified, debug_max_rec or MAX_RECORDS)
     except IOError as e:
       log.debug("Could not write the pants stats %s" % e)
 
-    if not last_modified:
-      last_modified = int(os.path.getmtime(stats_file_nm))
-    try:
-      with open(stats_file_nm, 'r') as stats_file:
-        lines = stats_file.readlines()
-        #Just want to make sure, we don not wait for MAX_RECORDS but also upload when
-        #the last time we uploaded is less than configured value in the pants.ini
-        last_uploaded = Amount(int(time.time()) - last_modified, Time.SECONDS)
-        if (len(lines) >= (debug_max_rec if debug_max_rec else MAX_RECORDS) or
-            last_uploaded > self._max_delay):
-          #Logic to make a HTTP client request
-          tmp_str = ",".join(lines)
-          tmp_str.strip(',')
-          self._stats_http.push_stats("[" + tmp_str + "]")
-          #Remove the file if successfully uploaded.
-          os.remove(stats_file_nm)
-    except IOError as e:
-      log.debug("Could not write the pants stats %s" % e)
-    except StatsHttpClient.HTTPError as e:
-      log.debug("Could not upload the pants stats %s" % e)
 
 
 class PythonObjectEncoder(json.JSONEncoder):
