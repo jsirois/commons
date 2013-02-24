@@ -85,6 +85,10 @@ class BuildFile(object):
     self.relpath = os.path.relpath(self.full_path, self.root_dir)
     self.canonical_relpath = os.path.join(os.path.dirname(self.relpath), BuildFile._CANONICAL_NAME)
 
+  def exists(self):
+    """Returns True if this BuildFile corresponds to a real BUILD file on disk."""
+    return os.path.exists(self.full_path)
+
   def descendants(self):
     """Returns all BUILD files in descendant directories of this BUILD file's parent directory."""
 

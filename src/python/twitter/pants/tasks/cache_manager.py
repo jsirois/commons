@@ -295,7 +295,7 @@ class CacheManager(object):
 
   def _order_target_list(self, targets):
     """Orders the targets topologically, from least to most dependent."""
-    target_ids = set([x.id for x in targets])
+    target_ids = set(x.id for x in targets)
 
     # Most to least dependent.
     reverse_ordered_targets_and_deps = InternalTarget.sort_targets(targets)
