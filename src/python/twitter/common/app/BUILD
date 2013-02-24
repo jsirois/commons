@@ -19,6 +19,7 @@ python_library(
   sources = globs('*.py'),
   dependencies = [
     pants('src/python/twitter/common'),
+    pants('src/python/twitter/common/process'),
     pants('src/python/twitter/common/app/modules'),
   ],
   provides = setup_py(
