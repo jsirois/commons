@@ -1,11 +1,10 @@
 __author__ = 'Tejal Desai'
 
 import json
-import os
-import tempfile
 import unittest
 
-from twitter.common.dirutil.fileset import Fileset
+from twitter.common.contextutil import temporary_file
+
 from twitter.pants.buildtimestats import BuildTimeStats as RealBuildTimeStats
 
 
@@ -13,15 +12,10 @@ class BuildTimeStats(RealBuildTimeStats):
   def get_stats(self):
     return self.json_str
 
-  def stats_uploader_daemon(self):
-    stats_upload_dir = self._context.config.get("stats_test","stats_uploader_dir" )
-    for filename in Fileset.walk(stats_upload_dir):
-      with open(os.path.join(stats_upload_dir, filename), 'r') as stats_file:
-       lines = stats_file.readlines()
-       tmp_str = ",".join(lines)
-       tmp_str.strip(',')
-      self.json_str = "[" + tmp_str + "]"
-      os.unlink(stats_file)
+  def stats_uploader_daemon(self, stats_file, last_updated_time, debug_max_rec):
+    with open(stats_file, 'r') as stats_fd:
+      lines = stats_fd.readlines()
+    self.json_str = "[%s]" % ",".join(lines)
 
 class MockPsUtil:
   NUM_CPUS = 1
@@ -104,38 +98,35 @@ class BuildTimeStatsTest(unittest.TestCase):
                        {'phase': 'cmd_total', 'total': 100, 'goal': 'cmd_total'}]
     self.assertEqual(actual_timings, expected_timings )
 
-
   def test_record_stats(self):
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
-
     bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockPsUtil)
-    temp_filename = tempfile.mktemp()
+    with temporary_file() as temp_fd:
+      temp_filename = temp_fd.name
 
-    bs.record_stats(timings, 100, 1, temp_filename)
+      bs.record_stats(timings, 100, 1, temp_filename)
 
-    json_str = bs.get_stats()
-    stats = json.loads(json_str)
-    self.assertTrue(len(stats) ==1)
-    self.assertTrue(stats[0].has_key("cpu_time"))
-    self.assertTrue(stats[0].has_key("timings"))
-    self.assertTrue(stats[0].has_key("ip"))
-    self.assertTrue(stats[0].has_key("env"))
-    self.assertEquals(stats[0]['git']['push'], "https://git.twitter.biz/science")
-    self.assertEquals(stats[0]['git']['branch'], "test_br")
+      json_str = bs.get_stats()
+      stats = json.loads(json_str)
+      self.assertTrue(len(stats) == 1)
+      self.assertTrue(stats[0].has_key("cpu_time"))
+      self.assertTrue(stats[0].has_key("timings"))
+      self.assertTrue(stats[0].has_key("ip"))
+      self.assertTrue(stats[0].has_key("env"))
+      self.assertEquals(stats[0]['git']['push'], "https://git.twitter.biz/science")
+      self.assertEquals(stats[0]['git']['branch'], "test_br")
 
   def test_record_stats_written(self):
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
     bs = BuildTimeStats(MockContext(), MockCommandUtil, MockSocket, MockPsUtil)
-    temp_filename = tempfile.mktemp()
+    with temporary_file() as temp_fd:
+      temp_filename = temp_fd.name
 
-    bs.record_stats(timings, 100, 2, temp_filename)
-    self.assertTrue(os.path.exists(temp_filename))
+      bs.record_stats(timings, 100, 2, temp_filename)
 
-    #Test append
-    timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
-    bs.record_stats(timings, 100, 3, temp_filename)
-    self.assertTrue(os.path.exists(temp_filename))
-    with open(temp_filename, 'r') as stats_file:
-      lines = stats_file.readlines()
-    self.assertEquals(len(lines),2)
-    os.remove(temp_filename)
+      #Test append
+      timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
+      bs.record_stats(timings, 100, 3, temp_filename)
+      with open(temp_filename, 'r') as stats_file:
+        lines = stats_file.readlines()
+      self.assertEquals(len(lines), 2)
