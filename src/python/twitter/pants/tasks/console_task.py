@@ -32,9 +32,12 @@ class ConsoleTask(Task):
     self.console_separator = getattr(context.options, separator_option).decode('string-escape')
 
   def execute(self, targets):
-    for value in self.console_output(targets):
-      self._outstream.write(str(value))
-      self._outstream.write(self._console_separator)
+    try:
+      for value in self.console_output(targets):
+        self._outstream.write(str(value))
+        self._outstream.write(self._console_separator)
+    finally:
+      self._outstream.flush()
 
   def console_output(self, targets):
     raise NotImplementedError('console_output must be implemented by subclasses of ConsoleTask')
