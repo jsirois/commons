@@ -27,7 +27,8 @@ class JarLibrary(Target):
     dependencies: one or more JarDependencies this JarLibrary bundles or Pants pointing to other
         JarLibraries or JavaTargets"""
 
-    Target.__init__(self, name, False)
+    Target.__init__(self, name)
+
     self.add_label('jars')
     self.dependencies = resolve(dependencies)
     self.dependency_addresses = set()

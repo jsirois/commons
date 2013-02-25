@@ -14,9 +14,10 @@
 # limitations under the License.
 # ==================================================================================================
 
+import pytest
 import unittest
 
-from twitter.pants.base import ParseContext
+from twitter.pants.base import ParseContext, TargetDefinitionException
 from twitter.pants.targets.jar_library import JarLibrary
 
 class JarLibraryWithEmptyDependenciesTest(unittest.TestCase):
@@ -24,3 +25,8 @@ class JarLibraryWithEmptyDependenciesTest(unittest.TestCase):
   def test_empty_dependencies(self):
     with ParseContext.temp():
       JarLibrary("test-jar-library-with-empty-dependencies", [])
+
+  def test_no_dependencies(self):
+    with pytest.raises(TargetDefinitionException):
+      with ParseContext.temp():
+        JarLibrary("test-jar-library-with-empty-dependencies", None)
