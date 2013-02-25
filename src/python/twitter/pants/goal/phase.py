@@ -16,6 +16,7 @@
 
 from __future__ import print_function
 
+import contextlib
 import sys
 import time
 
@@ -146,8 +147,9 @@ class Phase(PhaseBase):
     def emit_timings():
       elapsed = timer.now() - start
       if context.config.getbool('build-time-stats', STATS_COLLECTION):
-        build_stats = BuildTimeStats(context)
-        build_stats.record_stats(executed, elapsed)
+        with context.timing('buildstats'):
+          build_stats = BuildTimeStats(context)
+          build_stats.record_stats(executed, elapsed)
 
       if context.timer:
         for phase, timings in executed.items():
