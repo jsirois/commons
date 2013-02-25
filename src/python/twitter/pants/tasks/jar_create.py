@@ -77,7 +77,7 @@ class JarCreate(Task):
                             action="callback", callback=mkflag.set_bool,
                             help="[%default] Create javadoc jars.")
     option_group.add_option(mkflag("idl"), mkflag("idl", negate=True),
-                            dest="jar_create_idl", default=True,
+                            dest="jar_create_idl", default=False,
                             action="callback", callback=mkflag.set_bool,
                             help="[%default] Create Thrift jars.")
 

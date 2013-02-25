@@ -151,7 +151,8 @@ def has_resources(target):
 
 def is_exported(target):
   """Returns True if the target provides an artifact exportable from the repo."""
-  return target.has_label('exportable')
+  # TODO(John Sirois): fixup predicate dipping down into details here.
+  return target.has_label('exportable') and target.provides
 
 
 def is_internal(target):
