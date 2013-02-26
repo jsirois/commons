@@ -16,6 +16,8 @@
 
 package com.twitter.common.text.token;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A {@code TokenStream} whose input is another {@code TokenStream}.
  * In other words, this class corresponds to TokenFilter in Lucene.
@@ -23,19 +25,27 @@ package com.twitter.common.text.token;
 public abstract class TokenProcessor extends TokenStream {
   private final TokenStream inputStream;
 
+  private final TokenProcessor inputProcessor;
+
+  private boolean enabled = true;
+
   /**
    * Constructs a new {@code TokenProcessor}.
    *
    * @param inputStream input {@code TokenStream}
    */
   public TokenProcessor(TokenStream inputStream) {
-    super(inputStream);
+    super(Preconditions.checkNotNull(inputStream));
     this.inputStream = inputStream;
+
+    // let's check if the inputStream is TokenProcessor or not in the constructor
+    // so that you don't have to call instanceof again
+    this.inputProcessor = (inputStream instanceof TokenProcessor) ? (TokenProcessor) inputStream : null;
   }
 
   @Override
   public void reset(CharSequence input) {
-    inputStream.reset(input);
+    getNextEnabledInputStream().reset(input);
   }
 
   /**
@@ -43,7 +53,39 @@ public abstract class TokenProcessor extends TokenStream {
    * @return true if the input stream has more token. False otherwise.
    */
   protected boolean incrementInputStream() {
-    return inputStream.incrementToken();
+    return getNextEnabledInputStream().incrementToken();
+  }
+
+  /**
+   * Enable this {@code TokenProcessor}
+   */
+  public final void enable() {
+    this.enabled = true;
+  }
+
+  /**
+   * Disable this {@code TokenProcessor}
+   */
+  public final void disable() {
+    this.enabled = false;
+  }
+
+  /**
+   * Return true if this {@code TokenProcessor} is enabled. False otherwise
+   * @return true if this is enabled.
+   */
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  protected TokenStream getNextEnabledInputStream() {
+    if (inputProcessor == null) {
+      return inputStream;
+    } else if (inputProcessor.isEnabled()) {
+      return inputProcessor;
+    } else {
+      return inputProcessor.getNextEnabledInputStream();
+    }
   }
 
   @Override

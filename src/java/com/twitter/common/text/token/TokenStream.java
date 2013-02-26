@@ -43,8 +43,8 @@ import com.twitter.common.text.token.attribute.TokenTypeAttribute;
  * {@link TokenizerUsageExample}.
  */
 public abstract class TokenStream extends AttributeSource {
-  private CharSequenceTermAttribute termAttribute = addAttribute(CharSequenceTermAttribute.class);
-  private TokenTypeAttribute typeAttribute = addAttribute(TokenTypeAttribute.class);
+  private final CharSequenceTermAttribute termAttribute = addAttribute(CharSequenceTermAttribute.class);
+  private final TokenTypeAttribute typeAttribute = addAttribute(TokenTypeAttribute.class);
 
   /**
    * Constructs a {@code TokenStream} using the default attribute factory.

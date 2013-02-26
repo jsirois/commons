@@ -27,8 +27,17 @@ import com.twitter.common.text.token.attribute.TokenGroupAttributeImpl;
  * TokenizedCharSequence. Otherwise, passes the input text to downstream
  * TokenStream.
  */
-public class TokenizedCharSequenceStream extends TokenStream {
-  private final TokenStream inputStream;
+public class TokenizedCharSequenceStream extends TokenProcessor {
+  private static final TokenStream DUMMY_STREAM = new TokenStream() {
+    @Override
+    public boolean incrementToken() {
+      return false;
+    }
+
+    @Override
+    public void reset(CharSequence input) {
+    }
+  };
 
   private final PartOfSpeechAttribute posAttr;
   private final PositionIncrementAttribute incAttr;
@@ -47,7 +56,6 @@ public class TokenizedCharSequenceStream extends TokenStream {
   public TokenizedCharSequenceStream(TokenStream inputStream) {
     super(inputStream);
 
-    this.inputStream = inputStream;
     if (hasAttribute(PartOfSpeechAttribute.class)) {
       posAttr = getAttribute(PartOfSpeechAttribute.class);
     } else {
@@ -70,7 +78,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
    * This can only accept an already-tokenized text (TokenzedCharSequence) as input.
    */
   public TokenizedCharSequenceStream() {
-    this.inputStream = null;
+    super(DUMMY_STREAM);
     posAttr = addAttribute(PartOfSpeechAttribute.class);
     incAttr = addAttribute(PositionIncrementAttribute.class);
     groupAttr = (TokenGroupAttributeImpl) addAttribute(TokenGroupAttribute.class);
@@ -83,7 +91,7 @@ public class TokenizedCharSequenceStream extends TokenStream {
 
     if (tokenized == null) {
       // Input is not tokenized; let inputStream tokenize it.
-      return inputStream.incrementToken();
+      return incrementInputStream();
     }
 
     if (currentIndex >= tokenized.getTokens().size()) {
@@ -117,13 +125,13 @@ public class TokenizedCharSequenceStream extends TokenStream {
       tokenized = (TokenizedCharSequence) input;
       currentIndex = 0;
       updateInputCharSequence(tokenized);
-    } else if (inputStream == null) {
+    } else if (getNextEnabledInputStream() == DUMMY_STREAM) {
       // If no inputStream is provided, throw an exception.
       throw new IllegalArgumentException("Input must be an instance of TokenizedCharSequence"
-          + " because there is no TokenStream in the downstream to tokenized a text.");
+            + " because there is no TokenStream in the downstream to tokenized a text.");
     } else {
       // Otherwise, let inputStream tokenize the input.
-      inputStream.reset(input);
+      super.reset(input);
       tokenized = null;
     }
   }
