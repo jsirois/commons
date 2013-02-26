@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 __author__ = 'Tejal Desai'
+
 import httplib
 import os
 import sys
@@ -26,6 +27,7 @@ import time
 
 from twitter.common import dirutil, log
 from twitter.common.contextutil import temporary_file
+from twitter.common.dirutil import safe_open
 from twitter.common.dirutil.fileset import Fileset
 from twitter.common.quantity import Amount, Time
 
@@ -73,7 +75,7 @@ class StatsHttpClient(object):
       except httplib.HTTPException as e:
         log.debug("HTTPException %s" % e)
       except OSError as e:
-        log.debug("Error creating one of the dirs" % e)
+        log.debug("Error reading or deleting a stats file %s" % e)
 
 
 class StatsUploader():
@@ -94,7 +96,7 @@ class StatsUploader():
       if not last_modified:
         last_modified = int(os.path.getmtime(stats_file_nm))
 
-      with open(stats_file_nm, 'r') as stats_file:
+      with safe_open(stats_file_nm, 'r') as stats_file:
         lines = stats_file.readlines()
       #Just want to make sure, we do not wait for MAX_RECORDS but also upload when
       #the last time we uploaded is less than configured value in the pants.ini
@@ -107,4 +109,4 @@ class StatsUploader():
         self._stats_http_client.process_stats_file()
       sys.exit(0)
     except OSError as e:
-      log.debug("Error creating one of the dirs" % e)
+      log.debug("Error manipulating stats files for upload %s" % e)
