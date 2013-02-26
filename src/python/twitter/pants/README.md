@@ -6,7 +6,15 @@ your BUILD files in order.
 
 # What is Pants?
 
-Pants is a build tool. It is similar to make, maven, ant, gradle, sbt, etc.;
+Pants is a build tool. This document introduces Pants to folks who want to use
+it to build code. If someone else has already set up your codebase to work
+with Pants and you want to know how to get your code built, read on.
+If you're setting up pants with some new code and discover that it doesn't
+know about your tools/compilers, you'll also want to read
+[[Pants Internals|pants('src/python/twitter/pants/docs:internals')]]
+to learn how to add support for these tools to Pants.
+
+Pants is similar to make, maven, ant, gradle, sbt, etc.;
 but pants differs in some important design goals. Pants optimizes for
 
 * building multiple, dependent projects from source
@@ -359,21 +367,6 @@ TODO: add a brief description and example of each target.
 
 TODO: add description, examples of extensions
 
-# Pants Internals
-
-TODO: this
-
-## .pants.d
-
-## BUILD file parsing
-
-## ivy resolution
-
-## hashing
-
-## task batching
-
-## product mapping
 =======
 
 ## Credits

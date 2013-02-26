@@ -17,3 +17,7 @@
 page(name = 'migration',
   source = 'Migration.md'
 )
+
+page(name = 'internals',
+  source = 'Internals.md'
+)
