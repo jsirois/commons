@@ -1,11 +1,5 @@
 from twitter.common.string import ScanfParser
 
-try:
-  from twitter.common import log
-except ImportError:
-  log = None
-
-
 class ProcessHandle(object):
   """
     ProcessHandle interface.  Methods that must be exposed by whatever process
@@ -69,7 +63,6 @@ class ProcessHandleParser(ScanfParser):
       for attr, value in zip(self._attrs, so.ungrouped()):
         d[attr] = self._handlers[attr](attr, value) if attr in self._handlers else value
     except ScanfParser.ParseError as e:
-      if log: log.error('ProcessHandleParser failed: %s' % e)
       return {}
     return d
 
