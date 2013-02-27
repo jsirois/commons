@@ -28,17 +28,6 @@ import com.twitter.common.text.token.attribute.TokenGroupAttributeImpl;
  * TokenStream.
  */
 public class TokenizedCharSequenceStream extends TokenProcessor {
-  private static final TokenStream DUMMY_STREAM = new TokenStream() {
-    @Override
-    public boolean incrementToken() {
-      return false;
-    }
-
-    @Override
-    public void reset(CharSequence input) {
-    }
-  };
-
   private final PartOfSpeechAttribute posAttr;
   private final PositionIncrementAttribute incAttr;
   private final TokenGroupAttributeImpl groupAttr;
@@ -78,7 +67,20 @@ public class TokenizedCharSequenceStream extends TokenProcessor {
    * This can only accept an already-tokenized text (TokenzedCharSequence) as input.
    */
   public TokenizedCharSequenceStream() {
-    super(DUMMY_STREAM);
+    super(new TokenStream() {
+      @Override
+      public boolean incrementToken() {
+        return false;
+      }
+
+      @Override
+      public void reset(CharSequence input) {
+        // If no inputStream is provided, throw an exception.
+        throw new IllegalArgumentException("Input must be an instance of TokenizedCharSequence"
+                + " because there is no TokenStream in the downstream to tokenized a text.");
+      }
+    });
+
     posAttr = addAttribute(PartOfSpeechAttribute.class);
     incAttr = addAttribute(PositionIncrementAttribute.class);
     groupAttr = (TokenGroupAttributeImpl) addAttribute(TokenGroupAttribute.class);
@@ -125,10 +127,6 @@ public class TokenizedCharSequenceStream extends TokenProcessor {
       tokenized = (TokenizedCharSequence) input;
       currentIndex = 0;
       updateInputCharSequence(tokenized);
-    } else if (getNextEnabledInputStream() == DUMMY_STREAM) {
-      // If no inputStream is provided, throw an exception.
-      throw new IllegalArgumentException("Input must be an instance of TokenizedCharSequence"
-            + " because there is no TokenStream in the downstream to tokenized a text.");
     } else {
       // Otherwise, let inputStream tokenize the input.
       super.reset(input);
