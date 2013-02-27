@@ -340,61 +340,42 @@ jar_library(name = 'kryo-serializers',
             ]
            )
 
-LUCENE_REV = '4.1.0'
+# TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
+def lucene_jar_library(name, jar_name, rev, force=False):
+  jar_library(name = name,
+              dependencies = [
+                jar(org = 'org.apache.lucene',
+                    name = jar_name,
+                    rev = rev,
+                    force=force)
+                .withSources()])
 
-jar_library(name = 'lucene-core',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-core', rev = LUCENE_REV).withSources()
-            ]
-           )
+LUCENE_TARGETS = ('lucene-analyzers-common', \
+                  'lucene-core', \
+                  'lucene-queries', \
+                  'lucene-spatial', \
+                  'lucene-queryparser', \
+                  'lucene-test-framework', \
+                  'lucene-analyzers-smartcn', \
+                  'lucene-facet', \
+                  'lucene-suggest')
 
-jar_library(name = 'lucene-queries',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-queries', rev = LUCENE_REV).withSources()
-            ]
-           )
+# make backwards compatible unversioned default targets
+for t in LUCENE_TARGETS:
+  lucene_jar_library(t, t, '4.1.0')
 
-jar_library(name = 'lucene-analyzers',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-analyzers-common', rev = LUCENE_REV).withSources()
-            ]
-           )
+# Alias for lucene-analyzers-common to be backwards compatible
+# TODO: fix this
+java_library(name = 'lucene-analyzers',
+             dependencies = [pants(':lucene-analyzers-common')])
 
-jar_library(name = 'lucene-spatial',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-spatial', rev = LUCENE_REV).withSources()
-            ]
-           )
-
-jar_library(name = 'lucene-queryparser',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-queryparser', rev = LUCENE_REV).withSources()
-            ]
-           )
-
-jar_library(name = 'lucene-test-framework',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-test-framework', rev = LUCENE_REV).withSources()
-            ]
-           )
-
-jar_library(name = 'lucene-analyzers-smartcn',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-analyzers-smartcn', rev = LUCENE_REV).withSources()
-            ]
-           )
-
-jar_library(name = 'lucene-facet',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-facet', rev = LUCENE_REV).withSources()
-            ]
-           )
-
-jar_library(name = 'lucene-suggest',
-            dependencies = [
-              jar(org = 'org.apache.lucene', name = 'lucene-suggest', rev = LUCENE_REV).withSources()
-            ]
-           )
+# Make explicitly versioned targets
+# **** Please don't edit this target, instead, create a new, similar one below,
+# **** or edit the loop above instead for new revisions.
+# **** This is important because we don't want this target to ever change without warning
+# **** as it can cause long-lived indexes stored on disk or in hdfs to become unreadable / invalid
+for t in LUCENE_TARGETS:
+  lucene_jar_library(t + '-4.1.0', t, '4.1.0', force=True)
 
 jar_library(name = 'meat-locker',
             dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ])
