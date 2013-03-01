@@ -66,18 +66,18 @@ class Web(object):
     except socket.gaierror:
       return ''
 
-  def _reachable(self, fullurl):
+  def _reachable(self, fullurl, conn_timeout=None):
     port = fullurl.port if fullurl.port else self.SCHEME_TO_PORT.get(fullurl.scheme, 80)
     try:
       conn = socket.create_connection(
-          (fullurl.hostname, port), timeout=self.CONN_TIMEOUT.as_(Time.SECONDS))
+          (fullurl.hostname, port), timeout=(conn_timeout or self.CONN_TIMEOUT).as_(Time.SECONDS))
       conn.close()
       return True
     except (socket.error, socket.timeout):
       TRACER.log('Failed to connect to %s within deadline' % urlparse.urlunparse(fullurl))
       return False
 
-  def reachable(self, url):
+  def reachable(self, url, conn_timeout=None):
     """Do we think this URL is reachable?
 
        If this isn't here, it takes 5-30s to timeout on DNS resolution for
@@ -96,7 +96,7 @@ class Web(object):
       TRACER.log('Timed out resolving %s' % fullurl.hostname)
       return False
     with TRACER.timed('Connecting', V=2):
-      return self._reachable(fullurl)
+      return self._reachable(fullurl, conn_timeout=conn_timeout)
 
   def maybe_local_url(self, url):
     full_url = urlparse.urlparse(url)
@@ -104,13 +104,13 @@ class Web(object):
       return 'file://' + url
     return url
 
-  def open(self, url, **kw):
+  def open(self, url, conn_timeout=None, **kw):
     """
       Wrapper in front of urlopen that more gracefully handles odd network environments.
     """
     url = self.maybe_local_url(url)
     with TRACER.timed('Fetching', V=1):
-      if not self.reachable(url):
+      if not self.reachable(url, conn_timeout=conn_timeout):
         raise urllib_error.URLError('Could not reach %s within deadline.' % url)
       return urllib_request.urlopen(url, **kw)
 
@@ -156,16 +156,16 @@ class CachedWeb(object):
       return False
     return age > ttl
 
-  def really_open(self, url):
+  def really_open(self, url, conn_timeout=None):
     try:
-      return self._opener.open(url)
+      return self._opener.open(url, conn_timeout=conn_timeout)
     except urllib_error.HTTPError as fp:
       # HTTPError is a valid addinfourl -- use this instead of raising
       return fp
 
-  def encode_url(self, url):
+  def encode_url(self, url, conn_timeout=None):
     target, target_tmp, headers, headers_tmp = self.translate_all(url)
-    with contextlib.closing(self.really_open(url)) as http_fp:
+    with contextlib.closing(self.really_open(url, conn_timeout=conn_timeout)) as http_fp:
       with TRACER.timed('Caching', V=2):
         with open(target_tmp, 'wb') as disk_fp:
           disk_fp.write(http_fp.read())
@@ -187,22 +187,22 @@ class CachedWeb(object):
     for path in self.translate_all(url):
       safe_delete(path)
 
-  def cache(self, url):
+  def cache(self, url, conn_timeout=None):
     """cache the contents of a url."""
     try:
-      self.encode_url(url)
-    except urllib_error.URLError as e:
+      self.encode_url(url, conn_timeout=conn_timeout)
+    except urllib_error.URLError:
       self.clear_url(url)
       raise
 
-  def open(self, url, ttl=None):
+  def open(self, url, ttl=None, conn_timeout=None):
     """Return a file-like object with the content of the url."""
     expired = self.expired(url, ttl=ttl)
     with TRACER.timed('Opening %s' % ('(cached)' if not expired else ''), V=1):
       if expired:
         try:
-          self.cache(url)
-        except urllib_error.URLError as e:
+          self.cache(url, conn_timeout=conn_timeout)
+        except urllib_error.URLError:
           if not self._failsoft or url not in self:
             raise
       return self.decode_url(url)

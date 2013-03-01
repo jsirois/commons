@@ -103,12 +103,29 @@ class MockOpener(object):
   def clear(self):
     self.opened.clear()
 
-  def open(self, url):
+  def open(self, url, conn_timeout=None):
+    if conn_timeout and conn_timeout == Amount(0, Time.SECONDS):
+      raise urllib_error.URLError('Could not reach %s within deadline.' % url)
     if url.startswith('http'):
       self.opened.set()
     if self.error:
       raise urllib_error.HTTPError(url, self.error, None, None, Compatibility.BytesIO(b'glhglhg'))
     return urllib_request.addinfourl(Compatibility.BytesIO(self.rv), url, None, self.code)
+
+
+def test_connect_timeout_using_open():
+  URL = 'http://www.google.com'
+  DATA = b'This is google.com!'
+
+  clock = ThreadedClock()
+  opener = MockOpener(DATA)
+  web = CachedWeb(clock=clock, opener=opener)
+  assert not os.path.exists(web.translate_url(URL))
+  with pytest.raises(urllib_error.URLError):
+    with contextlib.closing(web.open(URL, conn_timeout=Amount(0, Time.SECONDS))):
+      pass
+  with contextlib.closing(web.open(URL, conn_timeout=Amount(10, Time.MILLISECONDS))) as fp:
+    assert fp.read() == DATA
 
 
 def test_caching():

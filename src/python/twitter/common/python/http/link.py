@@ -52,20 +52,19 @@ class Link(object):
   def __repr__(self):
     return '%s(%r)' % (self.__class__.__name__, self.url)
 
-  @property
-  def fh(self):
+  def fh(self, conn_timeout=None):
     if not self._opener:
       raise self.UnreadableLink("Link cannot be read: no opener supplied.")
-    return self._opener.open(self.url)
+    return self._opener.open(self.url, conn_timeout=conn_timeout)
 
-  def fetch(self, location=None):
+  def fetch(self, location=None, conn_timeout=None):
     if self.local and location is None:
       return self._url.path
     location = location or safe_mkdtemp()
     target = os.path.join(location, self.filename)
     if os.path.exists(target):
       return target
-    with contextlib.closing(self.fh) as url_fp:
+    with contextlib.closing(self.fh(conn_timeout=conn_timeout)) as url_fp:
       safe_mkdir(os.path.dirname(target))
       with open(target, 'wb') as fp:
         fp.write(url_fp.read())
@@ -170,8 +169,8 @@ class SourceLink(ExtendedLink):
       package.extractall(path=path)
     return SourceLink.first_nontrivial_dir(path)
 
-  def fetch(self, location=None):
-    target = super(SourceLink, self).fetch()
+  def fetch(self, location=None, conn_timeout=None):
+    target = super(SourceLink, self).fetch(conn_timeout=conn_timeout)
     return self._unpack(target, location)
 
 

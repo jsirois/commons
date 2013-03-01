@@ -1,11 +1,11 @@
 from abc import abstractmethod
 import os
 import sys
-from urllib2 import URLError
+
 from zipimport import zipimporter
 
 from twitter.common.dirutil import safe_rmtree, safe_mkdtemp
-from twitter.common.lang import AbstractClass
+from twitter.common.lang import AbstractClass, Compatibility
 
 from .distiller import Distiller
 from .http import SourceLink, EggLink
@@ -17,6 +17,13 @@ from pkg_resources import (
   Distribution,
   EggMetadata,
   PathMetadata)
+
+
+if Compatibility.PY3:
+  import urllib.error as urllib_error
+else:
+  import urllib2 as urllib_error
+
 
 
 class TranslatorBase(AbstractClass):
@@ -56,8 +63,9 @@ def dist_from_egg(egg_path):
 
 
 class SourceTranslator(TranslatorBase):
-  def __init__(self, install_cache=None):
+  def __init__(self, install_cache=None, conn_timeout=None):
     self._install_cache = install_cache or safe_mkdtemp()
+    self._conn_timeout = conn_timeout
 
   def translate(self, link):
     """From a link, translate a distribution."""
@@ -66,7 +74,7 @@ class SourceTranslator(TranslatorBase):
 
     unpack_path, installer = None, None
     try:
-      unpack_path = link.fetch()
+      unpack_path = link.fetch(conn_timeout=self._conn_timeout)
       with TRACER.timed('Installing %s' % link.name):
         installer = Installer(unpack_path, strict=(link.name != 'distribute'))
       with TRACER.timed('Distilling %s' % link.name):
@@ -83,20 +91,22 @@ class SourceTranslator(TranslatorBase):
 
 
 class EggTranslator(TranslatorBase):
-  def __init__(self, install_cache=None, platform=Platform.current(), python=sys.version[:3]):
+  def __init__(self, install_cache=None, platform=Platform.current(), python=Platform.python(),
+              conn_timeout=None):
     self._install_cache = install_cache or safe_mkdtemp()
     self._platform = platform
     self._python = python
+    self._conn_timeout = conn_timeout
 
   def translate(self, link):
     """From a link, translate a distribution."""
     if not isinstance(link, EggLink):
       return None
-    if not Platform.distribution_compatible(link, py_version=self._python, platform=self._platform):
+    if not Platform.distribution_compatible(link, python=self._python, platform=self._platform):
       return None
     try:
-      egg = link.fetch(location=self._install_cache)
-    except URLError as e:
+      egg = link.fetch(location=self._install_cache, conn_timeout=self._conn_timeout)
+    except urllib_error.URLError as e:
       TRACER.log('Failed to fetch %s: %s' % (link, e))
       return None
     return dist_from_egg(egg)
@@ -104,7 +114,9 @@ class EggTranslator(TranslatorBase):
 
 class Translator(object):
   @staticmethod
-  def default(install_cache=None):
+  def default(install_cache=None, platform=Platform.current(), python=Platform.python(),
+              conn_timeout=None):
     return ChainedTranslator(
-      EggTranslator(install_cache=install_cache),
-      SourceTranslator(install_cache=install_cache))
+      EggTranslator(install_cache=install_cache, platform=platform, python=python,
+                    conn_timeout=conn_timeout),
+      SourceTranslator(install_cache=install_cache, conn_timeout=conn_timeout))

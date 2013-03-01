@@ -99,9 +99,10 @@ class Crawler(CrawlerBase):
   """Crawl a url for links."""
   DEFAULT_ENCODING = 'iso-8859-1'
 
-  def __init__(self, cache=None, cache_ttl=3600, enable_cache=True, **kw):
+  def __init__(self, cache=None, cache_ttl=3600, enable_cache=True, conn_timeout=None, **kw):
     opener = CachedWeb(cache=cache) if enable_cache else Web()
     self._open = partial(opener.open, ttl=cache_ttl) if enable_cache else opener.open
+    self._conn_timeout = conn_timeout
     super(Crawler, self).__init__(opener=opener, **kw)
 
   @classmethod
@@ -129,7 +130,7 @@ class Crawler(CrawlerBase):
 
   def _remote_execute(self, url):
     try:
-      with contextlib.closing(self._open(url)) as index_fp:
+      with contextlib.closing(self._open(url, conn_timeout=self._conn_timeout)) as index_fp:
         index_content = self.decode_page(index_fp)
     except urllib_error.URLError as e:
       TRACER.log('Failed to fetch %s: %s' % (url, e))
