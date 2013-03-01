@@ -43,8 +43,8 @@ jar_library(name = 'antlr-3.4',
 
 jar_library(name = 'antlr4',
             dependencies = [
-                jar(org = 'org.antlr', name = 'antlr4', rev = '4.0'),
-                jar(org = 'org.antlr', name = 'antlr4-runtime', rev = '4.0')
+                jar(org = 'org.antlr', name = 'antlr4', rev = '4.0').with_sources(),
+                jar(org = 'org.antlr', name = 'antlr4-runtime', rev = '4.0').with_sources()
              ]
            )
 
@@ -62,6 +62,11 @@ jar_library(name = 'asm-commons',
               jar(org = 'org.ow2.asm', name = 'asm-commons', rev = '4.0'),
             ]
            )
+jar_library(name = 'automaton',
+            dependencies = [
+              jar(org = 'dk.brics.automaton', name = 'automaton', rev = '1.11-8').with_sources(),
+            ]
+          )
 
 jar_library(name = 'aws-java-sdk',
             dependencies = [
