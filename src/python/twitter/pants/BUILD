@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-PANTS_SOURCES   = rglobs('*.py') - rglobs('bin/*.py')
+PANTS_SOURCES   = rglobs('*.py')
 PANTS_GARBAGE   = rglobs('*.pyc') + rglobs('*~')
 PANTS_RESOURCES = rglobs('*') - PANTS_SOURCES - PANTS_GARBAGE
 
@@ -53,15 +53,24 @@ python_library(
     pants(":pants-deps")
   ],
   sources = PANTS_SOURCES,
-  resources = PANTS_RESOURCES
+  resources = PANTS_RESOURCES,
+  provides = setup_py(
+    name = 'twitter.pants',
+    version = '0.0.3',
+    description = 'the pants build tool',
+    namespace_packages = [
+      'twitter',
+      'twitter.common',
+    ]
+  )
 )
 
 python_binary(
   name = 'pants',
+  entry_point = 'twitter.pants.bin.pants_exe',
   dependencies = [
-    ':pants-lib',
+    pants(":pants-lib")
   ],
-  source = 'bin/pants_exe.py',
 )
 
 python_binary(
@@ -78,8 +87,9 @@ python_binary(
 page(name = 'readme',
   source = 'README.md',
   dependencies = [
-    'src/python/twitter/pants/docs:migration',
-    ':install',
+    pants('src/python/twitter/pants/docs:migration'),
+    pants('src/python/twitter/pants/docs:internals'),
+    pants(':install')
   ]
 )
 
