@@ -51,15 +51,11 @@ import com.twitter.common.quantity.Time;
 
 /**
  * Manages a connection to a ZooKeeper cluster.
- *
- * @author John Sirois
  */
 public class ZooKeeperClient {
 
   /**
    * Indicates an error connecting to a zookeeper cluster.
-   *
-   * @author John Sirois
    */
   public class ZooKeeperConnectionException extends Exception {
     public ZooKeeperConnectionException(String message, Throwable cause) {
