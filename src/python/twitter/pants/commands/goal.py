@@ -157,6 +157,8 @@ class Goal(Command):
   __command__ = 'goal'
 
   GLOBAL_OPTIONS = [
+    Option("-t", "--timeout", dest="conn_timeout", type='int', default=1,
+           help="Number of seconds to wait for http connections."),
     Option("-x", "--time", action="store_true", dest="time", default=False,
            help="Times goal phases and outputs a report."),
     Option("-e", "--explain", action="store_true", dest="explain", default=False,

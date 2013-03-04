@@ -104,11 +104,12 @@ class PythonTestBuilder(object):
   TEST_TIMEOUT = Amount(2, Time.MINUTES)
   TEST_POLL_PERIOD = Amount(100, Time.MILLISECONDS)
 
-  def __init__(self, targets, args, root_dir):
+  def __init__(self, targets, args, root_dir, conn_timeout=None):
     self.targets = targets
     self.args = args
     self.root_dir = root_dir
     self.successes = {}
+    self._conn_timeout = conn_timeout
 
   def run(self):
     self.successes = {}
@@ -191,7 +192,7 @@ class PythonTestBuilder(object):
       builder.info().entry_point = 'pytest'
       builder.info().ignore_errors = target._soft_dependencies
       chroot = PythonChroot(target, self.root_dir, extra_targets=self.generate_test_targets(),
-                            builder=builder)
+                            builder=builder, conn_timeout=self._conn_timeout)
       builder = chroot.dump()
       builder.freeze()
       test_args = PythonTestBuilder.generate_junit_args(target)

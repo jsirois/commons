@@ -40,6 +40,8 @@ class Py(Command):
     parser.set_usage("\n"
                      "  %prog py (options) [spec] args\n")
     parser.disable_interspersed_args()
+    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int", default=1,
+                      help="Number of seconds to wait for http connections.")
     parser.add_option("--pex", dest="pex", default=False, action='store_true',
                       help="dump a .pex of this chroot")
     parser.add_option("--resolve", dest="resolve", default=False, action='store_true',
@@ -116,7 +118,8 @@ class Py(Command):
       executor.dump()
       return 0
 
-    executor = PythonChroot(self.target, self.root_dir, extra_targets=self.extra_targets)
+    executor = PythonChroot(self.target, self.root_dir, extra_targets=self.extra_targets,
+                            conn_timeout=self.options.conn_timeout)
     builder = executor.dump()
     if self.options.pex:
       pex_name = os.path.join(self.root_dir, 'dist', '%s.pex' % self.target.name)

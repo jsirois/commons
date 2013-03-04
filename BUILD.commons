@@ -32,7 +32,7 @@ def reinstall(context):
   pex = os.path.join(ROOT_DIR, 'pants.pex')
   with ParseContext.temp(os.path.basename(__file__)):
     pants_exe = pants('src/python/twitter/pants').resolve().next()
-    chroot = PythonChroot(pants_exe, ROOT_DIR)
+    chroot = PythonChroot(pants_exe, ROOT_DIR, conn_timeout=context.options.conn_timeout)
     chroot.dump().build(pex)
 
   print('\nPants reinstalled from live local source.')

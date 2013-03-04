@@ -23,6 +23,7 @@ from . import Command
 from twitter.common.collections import OrderedSet
 from twitter.pants import is_concrete, is_python
 from twitter.pants.base import Address, Target
+from twitter.pants.targets import InternalTarget
 from twitter.pants.python import PythonBuilder
 
 class Build(Command):
@@ -32,8 +33,10 @@ class Build(Command):
 
   def setup_parser(self, parser, args):
     parser.set_usage("\n"
-                     "  %prog build [spec] (build args)\n"
-                     "  %prog build [spec]... -- (build args)")
+                     "  %prog build (options) [spec] (build args)\n"
+                     "  %prog build (options) [spec]... -- (build args)")
+    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int", default=1,
+                      help="Number of seconds to wait for http connections.")
     parser.disable_interspersed_args()
     parser.epilog = """Builds the specified Python target(s). Use ./pants goal for JVM and other targets."""
 
@@ -59,13 +62,16 @@ class Build(Command):
         address = Address.parse(root_dir, spec)
       except:
         self.error("Problem parsing spec %s: %s" % (spec, traceback.format_exc()))
-        raise
 
       try:
         target = Target.get(address)
       except:
         self.error("Problem parsing BUILD target %s: %s" % (address, traceback.format_exc()))
-        raise
+
+      try:
+        InternalTarget.check_cycles(target)
+      except InternalTarget.CycleException as e:
+        self.error("Target contains an internal dependency cycle: %s" % e)
 
       if not target:
         self.error("Target %s does not exist" % address)
@@ -91,7 +97,7 @@ class Build(Command):
   def _python_build(self, targets):
     try:
       executor = PythonBuilder(self.error, self.root_dir)
-      return executor.build(targets, self.build_args)
+      return executor.build(targets, self.build_args, conn_timeout=self.options.conn_timeout)
     except:
       self.error("Problem executing PythonBuilder for targets %s: %s" % (targets,
                                                                          traceback.format_exc()))
