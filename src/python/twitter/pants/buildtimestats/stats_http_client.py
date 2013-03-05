@@ -20,23 +20,30 @@ from __future__ import print_function
 __author__ = 'Tejal Desai'
 
 import httplib
+import json
 import os
+import socket
 import sys
 import urllib
 import time
 
 from twitter.common import dirutil, log
 from twitter.common.contextutil import temporary_file
-from twitter.common.dirutil import safe_open
+from twitter.common.dirutil import safe_open, safe_mkdtemp
 from twitter.common.dirutil.fileset import Fileset
 from twitter.common.quantity import Amount, Time
+from twitter.common.quantity.parse_simple import parse_time, InvalidTime
+from twitter.common.util.command_util import CommandUtil
 
-STATS_COLLECTION_SECTION = "build-time-stats"
-STATS_COLLECTION_URL = "stats_collection_url"
-STATS_COLLECTION_PORT = "stats_collection_port"
-STATS_COLLECTION_ENDPOINT = "stats_collection_http_endpoint"
-STATS_UPLOADER_PID = "/tmp/%(user)s/.pid_file"
 
+MAX_RECORDS = 100
+LOG_FILES = {
+              "DEBUG" : ".global.DEBUG",
+              "ERROR" : ".global.ERROR",
+              "FATAL" : ".global.FATAL",
+              "INFO" : ".global.INFO",
+              "WARNING" : ".global.WARNING"
+            }
 
 class StatsHttpClient(object):
   def __init__(self, host=None, port=None, http_endpoint=None, stats_dir=None):
@@ -79,34 +86,110 @@ class StatsHttpClient(object):
 
 
 class StatsUploader():
-  def __init__(self, context, max_delay):
-    self._context = context
-    self._stats_dir = os.path.join("/tmp1", self._context.config.get("DEFAULT", "user"),
-                                   "stats_uploader_dir")
-    self._stats_http_client = StatsHttpClient(
-                      self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_URL),
-                      self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_PORT),
-                      self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_ENDPOINT),
-                      self._stats_dir)
+  def __init__(self, host, port, endpoint, max_delay, stats_file, user, force_stats_upload=False):
+    self.force_stats_upload = force_stats_upload
+    self._stats_log_dir = dirutil.safe_mkdtemp()
+    self._stats_log_file = os.path.join(self._stats_log_dir, "current_run")
+    log.init(self._stats_log_file)
+    self._stats_dir = os.path.join("/tmp", user, "stats_uploader_dir")
+    self._stats_http_client = StatsHttpClient(host, port, endpoint, self._stats_dir)
     self._max_delay = max_delay
+    self._pants_stat_file = stats_file
+    self._user = user
 
-  def upload_sync(self, stats_file_nm, last_modified, max_records):
+  def upload_sync(self, stats):
     try:
-      time.sleep(10)
+      last_modified = self.collect_host_env_info(stats)
       if not last_modified:
-        last_modified = int(os.path.getmtime(stats_file_nm))
+        last_modified = int(os.path.getmtime(self._pants_stat_file))
 
-      with safe_open(stats_file_nm, 'r') as stats_file:
+      with safe_open(self._pants_stat_file, 'r') as stats_file:
         lines = stats_file.readlines()
       #Just want to make sure, we do not wait for MAX_RECORDS but also upload when
       #the last time we uploaded is less than configured value in the pants.ini
       last_uploaded = Amount(int(time.time()) - last_modified, Time.SECONDS)
-      if (len(lines) >=  max_records or last_uploaded > self._max_delay):
+      if (self.force_stats_upload or len(lines) >= MAX_RECORDS or last_uploaded > self._max_delay):
         #Put the file in the right place.
         dirutil.safe_mkdir(self._stats_dir)
         with temporary_file(self._stats_dir, False) as stats_uploader_tmpfile:
-          os.rename(stats_file_nm, stats_uploader_tmpfile.name)
+          os.rename(self._pants_stat_file, stats_uploader_tmpfile.name)
         self._stats_http_client.process_stats_file()
+      #Merge Logs so that user /tmp is not cluttered with too many log files for each run.
+      self.merge_logs()
       sys.exit(0)
     except OSError as e:
       log.debug("Error manipulating stats files for upload %s" % e)
+
+  def collect_host_env_info(self,stats):
+    #Get Environment Variable
+    stats["env"] = os.environ.data
+    stats["timestamp"] = int(time.time())
+    try:
+      #Get the System info
+      import psutil
+      stats["cpu_time"] = psutil.cpu_percent(interval=1)
+      stats["network_counter"] = psutil.network_io_counters()
+      stats["no_of_cpus"] = psutil.NUM_CPUS
+    except Exception as e:
+      log.debug("Exception %s. Cannot collect psutil stats" % e)
+
+    #Get Git info
+    stats["git"] = {}
+    (ret, git_origin) = CommandUtil().execute_and_get_output(["git", "remote", "-v"])
+    if ret == 0:
+      for url in git_origin.splitlines():
+        origin = url.split()
+        str1 = origin[2].strip("(").strip(")")
+        if origin:
+          stats["git"][str1] = origin[1]
+
+    #Get git branch
+    (ret, git_branch) = CommandUtil().execute_and_get_output(["git", "rev-parse", "--abbrev-ref",
+                                                              "HEAD"])
+    if ret == 0:
+      stats["git"]["branch"] = git_branch.strip()
+    #Network IP
+    try:
+      stats["ip"] = socket.gethostbyname(socket.gethostname())
+    except Exception as e:
+      log.debug("Exception %s. Cannot get ip stats" % e)
+    log.debug("Done collecting stats")
+
+    #get the last modified time for the File so that we can upload the stats if they havent being
+    #Uploaded for last 6 hours.
+    last_modified = None
+    if os.path.exists(self._pants_stat_file):
+      last_modified = int(os.path.getmtime(self._pants_stat_file))
+    try:
+      with open(self._pants_stat_file , 'a') as stats_file:
+        json_response = json.dumps(stats, cls=PythonObjectEncoder)
+        stats_file.write(json_response + "\n")
+      return last_modified
+    except IOError as e:
+      log.debug("Could not write the pants stats %s" % e)
+
+  def merge_logs(self):
+    prefix = os.path.join("/tmp", self._user, "buildtime_uploader")
+    self.append_log_file("DEBUG")
+    self.append_log_file("INFO")
+    self.append_log_file("FATAL")
+    self.append_log_file("ERROR")
+    self.append_log_file("WARNING")
+
+  def append_log_file(self, log_level):
+    target_file = os.path.join("/tmp", self._user, "buildtime_uploader" + LOG_FILES[log_level])
+    source_file = self._stats_log_file + "." + log_level
+    self._append_to_file(source_file, target_file)
+
+  def _append_to_file(self, source_file, target_file):
+    with open(target_file, 'a') as target_fh:
+      with open(source_file, "r") as source_fh:
+        target_fh.write(source_fh.read())
+
+class PythonObjectEncoder(json.JSONEncoder):
+  def default(self, obj):
+    try:
+     return json.JSONEncoder.default(self, obj)
+    except TypeError as e:
+      log.warn("Could not encode %s" % obj)
+      pass
