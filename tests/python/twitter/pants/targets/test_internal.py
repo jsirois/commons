@@ -36,8 +36,8 @@ class InternalTargetTest(unittest.TestCase):
 
   def test_detect_cycle_indirect(self):
     c = MockTarget('c')
-    b = MockTarget('b', [ c ])
-    a = MockTarget('a', [ c, b ])
+    b = MockTarget('b', [c])
+    a = MockTarget('a', [c, b])
 
     # no cycles yet
     InternalTarget.sort_targets([a])

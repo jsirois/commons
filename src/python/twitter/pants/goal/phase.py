@@ -16,7 +16,6 @@
 
 from __future__ import print_function
 
-import contextlib
 import sys
 import time
 
@@ -24,6 +23,7 @@ from collections import defaultdict
 from optparse import OptionParser
 
 from twitter.common.collections import OrderedDict, OrderedSet
+from twitter.pants.base import TargetDefinitionException
 from twitter.pants.buildtimestats import BuildTimeStats
 from twitter.pants.goal import GoalError
 from twitter.pants.goal.group import Group
@@ -192,7 +192,7 @@ class Phase(PhaseBase):
 
       emit_timings()
       return 0
-    except (TaskError, GoalError) as e:
+    except (TargetDefinitionException, TaskError, GoalError) as e:
       message = '%s' % e
       if message:
         print('\nFAILURE: %s\n' % e)

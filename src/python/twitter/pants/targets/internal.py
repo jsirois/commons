@@ -14,22 +14,23 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.common.collections import OrderedSet
 import collections
 
-from twitter.pants.base import Target
-from twitter.pants.targets.util import resolve
+from twitter.common.collections import OrderedSet
+
+from twitter.pants.base import Target, TargetDefinitionException
+
 
 class InternalTarget(Target):
   """A baseclass for targets that support an optional dependency set."""
 
-  class CycleException(Exception):
+  class CycleException(TargetDefinitionException):
     """Thrown when a circular dependency is detected."""
 
     def __init__(self, cycle):
       Exception.__init__(self, 'Cycle detected:\n\t%s' % (
         ' ->\n\t'.join(str(target.address) for target in cycle)
-      ))
+        ))
 
   @classmethod
   def sort_targets(cls, internal_targets):
@@ -46,7 +47,7 @@ class InternalTarget(Target):
         path_list = list(path)
         cycle_head = path_list.index(target)
         cycle = path_list[cycle_head:] + [target]
-        raise InternalTarget.CycleException(cycle)
+        raise cls.CycleException(cycle)
       path.add(target)
       if target not in visited:
         visited.add(target)
