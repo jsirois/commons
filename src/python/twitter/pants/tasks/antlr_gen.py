@@ -107,12 +107,11 @@ class AntlrGen(CodeGen, NailgunTask):
       # each grammar filename must match the resulting grammar Lexer and Parser classes.
       source_base, source_ext = os.path.splitext(source)
       for suffix in antlr_files_suffix:
-          full_path = os.path.join(target.target_base, source_base + suffix)
-          generated_sources.append(full_path)
+        generated_sources.append(source_base + suffix)
 
     deps = self._resolve_java_deps(target)
 
-    tgt = self.context.add_new_target(self._java_out(target),
+    tgt = self.context.add_new_target(os.path.join(self._java_out(target), target.target_base),
                                       JavaLibrary,
                                       name=target.id,
                                       provides=target.provides,
