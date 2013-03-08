@@ -21,12 +21,12 @@ import java.util.concurrent.TimeUnit
 
 import com.google.common.base.Supplier
 
-import org.specs.mock.EasyMock
-import org.specs.Specification
+import org.specs.mock.Mockito
+import org.specs.SpecificationWithJUnit
 
 import com.twitter.ostrich.stats.{Stats => OstrichStats, Distribution}
 
-class OstrichStatsAdapterSpec extends Specification with EasyMock {
+class OstrichStatsAdapterSpec extends SpecificationWithJUnit with Mockito {
   "An OstrichStatsAdapter" should {
 
     val stats = OstrichStats.get("")
@@ -46,9 +46,7 @@ class OstrichStatsAdapterSpec extends Specification with EasyMock {
 
     "create an ostrich guage" in {
       val gauge = mock[Supplier[JInt]]
-      gauge.get returns 42
-      gauge.get returns 1137
-      replay(gauge)
+      gauge.get returns 42 thenReturns 1137
 
       getOstrichGuage("bob") must throwA[NoSuchElementException]
 
@@ -57,7 +55,7 @@ class OstrichStatsAdapterSpec extends Specification with EasyMock {
 
       getOstrichGuage("bob") mustEqual 1137.0
 
-      verify(gauge)
+      there was two(gauge).get
     }
 
     "create an ostrich stats for a request timer" in {
@@ -73,10 +71,10 @@ class OstrichStatsAdapterSpec extends Specification with EasyMock {
       timing.count mustEqual 2
 
       // Ostrich only guarantees min and max within 5% per docs
-      def beAbout(value: Long) = beCloseTo(value, value * 0.05)
+      def beAbout(value: Int) = beCloseTo(value, (value * 0.05).toInt)
 
-      timing.minimum must beAbout(42L)
-      timing.maximum must beAbout(1137L)
+      timing.minimum must beAbout(42)
+      timing.maximum must beAbout(1137)
 
       timing.average mustEqual 589
 
