@@ -7,8 +7,9 @@ your BUILD files in order.
 # What is Pants?
 
 Pants is a build tool. This document introduces Pants to folks who want to use
-it to build code. If someone else has already set up your codebase to work
-with Pants and you want to know how to get your code built, read on.
+it to build code. If someone else has already
+[[set up your codebase to work with Pants|pants('src/python/twitter/pants/docs:setuprepo')]]
+and you want to know how to get your code built, read on.
 If you're setting up pants with some new code and discover that it doesn't
 know about your tools/compilers, you'll also want to read
 [[Pants Internals|pants('src/python/twitter/pants/docs:internals')]]

@@ -89,7 +89,8 @@ page(name = 'readme',
   dependencies = [
     pants('src/python/twitter/pants/docs:migration'),
     pants('src/python/twitter/pants/docs:internals'),
-    pants(':install')
+    pants('src/python/twitter/pants/docs:setuprepo'),
+    pants(':install'),
   ]
 )
 

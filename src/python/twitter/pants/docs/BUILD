@@ -21,3 +21,7 @@ page(name = 'migration',
 page(name = 'internals',
   source = 'Internals.md'
 )
+
+page(name = 'setuprepo',
+  source = 'SetUpRepo.md'
+)
