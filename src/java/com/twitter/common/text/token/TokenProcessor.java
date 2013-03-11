@@ -78,6 +78,14 @@ public abstract class TokenProcessor extends TokenStream {
     return enabled;
   }
 
+  /**
+   * Enable or disable this {@code TokenProcessor}
+   * @param enabled true to enable this. false to disable.
+   */
+  public final void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
   protected TokenStream getNextEnabledInputStream() {
     if (inputProcessor == null) {
       return inputStream;

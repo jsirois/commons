@@ -190,4 +190,16 @@ public abstract class TokenStream extends AttributeSource {
   protected void updateType(TokenType type) {
     typeAttribute.setType(type);
   }
+
+  @Override
+  public boolean equals(Object target) {
+    // Lucene's AttributeSource.equals() returns true if this has the same
+    // set of attributes as the target one. Let's make it more strict.
+    return this == target;
+  }
+
+  @Override
+  public int hashCode() {
+    return System.identityHashCode(this);
+  }
 }
