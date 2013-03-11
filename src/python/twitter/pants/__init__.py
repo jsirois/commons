@@ -19,8 +19,7 @@ from __future__ import print_function
 import os
 import sys
 
-
-_VERSION = '0.0.8'
+from .version import VERSION as _VERSION
 
 
 def get_version():

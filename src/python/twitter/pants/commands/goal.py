@@ -14,6 +14,8 @@
 # limitations under the License.
 # ==================================================================================================
 
+from __future__ import print_function
+
 import daemon
 import inspect
 import os
@@ -106,8 +108,10 @@ class Help(Task):
 
 goal(name='help', action=Help).install().with_description('Provide help for the specified goal.')
 
+
 def _set_bool(option, opt_str, value, parser):
   setattr(parser.values, option.dest, not opt_str.startswith("--no"))
+
 
 class SpecParser(object):
   """Parses goal target specs; either simple target addresses or else sibling (:) or descendant
@@ -169,7 +173,7 @@ class Goal(Command):
            help="[%default] Forks logs to files under this directory."),
     Option("-l", "--level", dest="log_level", type="choice", choices=['debug', 'info', 'warn'],
            help="[info] Sets the logging level to one of 'debug', 'info' or 'warn', implies -v "
-                  "if set."),
+                "if set."),
     Option("-n", "--dry-run", action="store_true", dest="dry_run", default=False,
       help="Print the commands that would be run, without actually running them."),
     Option("--read-from-artifact-cache", "--no-read-from-artifact-cache", action="callback",
@@ -185,12 +189,12 @@ class Goal(Command):
            help="Do not colorize log messages."),
     Option("--all", dest="target_directory", action="append",
            help="DEPRECATED: Use [dir]: with no flag in a normal target position on the command "
-                  "line. (Adds all targets found in the given directory's BUILD file. Can be "
-                  "specified more than once.)"),
+                "line. (Adds all targets found in the given directory's BUILD file. Can be "
+                "specified more than once.)"),
     Option("--all-recursive", dest="recursive_directory", action="append",
            help="DEPRECATED: Use [dir]:: with no flag in a normal target position on the command "
-                  "line. (Adds all targets found recursively under the given directory. Can be "
-                  "specified more than once to add more than one root target directory to scan.)"),
+                "line. (Adds all targets found recursively under the given directory. Can be "
+                "specified more than once to add more than one root target directory to scan.)"),
   ]
 
   @staticmethod
@@ -272,65 +276,7 @@ class Goal(Command):
           msg.write('\n  %s =>\n    %s' % (key, '\n      '.join(exc.splitlines())))
       # The help message for goal is extremely verbose, and will obscure the
       # actual error message, so we don't show it in this case.
-      self.error(msg.getvalue(), show_help = False)
-
-  def add_targets(self, error, dir, buildfile):
-    try:
-      self.targets.extend(Target.get(addr) for addr in Target.get_all_addresses(buildfile))
-    except (TypeError, ImportError):
-      error(dir, include_traceback=True)
-    except (IOError, SyntaxError):
-      error(dir)
-
-  def get_dir(self, spec):
-    path = spec.split(':', 1)[0]
-    if os.path.isdir(path):
-      return path
-    else:
-      if os.path.isfile(path):
-        return os.path.dirname(path)
-      else:
-        return spec
-
-  def add_target_recursive(self, *specs):
-    with self.check_errors('There was a problem scanning the '
-                           'following directories for targets:') as error:
-      for spec in specs:
-        dir = self.get_dir(spec)
-        for buildfile in BuildFile.scan_buildfiles(self.root_dir, dir):
-          self.add_targets(error, dir, buildfile)
-
-  def add_target_directory(self, *specs):
-    with self.check_errors("There was a problem loading targets "
-                           "from the following directory's BUILD files") as error:
-      for spec in specs:
-        dir = self.get_dir(spec)
-        try:
-          self.add_targets(error, dir, BuildFile(self.root_dir, dir))
-        except IOError:
-          error(dir)
-
-  def parse_spec(self, error, spec):
-    if spec.endswith('::'):
-      self.add_target_recursive(spec[:-len('::')])
-    elif spec.endswith(':'):
-      self.add_target_directory(spec[:-len(':')])
-    else:
-      try:
-        address = Address.parse(get_buildroot(), spec)
-        ParseContext(address.buildfile).parse()
-        target = Target.get(address)
-        if target:
-          self.targets.extend(target.resolve())
-        else:
-          siblings = Target.get_all_addresses(address.buildfile)
-          prompt = 'did you mean' if len(siblings) == 1 else 'maybe you meant one of these'
-          error('%s => %s?:\n    %s' % (address, prompt,
-                                        '\n    '.join(str(a) for a in siblings)))
-      except (TypeError, ImportError, TaskError, GoalError):
-        error(spec, include_traceback=True)
-      except (IOError, SyntaxError):
-        error(spec)
+      self.error(msg.getvalue(), show_help=False)
 
   def setup_parser(self, parser, args):
     self.config = Config.load()
@@ -398,6 +344,7 @@ class Goal(Command):
               error(path)
 
       # Bootstrap user goals by loading any BUILD files implied by targets
+      spec_parser = SpecParser(self.root_dir)
       with self.check_errors('The following targets could not be loaded:') as error:
         for spec in specs:
           try:
@@ -440,13 +387,14 @@ class Goal(Command):
         if augmented_args != args:
           del args[:]
           args.extend(augmented_args)
-          print("(using pantsrc expansion: pants goal %s)" % ' '.join(augmented_args))
+          print("(using pantsrc expansion: pants goal %s)" % ' '.join(augmented_args),
+                file=sys.stderr)
 
       Phase.setup_parser(parser, args, self.phases)
 
   def run(self, lock):
     if self.options.dry_run:
-      print '****** Dry Run ******'
+      print('****** Dry Run ******')
 
     logger = None
     if self.options.log or self.options.log_level:
@@ -531,7 +479,6 @@ from twitter.pants.tasks.filedeps import FileDeps
 from twitter.pants.tasks.idl_resolve import IdlResolve
 from twitter.pants.tasks.ivy_resolve import IvyResolve
 from twitter.pants.tasks.jar_create import JarCreate
-from twitter.pants.tasks.jar_publish import JarPublish
 from twitter.pants.tasks.java_compile import JavaCompile
 from twitter.pants.tasks.javadoc_gen import JavadocGen
 from twitter.pants.tasks.junit_run import JUnitRun
@@ -539,6 +486,7 @@ from twitter.pants.tasks.jvm_run import JvmRun
 from twitter.pants.tasks.markdown_to_html import MarkdownToHtml
 from twitter.pants.tasks.listtargets import ListTargets
 from twitter.pants.tasks.pathdeps import PathDeps
+from twitter.pants.tasks.prepare_resources import PrepareResources
 from twitter.pants.tasks.protobuf_gen import ProtobufGen
 from twitter.pants.tasks.scala_compile import ScalaCompile
 from twitter.pants.tasks.scala_repl import ScalaRepl
@@ -664,6 +612,9 @@ goal(name='javac',
      dependencies=['gen', 'resolve']).install('compile')
 
 
+goal(name='prepare', action=PrepareResources).install('resources')
+
+
 # TODO(John Sirois): Create scaladoc and pydoc in a doc phase
 goal(name='javadoc',
      action=JavadocGen,
@@ -678,15 +629,15 @@ if MarkdownToHtml.AVAILABLE:
 
 goal(name='jar',
      action=JarCreate,
-     dependencies=['compile']).install('jar').with_description('Create one or more jars.')
+     dependencies=['compile', 'resources']).install('jar').with_description('Create one or more jars.')
 
 
 goal(name='junit',
      action=JUnitRun,
-     dependencies=['compile']).install('test').with_description('Test compiled code.')
+     dependencies=['compile', 'resources']).install('test').with_description('Test compiled code.')
 goal(name='specs',
      action=SpecsRun,
-     dependencies=['compile']).install('test')
+     dependencies=['compile', 'resources']).install('test')
 
 # TODO(John Sirois): Create pex's in binary phase
 goal(
@@ -705,7 +656,7 @@ goal(
 goal(
   name='jvm-run',
   action=JvmRun,
-  dependencies=['compile'],
+  dependencies=['compile', 'resources'],
   serialize=False,
 ).install('run').with_description('Run a (currently JVM only) binary target.')
 
@@ -721,7 +672,7 @@ goal(
 goal(
   name='scala-repl',
   action=ScalaRepl,
-  dependencies=['compile'],
+  dependencies=['compile', 'resources'],
   serialize=False,
 ).install('repl').with_description(
   'Run a (currently Scala only) REPL with the classpath set according to the targets.')
