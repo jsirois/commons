@@ -15,15 +15,15 @@
 # ==================================================================================================
 
 import os
-import pytest
 import subprocess
 import unittest
 
 from itertools import izip_longest
 
+import pytest
+
 from twitter.common.contextutil import environment_as, pushd, temporary_dir
 from twitter.common.dirutil import safe_open, safe_mkdtemp, safe_rmtree, touch
-
 from twitter.pants.scm import Scm
 from twitter.pants.scm.git import Git
 
@@ -159,5 +159,12 @@ class GitTest(unittest.TestCase):
           self.assertEqual('--More data.', readme.read())
 
         git = Git()
+
+        # Check that we can pick up committed and uncommitted changes.
+        with safe_open(os.path.realpath('CHANGES'), 'w') as changes:
+          changes.write('none')
+        subprocess.check_call(['git', 'add', 'CHANGES'])
+        self.assertEqual(set(['README', 'CHANGES']), git.changed_files(from_commit='first'))
+
         self.assertEqual('master', git.branch_name)
         self.assertEqual('second', git.tag_name)

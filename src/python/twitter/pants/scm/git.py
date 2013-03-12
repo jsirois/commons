@@ -16,7 +16,6 @@
 
 import os
 import subprocess
-import sys
 
 from . import Scm
 
@@ -66,13 +65,19 @@ class Git(Scm):
     return None if branch == 'HEAD' else branch
 
   def changed_files(self, from_commit=None, include_untracked=False):
-    changes = self._check_output(['diff', '--name-only', from_commit or 'HEAD'],
-                                            raise_type=Scm.LocalException)
+    uncommitted_changes = self._check_output(['diff', '--name-only', 'HEAD'],
+                                             raise_type=Scm.LocalException)
 
-    files = set(changes.split())
+    files = set(uncommitted_changes.split())
+    if from_commit:
+      # Grab the diff from the merge-base to HEAD using ... syntax.  This ensures we have just
+      # the changes that have occurred on the current branch.
+      committed_changes = self._check_output(['diff', '--name-only', '%s...HEAD' % from_commit],
+                                             raise_type=Scm.LocalException)
+      files.update(committed_changes.split())
     if include_untracked:
       untracked = self._check_output(['ls-files', '--other', '--exclude-standard'],
-                                                raise_type=Scm.LocalException)
+                                     raise_type=Scm.LocalException)
       files.update(untracked.split())
     return files
 
