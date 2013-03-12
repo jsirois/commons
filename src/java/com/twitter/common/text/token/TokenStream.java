@@ -96,7 +96,7 @@ public abstract class TokenStream extends AttributeSource {
     List<String> tokens = Lists.newArrayList();
 
     while (incrementToken()) {
-      tokens.add(termAttribute.getTermString());
+      tokens.add(term().toString());
     }
 
     return tokens;
