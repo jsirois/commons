@@ -27,13 +27,10 @@ from twitter.common.quantity.parse_simple import parse_time, InvalidTime
 from twitter.pants import get_buildroot
 from twitter.pants.buildtimestats import StatsUploader
 
-STATS_COLLECTION_SECTION = "build-time-stats"
-MAX_UPLOAD_DELAY = "stats_collection_max_upload_delay"
-STATS_COLLECTION_URL = "stats_collection_url"
-STATS_COLLECTION_PORT = "stats_collection_port"
-STATS_COLLECTION_ENDPOINT = "stats_collection_http_endpoint"
-MAX_UPLOAD_DELAY = "stats_collection_max_upload_delay"
-PANTS_STATS_FILE_NM = "stats_collection_file"
+STATS_COLLECTION_URL = "devprod_stats.production.devprod.service.smf1.twitter.com"
+STATS_COLLECTION_PORT = 80
+STATS_COLLECTION_ENDPOINT = "/buildtime_stats.json"
+MAX_UPLOAD_DELAY = "6h"
 DEFAULT_STATS_FILE = ".pants.stats"
 PHASE_TOTAL = "phase_total"
 CMD_TOTAL = "cmd_total"
@@ -42,15 +39,9 @@ __author__ = 'Tejal Desai'
 
 class BuildTimeStats(object):
 
-  def __init__(self, context, cmd=None):
-    self._context = context
-    try:
-      self._max_delay = parse_time(self._context.config.get(STATS_COLLECTION_SECTION,
-                                                            MAX_UPLOAD_DELAY))
-    except InvalidTime:
-      log.warn("Incorrect time string value for stats_collection_max_upload_delay. " +
-               "Please fix your ini file")
-      self._max_delay = Amount(6, Time.HOURS)
+  def __init__(self, user):
+    self._user = user
+    self._max_delay = parse_time(MAX_UPLOAD_DELAY)
 
   def _get_default_stats_file(self):
     return os.path.join(get_buildroot(), DEFAULT_STATS_FILE)
@@ -85,33 +76,24 @@ class BuildTimeStats(object):
     timings_array.append(timing)
     return timings_array
 
-  def get_user(self):
-    return self._context.config.getdefault("user")
-
   def stats_uploader_daemon(self, stats):
     """
     Starts the StatsUploader as a daemon process if it is already not running
     """
     log.debug("Checking if the statsUploaderDaemon is already running")
-    user = self.get_user()
-    stats_pid = os.path.join("/tmp", user, ".pid_stats")
-    stats_uploader_dir = os.path.join("/tmp", )
+    stats_pid = os.path.join("/tmp", self._user, ".pid_stats")
+    stats_uploader_dir = os.path.join("/tmp", self._user)
     dirutil.safe_mkdir(stats_uploader_dir)
     if not os.path.exists(stats_pid):
       log.debug("Starting the daemon")
-      stats_log_file = os.path.join("/tmp", user, "buildtime_uploader")
+      stats_log_file = os.path.join("/tmp", self._user, "buildtime_uploader")
       log.debug("The logs are writen to %s" % stats_log_file)
       if spawn_daemon(pidfile=stats_pid, quiet=True):
         force_stats_upload = False
         if "--force_stats_upload" in sys.argv:
           force_stats_upload = True
-        su = StatsUploader(self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_URL),
-                           self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_PORT),
-                           self._context.config.get(STATS_COLLECTION_SECTION, STATS_COLLECTION_ENDPOINT),
-                           self._max_delay,
-                           self._context.config.get(STATS_COLLECTION_SECTION, PANTS_STATS_FILE_NM) or
-                           self._get_default_stats_file(),
-                           user,
+        su = StatsUploader(STATS_COLLECTION_URL, STATS_COLLECTION_PORT, STATS_COLLECTION_ENDPOINT,
+                           self._max_delay, self._get_default_stats_file(), self._user,
                            force_stats_upload)
         su.upload_sync(stats)
 

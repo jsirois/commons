@@ -30,9 +30,8 @@ from twitter.pants.goal.context import Context
 from twitter.pants.tasks import TaskError
 
 
-#Set this value to True in you context file if you want to upload pants runtime stats to a
-#HTTP server.
-STATS_COLLECTION = "stats_collection"
+#Set this value to True if you want to upload pants runtime stats to a HTTP server.
+STATS_COLLECTION = True
 
 
 class Timer(object):
@@ -138,15 +137,46 @@ class Phase(PhaseBase):
       Attempts to reach the goals for the supplied phases, optionally recording phase timings and
       then logging then when all specified phases have completed.
     """
+    start = context.timer.now()
     executed = OrderedDict()
 
     # I'd rather do this in a finally block below, but some goals os.fork and each of these cause
     # finally to run, printing goal timings multiple times instead of once at the end.
     def emit_timings():
+      elapsed = context.timer.now() - start
+      if STATS_COLLECTION:
+        build_stats = BuildTimeStats(context.config.getdefault("user"))
+        build_stats.record_stats(executed, elapsed)
+
       if context.timer:
+        context.timer.log('Timing report')
+        context.timer.log('=============')
         for phase, timings in executed.items():
+          phase_time = None
           for goal, times in timings.items():
-            context.timer.log('%s:%s' % (phase, goal), times)
+            if len(times) > 1:
+              context.timer.log('[%(phase)s:%(goal)s(%(numsteps)d)] %(timings)s -> %(total).3fs' % {
+                'phase': phase,
+                'goal': goal,
+                'numsteps': len(times),
+                'timings': ','.join('%.3fs' % time for time in times),
+                'total': sum(times)
+              })
+            else:
+              context.timer.log('[%(phase)s:%(goal)s] %(total).3fs' % {
+                'phase': phase,
+                'goal': goal,
+                'total': sum(times)
+              })
+            if not phase_time:
+              phase_time = 0
+            phase_time += sum(times)
+          if len(timings) > 1:
+            context.timer.log('[%(phase)s] total: %(total).3fs' % {
+              'phase': phase,
+              'total': phase_time
+              })
+        context.timer.log('total: %.3fs' % elapsed)
 
     try:
       # Prepare tasks roots to leaves and allow for goals introducing new goals in existing phases.

@@ -32,46 +32,19 @@ class StatsUploader(RealStatsUploader):
 
 
 class BuildTimeStats(RealBuildTimeStats):
+  def __init__(self, file_nm):
+    self._file = file_nm
 
   def stats_uploader_daemon(self, stats):
     """
     This method calls uploader in sync
     """
     self._su = StatsUploader("locahost", "80", "buildtime.json", Amount(6, Time.HOURS),
-                       self._context.config.get("section", "stats_collection_file"), "dummy")
+                              self._file, "dummy")
     self._su.upload_sync(stats)
 
   def get_log_append_calls(self):
     return self._su.get_calls()
-
-
-class MockContext:
-  def __init__(self, file_nm):
-    self.config = Mockconfig(file_nm)
-
-
-class Mockconfig:
-  def __init__(self,file_nm):
-    self._file = file_nm
-
-  def getdefault(self, val):
-    return "dummy"
-
-  def get(self, section, val):
-    if val == "stats_collection_url":
-      return "http://build_time_stats_collector.smf1.devprod.service.smf1.twitter.com"
-    elif val == "stats_collection_port":
-      return "8080"
-    elif val == "stats_collection_max_upload_delay":
-      return "6h"
-    elif val =="stats_collection_file":
-      return self._file
-    elif val == "stats_uploader_dir":
-      return "/tmp/stats_file"
-    elif val == "stats_uploader_pid_file":
-      return "/tmp/.pid_file"
-    elif val =="user":
-      return "dummy"
 
 
 class BuildTimeStatsTest(unittest.TestCase):
@@ -95,7 +68,7 @@ class BuildTimeStatsTest(unittest.TestCase):
                       "test": {'junit': [9.1075897216796875e-05], 'specs': [0.0015749931335449219]}
                     }
     with temporary_file() as temp_fd:
-      bs = BuildTimeStats(MockContext(temp_fd.name))
+      bs = BuildTimeStats(temp_fd.name)
       actual_timings = bs.compute_stats(executed_goals, 100)
       expected_timings =[{'phase': 'resolve', 'total': 0.00097703933715820312, 'goal': 'ivy'},
                        {'phase': 'resolve-idl', 'total': 0.00072813034057617188, 'goal': 'idl'},
@@ -122,7 +95,7 @@ class BuildTimeStatsTest(unittest.TestCase):
     self.set_up_mocks()
     with temporary_file() as temp_fd:
       temp_filename = temp_fd.name
-      bs = BuildTimeStats(MockContext(temp_filename))
+      bs = BuildTimeStats(temp_filename)
       bs.record_stats(timings, 100)
       with open(temp_filename, 'r') as stats_file:
         stats = json.load(temp_fd)
@@ -146,7 +119,7 @@ class BuildTimeStatsTest(unittest.TestCase):
     timings =  {"compile": {'checkstyle': [0.00057005882263183594]}}
     with temporary_file() as temp_fd:
       temp_filename = temp_fd.name
-      bs = BuildTimeStats(MockContext(temp_filename))
+      bs = BuildTimeStats(temp_filename)
       self.set_up_mocks()
 
       bs.record_stats(timings, 100)
