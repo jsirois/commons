@@ -481,6 +481,7 @@ from twitter.pants.tasks.ivy_resolve import IvyResolve
 from twitter.pants.tasks.jar_create import JarCreate
 from twitter.pants.tasks.java_compile import JavaCompile
 from twitter.pants.tasks.javadoc_gen import JavadocGen
+from twitter.pants.tasks.scaladoc_gen import ScaladocGen
 from twitter.pants.tasks.junit_run import JUnitRun
 from twitter.pants.tasks.jvm_run import JvmRun
 from twitter.pants.tasks.markdown_to_html import MarkdownToHtml
@@ -615,10 +616,13 @@ goal(name='javac',
 goal(name='prepare', action=PrepareResources).install('resources')
 
 
-# TODO(John Sirois): Create scaladoc and pydoc in a doc phase
+# TODO(John Sirois): pydoc also
 goal(name='javadoc',
      action=JavadocGen,
-     dependencies=['compile']).install('javadoc').with_description('Create javadoc.')
+     dependencies=['compile']).install('doc').with_description('Create documentation.')
+goal(name='scaladoc',
+     action=ScaladocGen,
+     dependencies=['compile']).install('doc')
 
 
 if MarkdownToHtml.AVAILABLE:
