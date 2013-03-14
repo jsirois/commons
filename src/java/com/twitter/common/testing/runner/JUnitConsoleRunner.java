@@ -350,7 +350,7 @@ public class JUnitConsoleRunner {
 
     if (!classes.isEmpty()) {
       if (this.perTestTimer || this.parallelThreads > 1) {
-        for (Class clazz : classes) {
+        for (Class<?> clazz : classes) {
           requests.add(new AnnotatedClassRequest(clazz));
         }
       } else {
@@ -385,6 +385,12 @@ public class JUnitConsoleRunner {
       private int parallelThreads = 0;
       private File outdir = new File(System.getProperty("java.io.tmpdir"));
       private List<String> tests = Lists.newArrayList();
+
+      private CmdLineParser parser;
+
+      void setParser(CmdLineParser parser) {
+        this.parser = parser;
+      }
 
       @Option(name = "-fail-fast", usage = "Causes the test suite run to fail fast.")
       public void setFailFast(boolean failFast) {
@@ -426,7 +432,7 @@ public class JUnitConsoleRunner {
               + "or 0 to set automatically.")
       public void setParallelThreads(int parallelThreads) throws CmdLineException {
         if (parallelThreads < 0) {
-          throw new CmdLineException("-parallelThreads cannot be negative");
+          throw new CmdLineException(parser, "-parallelThreads cannot be negative");
         }
         this.parallelThreads = parallelThreads;
         if (parallelThreads == 0) {
@@ -447,6 +453,7 @@ public class JUnitConsoleRunner {
 
     Options options = new Options();
     CmdLineParser parser = new CmdLineParser(options);
+    options.setParser(parser);
     try {
       parser.parseArgument(args);
     } catch (CmdLineException e) {

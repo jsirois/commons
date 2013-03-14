@@ -14,6 +14,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.junit.runners.model.RunnerScheduler;
 
+import com.twitter.common.testing.runner.annotations.TestParallel;
+import com.twitter.common.testing.runner.annotations.TestSerial;
+
 public class ConcurrentRunnerScheduler implements RunnerScheduler {
   private final CompletionService<Void> completionService;
   private final Queue<Future<Void>> concurrentTasks;
@@ -54,7 +57,7 @@ public class ConcurrentRunnerScheduler implements RunnerScheduler {
    * Schedule a test childStatement associated with clazz, using clazz's policy to decide running
    * in serial or parallel.
    */
-  public void schedule(Runnable childStatement, Class clazz) {
+  public void schedule(Runnable childStatement, Class<?> clazz) {
     if (shouldRunParallel(clazz)) {
       concurrentTasks.offer(completionService.submit(childStatement, null));
     } else {
@@ -79,9 +82,10 @@ public class ConcurrentRunnerScheduler implements RunnerScheduler {
         task.run();
       }
     } catch (InterruptedException e) {
-      Throwables.propagate(e);
+      throw new RuntimeException(e);
     } catch (ExecutionException e) {
-      Throwables.propagate(e);
+      // This should not normally happen since junit statements trap and record errors and failures.
+      throw Throwables.propagate(e.getCause());
     } finally {
       // In case of error, cancel all in-flight concurrent tasks
       while (!concurrentTasks.isEmpty()) {

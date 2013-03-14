@@ -1,4 +1,4 @@
-package com.twitter.common.testing.runner;
+package com.twitter.common.testing.runner.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -7,10 +7,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotate that a test class can be run in parallel. See usage note in {@link JUnitConsoleRunner}.
- * {@link TestSerial} takes precedence over this if a class has both (including inherited).
- *
- * @author: Qicheng Ma
+ * Annotate that a test class can be run in parallel. See usage note in
+ * {@link com.twitter.common.testing.runner.JUnitConsoleRunner}. The {@link TestSerial} annotation
+ * takes precedence over this annotation if a class has both (including via inheritance).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
