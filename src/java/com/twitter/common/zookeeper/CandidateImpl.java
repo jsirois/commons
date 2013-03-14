@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -50,35 +51,35 @@ import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException
 public class CandidateImpl implements Candidate {
   private static final Logger LOG = Logger.getLogger(CandidateImpl.class.getName());
 
-  private final Group group;
+  private static final byte[] UNKNOWN_CANDIDATE_DATA = "<unknown>".getBytes(Charsets.UTF_8);
 
-  private final Function<Iterable<String>, String> judge;
-  private final Supplier<byte[]> dataSupplier;
-
-  static final Supplier<byte[]> IP_ADDRESS_DATA_SUPPLIER = new Supplier<byte[]>() {
-    @Override
-    public byte[] get() {
+  private static final Supplier<byte[]> IP_ADDRESS_DATA_SUPPLIER = new Supplier<byte[]>() {
+    @Override public byte[] get() {
       try {
-        return InetAddress.getLocalHost().getAddress();
+        return InetAddress.getLocalHost().getHostAddress().getBytes();
       } catch (UnknownHostException e) {
         LOG.log(Level.WARNING, "Failed to determine local address!", e);
-        return new byte[0];
+        return UNKNOWN_CANDIDATE_DATA;
       }
     }
   };
 
-  public static final Function<Iterable<String>, String> MOST_RECENT_JUDGE =
+  private static final Function<Iterable<String>, String> MOST_RECENT_JUDGE =
       new Function<Iterable<String>, String>() {
         @Override public String apply(Iterable<String> candidates) {
           return Ordering.natural().min(candidates);
         }
       };
 
+  private final Group group;
+  private final Function<Iterable<String>, String> judge;
+  private final Supplier<byte[]> dataSupplier;
+
   /**
-   * Equivalent to {@link #CandidateImpl(Group, com.google.common.base.Function, Supplier)} using a judge that
-   * always picks the lowest numbered candidate ephemeral node - by proxy the oldest or 1st
-   * candidate and a default supplier that populates the data in the underlying znode with the byte representation
-   * of the ip address according to {@link java.net.InetAddress#getLocalHost()}.
+   * Equivalent to {@link #CandidateImpl(Group, com.google.common.base.Function, Supplier)} using a
+   * judge that always picks the lowest numbered candidate ephemeral node - by proxy the oldest or
+   * 1st candidate and a default supplier that provides the ip address of this host according to
+   * {@link java.net.InetAddress#getLocalHost()} as the leader identifying data.
    */
   public CandidateImpl(Group group) {
     this(group, MOST_RECENT_JUDGE, IP_ADDRESS_DATA_SUPPLIER);
@@ -87,8 +88,8 @@ public class CandidateImpl implements Candidate {
   /**
    * Creates a candidate that can be used to offer leadership for the given {@code group} using
    * a judge that always picks the lowest numbered candidate ephemeral node - by proxy the oldest
-   * or 1st. The dataSupplier is the source of the data that will be stored in the leader-znode
-   * and which is available to all participants via the getLeaderData method.
+   * or 1st. The dataSupplier should produce bytes that identify this process as leader. These bytes
+   * will become available to all participants via the {@link Candidate#getLeaderData()} method.
    */
   public CandidateImpl(Group group, Supplier<byte[]> dataSupplier) {
     this(group, MOST_RECENT_JUDGE, dataSupplier);
@@ -98,10 +99,14 @@ public class CandidateImpl implements Candidate {
    * Creates a candidate that can be used to offer leadership for the given {@code group}.  The
    * {@code judge} is used to pick the current leader from all group members whenever the group
    * membership changes. To form a well-behaved election group with one leader, all candidates
-   * should use the same judge. The dataSupplier is the source of the data that will be stored
-   * in the leader-znode and which is available to all participants via the getLeaderData method.
+   * should use the same judge. The dataSupplier should produce bytes that identify this process
+   * as leader. These bytes will become available to all participants via the
+   * {@link Candidate#getLeaderData()} method.
    */
-  public CandidateImpl(Group group, Function<Iterable<String>, String> judge, Supplier<byte[]> dataSupplier) {
+  public CandidateImpl(
+      Group group,
+      Function<Iterable<String>, String> judge,
+      Supplier<byte[]> dataSupplier) {
     this.group = Preconditions.checkNotNull(group);
     this.judge = Preconditions.checkNotNull(judge);
     this.dataSupplier = Preconditions.checkNotNull(dataSupplier);
@@ -113,12 +118,7 @@ public class CandidateImpl implements Candidate {
       throws ZooKeeperConnectionException, KeeperException, InterruptedException {
 
     String leaderId = getLeader(group.getMemberIds());
-    if (leaderId == null) {
-      return null;
-    }
-
-    byte[] data = group.getMemberData(leaderId);
-    return data == null ? new byte[0] : data;
+    return leaderId == null ? null : group.getMemberData(leaderId);
   }
 
   @Override
@@ -178,6 +178,6 @@ public class CandidateImpl implements Candidate {
   }
 
   private String getLeader(Iterable<String> memberIds) {
-    return Iterables.isEmpty(memberIds)? null : judge.apply(memberIds);
+    return Iterables.isEmpty(memberIds) ? null : judge.apply(memberIds);
   }
 }
