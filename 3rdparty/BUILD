@@ -297,6 +297,13 @@ jar_library(name = 'guice-servlet',
             ]
            )
 
+jar_library(name = 'guice-throwingproviders',
+            dependencies = [
+              jar(org = 'com.google.inject.extensions', name = 'guice-throwingproviders', rev = '3.0')
+                .with_sources()
+            ]
+           )
+
 jar_library(name = 'hsqldb',
             dependencies = [ jar(org = 'hsqldb', name = 'hsqldb', rev = '1.8.0.10') ])
 
