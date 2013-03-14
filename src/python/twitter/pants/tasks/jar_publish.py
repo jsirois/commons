@@ -263,6 +263,7 @@ class IvyWriter(DependencyWriter):
       org=jar.org,
       module=jar.name + ('-only' if classifier == 'idl' else ''),
       version=jar.rev,
+      mutable=False,
       force=jar.force,
       excludes=[self.create_exclude(exclude) for exclude in jar.excludes],
       transitive=transitive,
