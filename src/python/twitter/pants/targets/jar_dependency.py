@@ -67,14 +67,27 @@ class  JarDependency(ExternalDependency):
   If the dependency has API docs available online, these can be noted with apidocs and generated
   javadocs with {@link}s to the jar's classes will be properly hyperlinked.
 
+  If the dependency is mutable this must be explicitly noted.  A common use-case is to inhibit
+  caching of maven -SNAPSHOT style artifacts in an active development/integration cycle.
+
   If you want to use a maven classifier variant of a jar, use the classifier param. If you want
   to include multiple artifacts with differing classifiers, use with_artifact.
   """
   _JAR_HASH_KEYS = (
-      'org', 'name', 'rev', 'force', 'excludes', 'transitive', 'ext', 'url', '_configurations')
+    'org',
+    'name',
+    'rev',
+    'force',
+    'excludes',
+    'transitive',
+    'ext',
+    'url',
+    'mutable',
+    '_configurations'
+  )
 
   def __init__(self, org, name, rev=None, force=False, ext=None, url=None, apidocs=None,
-               type_=None, classifier=None):
+               type_=None, classifier=None, mutable=None):
     self.org = org
     self.name = name
     self.rev = rev
@@ -82,6 +95,7 @@ class  JarDependency(ExternalDependency):
     self.excludes = []
     self.transitive = True
     self.apidocs = apidocs
+    self.mutable = mutable
 
     self.artifacts = []
     if ext or url or type_ or classifier:

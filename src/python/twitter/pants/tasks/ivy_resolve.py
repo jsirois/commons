@@ -73,6 +73,11 @@ class IvyResolve(NailgunTask):
     option_group.add_option(mkflag("args"), dest="ivy_args", action="append", default=[],
                             help = "Pass these extra args to ivy.")
 
+    option_group.add_option(mkflag("mutable-pattern"), dest="ivy_mutable_pattern",
+                            help="If specified, all artifact revisions matching this pattern will "
+                                 "be treated as mutable unless a matching artifact explicitly "
+                                 "marks mutable as False.")
+
   def __init__(self, context, confs=None):
     classpath = context.config.getlist('ivy', 'classpath')
     nailgun_dir = context.config.get('ivy-resolve', 'nailgun_dir')
@@ -84,6 +89,14 @@ class IvyResolve(NailgunTask):
     self._transitive = context.config.getbool('ivy-resolve', 'transitive')
     self._opts = context.config.getlist('ivy-resolve', 'args')
     self._ivy_args = context.options.ivy_args
+
+    self._mutable_pattern = (context.options.ivy_mutable_pattern or
+                             context.config.get('ivy-resolve', 'mutable_pattern', default=None))
+    if self._mutable_pattern:
+      try:
+        self._mutable_pattern = re.compile(self._mutable_pattern)
+      except re.error as e:
+        raise TaskError('Invalid mutable pattern specified: %s %s' % (self._mutable_pattern, e))
 
     self._profile = context.config.get('ivy-resolve', 'profile')
 
@@ -355,11 +368,19 @@ class IvyResolve(NailgunTask):
       except Revision.BadRevision as e:
         raise TaskError('Failed to parse jar revision', e)
 
+  def _is_mutable(self, jar):
+    if jar.mutable is not None:
+      return jar.mutable
+    if self._mutable_pattern:
+      return self._mutable_pattern.match(jar.rev)
+    return False
+
   def _generate_jar_template(self, jar):
     template=TemplateData(
       org=jar.org,
       module=jar.name,
       version=jar.rev,
+      mutable=self._is_mutable(jar),
       force=jar.force,
       excludes=[self._generate_exclude_template(exclude) for exclude in jar.excludes],
       transitive=jar.transitive,
