@@ -31,6 +31,7 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.InitializationError;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -215,14 +216,21 @@ public class JUnitConsoleRunner {
   private final boolean xmlReport;
   private final File outdir;
   private final boolean perTestTimer;
+  private final boolean defaultParallel;
+  private final int parallelThreads;
+
+
 
   JUnitConsoleRunner(boolean failFast, boolean suppressOutput, boolean xmlReport,
-                     boolean perTestTimer, File outdir) {
+                     boolean perTestTimer, File outdir,
+                     boolean defaultParallel, int parallelThreads) {
     this.failFast = failFast;
     this.suppressOutput = suppressOutput;
     this.xmlReport = xmlReport;
     this.perTestTimer = perTestTimer;
     this.outdir = outdir;
+    this.defaultParallel = defaultParallel;
+    this.parallelThreads = parallelThreads;
   }
 
   void run(Iterable<String> tests) {
@@ -276,9 +284,19 @@ public class JUnitConsoleRunner {
     Runtime.getRuntime().addShutdownHook(abnormalExitHook);
 
     int failures = 0;
-    for (Request request : requests) {
-      Result result = core.run(request);
-      failures += result.getFailureCount();
+    try {
+      if (this.parallelThreads > 1) {
+        ConcurrentCompositeRequest request = new ConcurrentCompositeRequest(
+            requests, this.defaultParallel, this.parallelThreads);
+        failures = core.run(request).getFailureCount();
+      } else {
+        for (Request request : requests) {
+          Result result = core.run(request);
+          failures += result.getFailureCount();
+        }
+      }
+    } catch (InitializationError initializationError) {
+      failures = 1;
     }
 
     Runtime.getRuntime().removeShutdownHook(abnormalExitHook);
@@ -331,16 +349,17 @@ public class JUnitConsoleRunner {
     List<Request> requests = Lists.newArrayList();
 
     if (!classes.isEmpty()) {
-      if (perTestTimer) {
+      if (this.perTestTimer || this.parallelThreads > 1) {
         for (Class clazz : classes) {
-          requests.add(Request.aClass(clazz));
+          requests.add(new AnnotatedClassRequest(clazz));
         }
       } else {
         requests.add(Request.classes(classes.toArray(new Class<?>[classes.size()])));
       }
     }
     for (TestMethod testMethod : testMethods) {
-      requests.add(Request.method(testMethod.clazz, testMethod.name));
+      requests.add(new AnnotatedClassRequest(testMethod.clazz)
+          .filterWith(Description.createTestDescription(testMethod.clazz, testMethod.name)));
     }
     return requests;
   }
@@ -362,6 +381,8 @@ public class JUnitConsoleRunner {
       private boolean suppressOutput = false;
       private boolean xmlReport = false;
       private boolean perTestTimer = false;
+      private boolean defaultParallel = false;
+      private int parallelThreads = 0;
       private File outdir = new File(System.getProperty("java.io.tmpdir"));
       private List<String> tests = Lists.newArrayList();
 
@@ -394,6 +415,25 @@ public class JUnitConsoleRunner {
         this.perTestTimer = perTestTimer;
       }
 
+      @Option(name = "-default-parallel",
+          usage = "Whether to run test classes without @TestParallel or @TestSerial in parallel.")
+      public void setDefaultParallel(boolean defaultParallel) {
+        this.defaultParallel = defaultParallel;
+      }
+
+      @Option(name = "-parallel-threads",
+          usage = "Number of threads to execute tests in parallel. Must be positive, "
+              + "or 0 to set automatically.")
+      public void setParallelThreads(int parallelThreads) throws CmdLineException {
+        if (parallelThreads < 0) {
+          throw new CmdLineException("-parallelThreads cannot be negative");
+        }
+        this.parallelThreads = parallelThreads;
+        if (parallelThreads == 0) {
+          this.parallelThreads = Runtime.getRuntime().availableProcessors() * 3 / 2;
+        }
+      }
+
       @Argument(usage = "Names of junit test classes or test methods to run.  Names prefixed "
                         + "with @ are considered arg file paths and these will be loaded and the "
                         + "whitespace delimited arguments found inside added to the list",
@@ -419,7 +459,9 @@ public class JUnitConsoleRunner {
             options.suppressOutput,
             options.xmlReport,
             options.perTestTimer,
-            options.outdir);
+            options.outdir,
+            options.defaultParallel,
+            options.parallelThreads);
 
     List<String> tests = Lists.newArrayList();
     for (String test : options.tests) {

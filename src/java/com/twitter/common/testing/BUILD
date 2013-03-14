@@ -56,6 +56,8 @@ java_library(name = 'junit-runner',
   + support for running individual test methods using [classname]#[methodname]
   + support for stderr and stdout redirection for tests
   + support for ant style junit-report xml output
+  + support for per test class timer
+  + support for running test classes in parallel
 """)
 
 jvm_binary(name = 'junit-runner-main',
