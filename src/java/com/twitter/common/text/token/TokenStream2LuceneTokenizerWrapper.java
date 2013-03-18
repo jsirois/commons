@@ -22,6 +22,9 @@ import java.io.StringWriter;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
 import com.google.common.base.Preconditions;
 
@@ -29,23 +32,29 @@ import com.google.common.base.Preconditions;
  * Converts a {@link TokenStream} instance to a Lucene's {@code Tokenizer} instance.
  */
 public class TokenStream2LuceneTokenizerWrapper extends Tokenizer {
-  private final TokenStream stream;
+  private final CharTermAttribute charTermAttr = addAttribute(CharTermAttribute.class);
+  private final OffsetAttribute offsetAttr = addAttribute(OffsetAttribute.class);
 
-  public TokenStream2LuceneTokenizerWrapper(TokenStream stream, Reader input)
+  private final TokenStream inputStream;
+
+  public TokenStream2LuceneTokenizerWrapper(TokenStream inputStream, Reader input)
       throws IOException {
-    super(stream.cloneAttributes(), input);
-    Preconditions.checkNotNull(input);
-    this.stream = stream;
-    reset();
+    super(inputStream, input);
+    this.inputStream = Preconditions.checkNotNull(inputStream);
+    addAttribute(PositionIncrementAttribute.class);
   }
 
   @Override
   public boolean incrementToken() throws IOException {
-    if (!stream.incrementToken()) {
+    if (!inputStream.incrementToken()) {
       return false;
     }
-    clearAttributes();
-    restoreState(stream.captureState());
+
+    // copy the attributes of input stream.
+    charTermAttr.setEmpty();
+    charTermAttr.append(inputStream.term());
+    offsetAttr.setOffset(inputStream.offset(), inputStream.offset() + inputStream.length());
+
     return true;
   }
 
@@ -53,9 +62,7 @@ public class TokenStream2LuceneTokenizerWrapper extends Tokenizer {
    * Make sure we copy the reader's content to the TokenStream.
    */
   public void reset() throws IOException {
-    super.reset();
-    StringWriter writer = new StringWriter();
-    IOUtils.copy(input, writer);
-    stream.reset(writer.toString());
+    clearAttributes();
+    inputStream.reset(IOUtils.toString(input));
   }
 }
