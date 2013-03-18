@@ -30,6 +30,7 @@ def resolve_target_sources(target_sources, extension):
 
 from .annotation_processor import AnnotationProcessor
 from .artifact import Artifact
+from .benchmark import Benchmark
 from .credentials import Credentials
 from .doc import Doc, Page, Wiki
 from .exclude import Exclude
@@ -66,6 +67,7 @@ from .with_sources import TargetWithSources
 __all__ = [
   'AnnotationProcessor',
   'Artifact',
+  'Benchmark',
   'Bundle',
   'Credentials',
   'Doc',

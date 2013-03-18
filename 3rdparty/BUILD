@@ -650,3 +650,14 @@ jar_library(name = 'tl4j',
                 .exclude(org = 'junit', name='junit')
             ]
            )
+
+###############
+# Benchmark support
+#
+jar_library(name = 'caliper',
+            dependencies = [
+              # Warning: keep the library version aligned with
+              # build-support/profiles/benchmark-caliper-0.5-ivy.xml
+              jar(org = 'com.google.caliper', name = 'caliper', rev = '0.5-rc1').with_sources(),
+            ]
+           )

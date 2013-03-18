@@ -464,12 +464,14 @@ class Goal(Command):
 # Install all default pants provided goals
 from twitter.pants import junit_tests
 from twitter.pants.targets import (
+  Benchmark,
   JavaLibrary,
   JvmBinary,
   ScalaLibrary,
   ScalaTests,
   ScalacPlugin)
 from twitter.pants.tasks.antlr_gen import AntlrGen
+from twitter.pants.tasks.benchmark_run import BenchmarkRun
 from twitter.pants.tasks.binary_create import BinaryCreate
 from twitter.pants.tasks.build_lint import BuildLint
 from twitter.pants.tasks.bundle_create import BundleCreate
@@ -589,12 +591,14 @@ goal(
 
 def is_java(target):
   return (isinstance(target, JavaLibrary)
-          or (isinstance(target, (JvmBinary, junit_tests)) and has_sources(target, '.java')))
+          or (isinstance(target, (JvmBinary, junit_tests, Benchmark))
+              and has_sources(target, '.java')))
 
 
 def is_scala(target):
   return (isinstance(target, (ScalaLibrary, ScalaTests, ScalacPlugin))
-          or (isinstance(target, (JvmBinary, junit_tests)) and has_sources(target, '.scala')))
+          or (isinstance(target, (JvmBinary, junit_tests, Benchmark))
+              and has_sources(target, '.scala')))
 
 
 goal(name='scalac',
@@ -642,6 +646,10 @@ goal(name='junit',
 goal(name='specs',
      action=SpecsRun,
      dependencies=['compile', 'resources']).install('test')
+
+goal(name='bench',
+     action=BenchmarkRun,
+     dependencies=['compile', 'resources']).install('bench')
 
 # TODO(John Sirois): Create pex's in binary phase
 goal(
