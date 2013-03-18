@@ -27,13 +27,17 @@ import logging
 import optparse
 import sys
 
+
 _DISK_LOG_LEVEL_OPTION = 'twitter_common_log_disk_log_level'
+
 
 _DEFAULT_LOG_OPTS = {
   'twitter_common_log_stderr_log_level': 'ERROR',
   _DISK_LOG_LEVEL_OPTION: 'INFO',
-  'twitter_common_log_log_dir': '/var/tmp'
+  'twitter_common_log_log_dir': '/var/tmp',
+  'twitter_common_log_simple': False
 }
+
 
 try:
   from twitter.common import app
@@ -53,7 +57,9 @@ except ImportError:
   app = AppDefaultProxy()
   HAVE_APP = False
 
+
 class LogOptionsException(Exception): pass
+
 
 class LogOptions(object):
   _LOG_LEVEL_NONE_KEY = 'NONE'
@@ -78,6 +84,7 @@ class LogOptions(object):
   _DISK_LOG_LEVEL = None
   _DISK_LOG_SCHEME = None
   _LOG_DIR = None
+  _SIMPLE = None
 
   @staticmethod
   def _parse_loglevel(log_level, scheme='google'):
@@ -122,8 +129,8 @@ class LogOptions(object):
     """
       Set the log level for stderr.
     """
-    LogOptions._STDOUT_LOG_SCHEME, LogOptions._STDERR_LOG_LEVEL = \
-      LogOptions._parse_loglevel(log_level, scheme='plain')
+    LogOptions._STDOUT_LOG_SCHEME, LogOptions._STDERR_LOG_LEVEL = (
+        LogOptions._parse_loglevel(log_level, scheme='plain'))
 
   @staticmethod
   def stderr_log_level():
@@ -164,8 +171,8 @@ class LogOptions(object):
     """
       Set the log level for disk.
     """
-    LogOptions._DISK_LOG_SCHEME, LogOptions._DISK_LOG_LEVEL = \
-      LogOptions._parse_loglevel(log_level, scheme='google')
+    LogOptions._DISK_LOG_SCHEME, LogOptions._DISK_LOG_LEVEL = (
+        LogOptions._parse_loglevel(log_level, scheme='google'))
 
   @staticmethod
   def disk_log_level():
@@ -201,6 +208,22 @@ class LogOptions(object):
     if LogOptions._LOG_DIR is None:
       LogOptions._LOG_DIR = app.get_options().twitter_common_log_log_dir
     return LogOptions._LOG_DIR
+
+  @staticmethod
+  def set_simple(value):
+    """
+      Enable/disable simple logging mode.  Must be called before log.init().
+    """
+    LogOptions._SIMPLE = bool(value)
+
+  @staticmethod
+  def simple():
+    """
+      Whether or not simple logging should be used.
+    """
+    if LogOptions._SIMPLE is None:
+      LogOptions._SIMPLE = app.get_options().twitter_common_log_simple
+    return LogOptions._SIMPLE
 
   @staticmethod
   def _disk_options_callback(option, opt, value, parser):
@@ -240,43 +263,51 @@ class LogOptions(object):
       raise optparse.OptionValueError('Failed to parse option: %s' % e)
     parser.values.twitter_common_log_stderr_log_level = value
 
-_LOGGING_HELP = \
-"""The level at which to log to %%s [default: %%%%default].
+
+_LOGGING_HELP = """The level at which logging to %%s [default: %%%%default].
 Takes either LEVEL or scheme:LEVEL, where LEVEL is one
 of %s and scheme is one of %s.
 """ % (repr(LogOptions._LOG_LEVELS.keys()), repr(LogOptions._LOG_SCHEMES))
 
+
 if HAVE_APP:
   app.add_option('--log_to_stdout',
-              callback=LogOptions._stdout_options_callback,
-              default=_DEFAULT_LOG_OPTS['twitter_common_log_stderr_log_level'],
-              type='string',
-              action='callback',
-              metavar='[scheme:]LEVEL',
-              dest='twitter_common_log_stderr_log_level',
-              help='OBSOLETE - legacy flag, use --log_to_stderr instead.')
+                 callback=LogOptions._stdout_options_callback,
+                 default=_DEFAULT_LOG_OPTS['twitter_common_log_stderr_log_level'],
+                 type='string',
+                 action='callback',
+                 metavar='[scheme:]LEVEL',
+                 dest='twitter_common_log_stderr_log_level',
+                 help='OBSOLETE - legacy flag, use --log_to_stderr instead.')
 
   app.add_option('--log_to_stderr',
-              callback=LogOptions._stderr_options_callback,
-              default=_DEFAULT_LOG_OPTS['twitter_common_log_stderr_log_level'],
-              type='string',
-              action='callback',
-              metavar='[scheme:]LEVEL',
-              dest='twitter_common_log_stderr_log_level',
-              help=_LOGGING_HELP % 'stderr')
+                 callback=LogOptions._stderr_options_callback,
+                 default=_DEFAULT_LOG_OPTS['twitter_common_log_stderr_log_level'],
+                 type='string',
+                 action='callback',
+                 metavar='[scheme:]LEVEL',
+                 dest='twitter_common_log_stderr_log_level',
+                 help=_LOGGING_HELP % 'stderr')
 
   app.add_option('--log_to_disk',
-              callback=LogOptions._disk_options_callback,
-              default=_DEFAULT_LOG_OPTS['twitter_common_log_disk_log_level'],
-              type='string',
-              action='callback',
-              metavar='[scheme:]LEVEL',
-              dest='twitter_common_log_disk_log_level',
-              help=_LOGGING_HELP % 'disk')
+                 callback=LogOptions._disk_options_callback,
+                 default=_DEFAULT_LOG_OPTS['twitter_common_log_disk_log_level'],
+                 type='string',
+                 action='callback',
+                 metavar='[scheme:]LEVEL',
+                 dest='twitter_common_log_disk_log_level',
+                 help=_LOGGING_HELP % 'disk')
 
   app.add_option('--log_dir',
-              type='string',
-              default=_DEFAULT_LOG_OPTS['twitter_common_log_log_dir'],
-              metavar='DIR',
-              dest='twitter_common_log_log_dir',
-              help="The directory into which log files will be generated [default: %default].")
+                 type='string',
+                 default=_DEFAULT_LOG_OPTS['twitter_common_log_log_dir'],
+                 metavar='DIR',
+                 dest='twitter_common_log_log_dir',
+                 help='The directory into which log files will be generated [default: %default].')
+
+  app.add_option('--log_simple',
+                 default=_DEFAULT_LOG_OPTS['twitter_common_log_simple'],
+                 action='store_true',
+                 dest='twitter_common_log_simple',
+                 help='Write a single log file rather than one log file per log level '
+                      '[default: %default].')

@@ -39,12 +39,12 @@ See twitter.com.log.options for customizations.
 
 from __future__ import print_function
 
+import getpass
+import logging
 import os
+from socket import gethostname
 import sys
 import time
-import logging
-import getpass
-from socket import gethostname
 
 from twitter.common.log.formatters import glog, plain
 from twitter.common.log.options import LogOptions
@@ -57,9 +57,7 @@ class GenericFilter(logging.Filter):
     logging.Filter.__init__(self)
 
   def filter(self, record):
-    if self._levelfn(record.levelno):
-      return 1
-    return 0
+    return 1 if self._levelfn(record.levelno) else 0
 
 
 class ProxyFormatter(logging.Formatter):
@@ -128,10 +126,21 @@ class PreambleFileHandler(logging.FileHandler):
     return stream
 
 
+def _initialize_disk_logging():
+  safe_mkdir(LogOptions.log_dir())
+
+
+def _setup_aggregated_disk_logging(filebase):
+  filename = os.path.join(LogOptions.log_dir(), filebase + '.log')
+  formatter = ProxyFormatter(LogOptions.disk_log_scheme)
+  file_handler = PreambleFileHandler(filename, formatter.preamble())
+  file_handler.setFormatter(formatter)
+  file_handler.addFilter(GenericFilter(lambda level: level >= LogOptions.disk_log_level()))
+  return [file_handler]
+
+
 def _setup_disk_logging(filebase):
   handlers = []
-  logroot = LogOptions.log_dir()
-  safe_mkdir(logroot)
 
   def gen_filter(level):
     return GenericFilter(
@@ -158,6 +167,7 @@ def _setup_disk_logging(filebase):
       'pid': pid
     }
 
+  logroot = LogOptions.log_dir()
   for filter_type, filter_name in _FILTER_TYPES.items():
     formatter = ProxyFormatter(LogOptions.disk_log_scheme)
     filter = gen_filter(filter_type)
@@ -205,6 +215,9 @@ def init(filebase=None):
   """
     Sets up default stderr logging and, if filebase is supplied, sets up disk logging using:
       {--log_dir}/filebase.{INFO,WARNING,...}
+
+    If '--log_simple' is specified, logs are written into a single file:
+      {--log_dir}/filebase.log
   """
   logging._acquireLock()
 
@@ -220,7 +233,9 @@ def init(filebase=None):
 
   # setup INFO...FATAL handlers
   if filebase:
-    for handler in _setup_disk_logging(filebase):
+    _initialize_disk_logging()
+    initializer = _setup_aggregated_disk_logging if LogOptions.simple() else _setup_disk_logging
+    for handler in initializer(filebase):
       root_logger.addHandler(handler)
       _DISK_LOGGERS.append(handler)
   for handler in _setup_stderr_logging():

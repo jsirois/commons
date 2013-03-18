@@ -10,7 +10,7 @@ from .parsers import Line
 
 
 class Buffer(object):
-  CHUNKSIZE = 512
+  CHUNKSIZE = 65536
 
   @classmethod
   def maybe_filelike(cls, filename_or_filelike):
