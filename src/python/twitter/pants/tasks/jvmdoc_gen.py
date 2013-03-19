@@ -127,9 +127,10 @@ class JvmdocGen(Task):
     create_jvmdoc_command: (classpath, directory, *targets) -> command (string) that will generate
                            documentation documentation for targets
     """
-    catalog = self.context.products.isrequired('javadoc')
+    catalog = self.context.products.isrequired(self._jvmdoc.tool_name)
     if catalog and self.combined:
-      raise TaskError('Cannot provide javadoc target mappings for combined output')
+      raise TaskError(
+          'Cannot provide %s target mappings for combined output' % self._jvmdoc.tool_name)
 
     with self.invalidated(filter(language_predicate, targets)) as invalidation_check:
       safe_mkdir(self._output_dir)
@@ -137,9 +138,10 @@ class JvmdocGen(Task):
         classpath = [jar for conf, jar in cp if conf in self.confs]
 
         def find_jvmdoc_targets():
-          invalid_targets = []
+          invalid_targets = set()
           for vt in invalidation_check.invalid_vts:
-            invalid_targets.extend(vt.targets)
+            invalid_targets.update(vt.targets)
+
           if self.transitive:
             return invalid_targets
           else:

@@ -14,7 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-import StringIO
 import os
 import re
 import signal
@@ -119,13 +118,13 @@ class NailgunTask(Task):
         self._ng_shutdown()
         raise e
     else:
-      only_write_cmd_line_to = StringIO.StringIO() if self.dry_run else None
       ret = runjava(main=main, classpath=cp, opts=opts, args=args, jvmargs=jvmargs,
-                    only_write_cmd_line_to=only_write_cmd_line_to)
-      if only_write_cmd_line_to:
-        print('********** Direct Java dry run: %s' % only_write_cmd_line_to.getvalue())
-        only_write_cmd_line_to.close()
-      return ret
+                    dryrun=self.dry_run)
+      if self.dry_run:
+        print('********** Direct Java dry run: %s' % ret)
+        return 0
+      else:
+        return ret
 
   def runjava(self, main, classpath=None, opts=None, args=None, jvmargs=None):
     """Runs the java main using the given classpath and args.

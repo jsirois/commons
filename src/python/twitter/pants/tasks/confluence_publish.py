@@ -100,7 +100,7 @@ class ConfluencePublish(Task):
           self.context.log.info('Published %s to %s' % (page, url))
 
     if self.open and urls:
-      binary_util.open(*urls)
+      binary_util.ui_open(*urls)
 
   def publish_page(self, address, space, title, content, parent=None):
     body = textwrap.dedent('''

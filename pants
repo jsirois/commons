@@ -19,6 +19,7 @@ MY_DIR=$(dirname $0)
 VIRTUAL_PYTHON=$MY_DIR/.python/bootstrap
 
 PANTS_EXE=$MY_DIR/src/python/twitter/pants/bin/pants_exe.py
+
 MARKDOWN_EGG=$MY_DIR/3rdparty/python/Markdown-2.1.1-py2.6.egg
 PYGMENTS_EGG=$MY_DIR/3rdparty/python/Pygments-1.4-py2.6.egg
 PYSTACHE_EGG=$MY_DIR/3rdparty/python/pystache-0.5.3-py2.6.egg

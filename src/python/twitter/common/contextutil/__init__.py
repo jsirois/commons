@@ -16,7 +16,6 @@
 
 __author__ = 'John Sirois, Brian Wickman'
 
-import errno
 import os
 import shutil
 import tarfile
@@ -27,6 +26,7 @@ import zipfile
 
 from contextlib import closing, contextmanager
 
+from twitter.common.dirutil import safe_delete
 from twitter.common.lang import Compatibility
 
 
@@ -83,23 +83,10 @@ def temporary_file_path(root_dir=None, cleanup=True):
     You may specify the following keyword args:
       root_dir [path]: The parent directory to create the temporary file.
       cleanup [True/False]: Whether or not to clean up the temporary file.
-
-    Important note: If you fork inside the context, make sure only one tine
-    performs cleanup (e.g., by calling os._exit() in the child).
   """
-  fh, path = tempfile.mkstemp(dir=root_dir)
-  os.close(fh)
-  try:
-    yield path
-  finally:
-    if cleanup:
-      try:
-        os.unlink(path)
-      except OSError, e:
-        if e.errno == errno.ENOENT:
-          pass
-        else:
-          raise e
+  with temporary_file(root_dir, cleanup) as fd:
+    fd.close()
+    yield fd.name
 
 
 @contextmanager
@@ -111,20 +98,12 @@ def temporary_file(root_dir=None, cleanup=True):
       root_dir [path]: The parent directory to create the temporary file.
       cleanup [True/False]: Whether or not to clean up the temporary file.
   """
-  # argh, I would love to use os.fdopen here but then fp.name == '<fdopen>'
-  # and that's unacceptable behavior for most cases where I want to use temporary_file
-  fh, path = tempfile.mkstemp(dir=root_dir)
-  os.close(fh)
-  # Note that there's a race condition here. Another process could open the file at this point.
-  # This is potentially a security hole. TODO: Why not just yield fh here?
-  fd = open(path, 'w+')
-  try:
-    yield fd
-  finally:
-    if not fd.closed:
-      fd.close()
-    if cleanup:
-      os.unlink(path)
+  with tempfile.NamedTemporaryFile(dir=root_dir, delete=False) as fd:
+    try:
+      yield fd
+    finally:
+      if cleanup:
+        safe_delete(fd.name)
 
 
 @contextmanager
@@ -181,8 +160,8 @@ def open_tar(path_or_file, *args, **kwargs):
 
     If path_or_file is a file, caller must close it separately.
   """
-  path, fileobj = ((path_or_file, None) if isinstance(path_or_file, Compatibility.string)
-                   else (None, path_or_file))
+  (path, fileobj) = ((path_or_file, None) if isinstance(path_or_file, Compatibility.string)
+                     else (None, path_or_file))
   with closing(tarfile.open(path, *args, fileobj=fileobj, **kwargs)) as tar:
     yield tar
 

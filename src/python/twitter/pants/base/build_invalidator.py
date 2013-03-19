@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2011 Twitter, Inc.
+# Copyright 2012 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -18,12 +18,13 @@ import errno
 import hashlib
 import os
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from collections import namedtuple
 from functools import partial
 
+from twitter.common.collections import maybe_list
 from twitter.common.dirutil import safe_mkdir
-from twitter.common.lang import Compatibility
+from twitter.common.lang import AbstractClass, Compatibility
 from twitter.pants.base.hash_utils import hash_all
 from twitter.pants.base.target import Target
 
@@ -38,10 +39,8 @@ from twitter.pants.base.target import Target
 CacheKey = namedtuple('CacheKey', ['id', 'hash', 'num_sources'])
 
 
-class SourceScope(object):
+class SourceScope(AbstractClass):
   """Selects sources of a given scope from targets."""
-
-  __metaclass__ = ABCMeta
 
   @staticmethod
   def for_selector(selector):
@@ -108,8 +107,7 @@ class CacheKeyGenerator(object):
       sources = NO_SOURCES
 
     sha = hashlib.sha1()
-    srcs = sorted(sources.select(target))
-    num_sources = self._sources_hash(sha, srcs)
+    num_sources = self._sources_hash(sha, sorted(sources.select(target)))
     if fingerprint_extra:
       fingerprint_extra(sha)
     return CacheKey(target.id, sha.hexdigest(), num_sources)
@@ -120,7 +118,7 @@ class CacheKeyGenerator(object):
     Useful primarily in tests. Normally we use key_for_target().
     """
     sha = hashlib.sha1()
-    num_sources = self._sources_hash(sha, sources)
+    num_sources = self._sources_hash(sha, maybe_list(sources))
     return CacheKey(id, sha.hexdigest(), num_sources)
 
   def _walk_paths(self, paths):
@@ -128,7 +126,6 @@ class CacheKeyGenerator(object):
 
     :returns: Iterable of (relative_path, absolute_path).
     """
-    assert not isinstance(paths, Compatibility.string)
     for path in sorted(paths):
       if os.path.isdir(path):
         for dir_name, _, filenames in sorted(os.walk(path)):
@@ -161,7 +158,7 @@ class BuildInvalidator(object):
   VERSION = 0
 
   def __init__(self, root):
-    self._root = os.path.join(root, str(BuildInvalidator.VERSION))
+    self._root = os.path.join(root, str(self.VERSION))
     safe_mkdir(self._root)
 
   def needs_update(self, cache_key):
@@ -170,8 +167,7 @@ class BuildInvalidator(object):
     :param cache_key: A CacheKey object (as returned by BuildInvalidator.key_for().
     :returns: True if the cached version of the item is out of date.
     """
-    cached_sha = self._read_sha(cache_key)
-    return cached_sha != cache_key.hash
+    return self._read_sha(cache_key) != cache_key.hash
 
   def update(self, cache_key):
     """Makes cache_key the valid version of the corresponding target set.

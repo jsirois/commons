@@ -16,9 +16,9 @@
 
 __author__ = 'John Sirois'
 
-from sys import version_info
+from twitter.common.lang import Compatibility
 
-if version_info[0] == 2:
+if Compatibility.PY2:
   from .ordereddict import OrderedDict
 else:
   from collections import OrderedDict
@@ -26,7 +26,7 @@ from .orderedset import OrderedSet
 from .ringbuffer import RingBuffer
 
 
-def maybe_list(value, expected_type=str):
+def maybe_list(value, expected_type=Compatibility.string):
   """
     Given a value that could be a single value or iterable of a particular
     type, always return a list of that type.  By default the expected type

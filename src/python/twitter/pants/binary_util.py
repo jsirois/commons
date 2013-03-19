@@ -25,7 +25,7 @@ import subprocess
 from contextlib import closing, contextmanager
 
 from twitter.common import log
-from twitter.common.contextutil import environment_as, temporary_dir, temporary_file
+from twitter.common.contextutil import environment_as, temporary_file, temporary_dir
 from twitter.common.dirutil import chmod_plus_x, safe_delete, safe_mkdir, safe_open, touch
 from twitter.common.lang import Compatibility
 
@@ -221,33 +221,31 @@ def _runjava_cmd(jvmargs=None, classpath=None, main=None, opts=None, args=None):
   return cmd
 
 
-def runjava_indivisible(jvmargs=None, classpath=None, main=None, opts=None, args=None,
-                        only_write_cmd_line_to=None, **kwargs):
+def runjava_indivisible(jvmargs=None, classpath=None, main=None, opts=None, args=None, dryrun=False,
+                        **kwargs):
   """Spawns a java process with the supplied configuration and returns its exit code.
   The args list is indivisable so it can't be split across multiple invocations of the command
   similiar to xargs.
   Passes kwargs through to subproccess.call.
   """
-  cmd_with_args = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts, args=args)
-  if only_write_cmd_line_to is not None:
-    only_write_cmd_line_to.write(' '.join(cmd_with_args))
-    return 0
+  cmd_with_args = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts,
+                               args=args)
+  if dryrun:
+    return ' '.join(cmd_with_args)
   else:
     with safe_classpath():
       return _subprocess_call(cmd_with_args, **kwargs)
 
 
-def runjava(jvmargs=None, classpath=None, main=None, opts=None, args=None,
-            only_write_cmd_line_to=None, **kwargs):
+def runjava(jvmargs=None, classpath=None, main=None, opts=None, args=None, dryrun=False, **kwargs):
   """Spawns a java process with the supplied configuration and returns its exit code.
   The args list is divisable so it can be split across multiple invocations of the command
   similiar to xargs.
   Passes kwargs through to subproccess.call.
   """
   cmd = _runjava_cmd(jvmargs=jvmargs, classpath=classpath, main=main, opts=opts)
-  if only_write_cmd_line_to is not None:
-    only_write_cmd_line_to.write(' '.join(cmd))
-    return 0
+  if dryrun:
+    return ' '.join(cmd)
   else:
     with safe_classpath():
       return _subprocess_call_with_args(cmd, args, **kwargs)
@@ -284,24 +282,6 @@ def _subprocess_call_with_args(cmd, args, call=subprocess.call, **kwargs):
     else:
       raise e
 
-def find_java_home():
-  # A kind-of-insane hack to find the effective java home. On some platforms there are so
-  # many hard and symbolic links into the JRE dirs that it's actually quite hard to
-  # establish what path to use as the java home, e.g., for the purpose of rebasing.
-  # In practice, this seems to work fine.
-  #
-  # TODO: In the future we should probably hermeticize the Java enivronment rather than relying
-  # on whatever's on the shell's PATH. E.g., you either specify a path to the Java home via a
-  # cmd-line flag or .pantsrc, or we infer one with this method but verify that it's of a
-  # supported version.
-  with temporary_dir() as tmpdir:
-    with safe_open(os.path.join(tmpdir, 'X.java'), 'w') as srcfile:
-      srcfile.write('class X { public static void main(String[] argv) { '
-                    'System.out.println(System.getProperty("java.home")); } }')
-    subprocess.Popen(['javac', '-d', tmpdir, srcfile.name],
-      stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-    return subprocess.Popen(['java', '-cp', tmpdir, 'X'],
-      stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
 
 def nailgun_profile_classpath(nailgun_task, profile, ivy_jar=None, ivy_settings=None):
   return profile_classpath(
@@ -367,7 +347,7 @@ _OPENER_BY_OS = {
 }
 
 
-def open(*files):
+def ui_open(*files):
   """Attempts to open the given files using the preferred native viewer or editor."""
   if files:
     osname = os.uname()[0].lower()
@@ -375,3 +355,27 @@ def open(*files):
       print('Sorry, open currently not supported for ' + osname)
     else:
       _OPENER_BY_OS[osname](files)
+
+
+def find_java_home():
+  # A kind-of-insane hack to find the effective java home. On some platforms there are so
+  # many hard and symbolic links into the JRE dirs that it's actually quite hard to
+  # establish what path to use as the java home, e.g., for the purpose of rebasing.
+  # In practice, this seems to work fine.
+  #
+  # TODO: In the future we should probably hermeticize the Java enivronment rather than relying
+  # on whatever's on the shell's PATH. E.g., you either specify a path to the Java home via a
+  # cmd-line flag or .pantsrc, or we infer one with this method but verify that it's of a
+  # supported version.
+  with temporary_dir() as tmpdir:
+    with open(os.path.join(tmpdir, 'X.java'), 'w') as srcfile:
+      srcfile.write('''
+        class X {
+          public static void main(String[] argv) {
+            System.out.println(System.getProperty("java.home"));
+          }
+        }''')
+    subprocess.Popen(['javac', '-d', tmpdir, srcfile.name],
+                     stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    return subprocess.Popen(['java', '-cp', tmpdir, 'X'],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]

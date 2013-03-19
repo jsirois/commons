@@ -308,7 +308,7 @@ class IvyResolve(NailgunTask):
     shutil.copy(os.path.join(self._cachedir, 'ivy-report.css'), self._outdir)
 
     if self._open:
-      binary_util.open(*reports)
+      binary_util.ui_open(*reports)
 
   def _calculate_classpath(self, targets):
     def is_jardependant(target):

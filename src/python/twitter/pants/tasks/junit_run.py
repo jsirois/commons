@@ -282,7 +282,7 @@ class JUnitRun(JvmTask):
               with safe_open(self.coverage_console_file) as console_report:
                 sys.stdout.write(console_report.read())
             if self.coverage_report_html_open:
-              binary_util.open(self.coverage_html_file)
+              binary_util.ui_open(self.coverage_html_file)
 
           instrument_code()
           try:

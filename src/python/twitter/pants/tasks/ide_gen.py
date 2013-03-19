@@ -304,7 +304,7 @@ class IdeGen(JvmBinaryTask):
 
     idefile = self.generate_project(self._project)
     if idefile:
-      binary_util.open(idefile)
+      binary_util.ui_open(idefile)
 
   def generate_project(self, project):
     raise NotImplementedError('Subclasses must generate a project for an ide')

@@ -191,7 +191,7 @@ class MarkdownToHtml(Task):
           process_page((wiki, page), basedir, wiki.url_builder, get_config)
 
     if show:
-      binary_util.open(*show)
+      binary_util.ui_open(*show)
 
   PANTS_LINK = re.compile(r'''pants\(['"]([^)]+)['"]\)''')
 

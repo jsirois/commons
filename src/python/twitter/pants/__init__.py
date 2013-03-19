@@ -141,7 +141,7 @@ def has_sources(target, extension=None):
   return (target.has_label('sources')
           and (not extension
                or (hasattr(target, 'sources')
-                   and any(filter(lambda source: source.endswith(extension), target.sources)))))
+                   and any(source.endswith(extension) for source in target.sources))))
 
 
 def has_resources(target):
