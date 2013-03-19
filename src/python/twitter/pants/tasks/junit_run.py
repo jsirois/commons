@@ -69,6 +69,16 @@ class JUnitRun(JvmTask):
                             help = "[%default] Shows progress and timer for each test "
                                    "class that is run.")
 
+    option_group.add_option(mkflag("default-parallel"), mkflag("default-parallel", negate=True),
+                            dest = "junit_run_default_parallel",
+                            action="callback", callback=mkflag.set_bool, default=False,
+                            help = "[%default] Whether to run classes without @TestParallel or "
+                                   "@TestSerial annotations in parallel.")
+
+    option_group.add_option(mkflag("parallel-threads"), type = "int", default=0,
+                            dest = "junit_run_parallel_threads",
+                            help = "Number of threads to run tests in parallel. 0 for autoset.")
+
     option_group.add_option(mkflag("coverage"), mkflag("coverage", negate=True),
                             dest = "junit_run_coverage",
                             action="callback", callback=mkflag.set_bool, default=False,
@@ -177,6 +187,10 @@ class JUnitRun(JvmTask):
 
     if context.options.junit_run_per_test_timer:
       self.opts.append('-per-test-timer')
+    if context.options.junit_run_default_parallel:
+      self.opts.append('-default-parallel')
+    self.opts.append('-parallel-threads')
+    self.opts.append(str(context.options.junit_run_parallel_threads))
 
   def _partition(self, tests):
     stride = min(self.batch_size, len(tests))
