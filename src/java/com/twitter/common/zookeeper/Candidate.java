@@ -16,8 +16,7 @@
 
 package com.twitter.common.zookeeper;
 
-import javax.annotation.Nullable;
-
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 
 import org.apache.zookeeper.KeeperException;
@@ -29,24 +28,19 @@ import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException
 
 /**
  * Interface definition for becoming or querying for a ZooKeeper-based group leader.
- *
- * @author William Farner
  */
 public interface Candidate {
 
   /**
    * Returns the current group leader by querying ZooKeeper synchronously.
    *
-   * <p/>TODO(John Sirois): Transition from null to Optional:
-   * https://jira.twitter.biz/browse/AWESOME-1952
-   *
-   * @return the current group leader's identifying data or {@code null} if there is no leader
+   * @return the current group leader's identifying data or {@link Optional#absent()} if there is
+   *     no leader
    * @throws ZooKeeperConnectionException if there was a problem connecting to ZooKeeper
    * @throws KeeperException if there was a problem reading the leader information
    * @throws InterruptedException if this thread is interrupted getting the leader
    */
-  @Nullable
-  public byte[] getLeaderData()
+  public Optional<byte[]> getLeaderData()
       throws ZooKeeperConnectionException, KeeperException, InterruptedException;
 
   /**

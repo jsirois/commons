@@ -41,13 +41,9 @@ import com.twitter.common.zookeeper.testing.BaseZooKeeperTest;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author John Sirois
- */
 public class CandidateImplTest extends BaseZooKeeperTest {
   private static final List<ACL> ACL = ZooDefs.Ids.OPEN_ACL_UNSAFE;
   private static final String SERVICE = "/twitter/services/puffin_linkhose/leader";
@@ -218,7 +214,7 @@ public class CandidateImplTest extends BaseZooKeeperTest {
     Supplier<Boolean> candidate1Leader = candidate1.offerLeadership(candidate1Reign);
     assertSame(candidate1, candidateBuffer.takeLast());
     assertTrue(candidate1Leader.get());
-    assertArrayEquals(DATA, candidate1.getLeaderData());
+    assertArrayEquals(DATA, candidate1.getLeaderData().get());
   }
 
   @Test
@@ -230,6 +226,6 @@ public class CandidateImplTest extends BaseZooKeeperTest {
     candidate1.offerLeadership(candidate1Reign);
     assertSame(candidate1, candidateBuffer.takeLast());
     candidate1Reign.abdicate();
-    assertNull(candidate1.getLeaderData());
+    assertFalse(candidate1.getLeaderData().isPresent());
   }
 }

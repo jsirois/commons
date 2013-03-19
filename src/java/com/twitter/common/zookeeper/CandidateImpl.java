@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
@@ -45,8 +46,6 @@ import com.twitter.common.zookeeper.ZooKeeperClient.ZooKeeperConnectionException
  * Implements leader election for small groups of candidates.  This implementation is subject to the
  * <a href="http://hadoop.apache.org/zookeeper/docs/r3.2.1/recipes.html#sc_leaderElection">
  * herd effect</a> for a given group and should only be used for small (~10 member) candidate pools.
- *
- * @author John Sirois
  */
 public class CandidateImpl implements Candidate {
   private static final Logger LOG = Logger.getLogger(CandidateImpl.class.getName());
@@ -112,13 +111,14 @@ public class CandidateImpl implements Candidate {
     this.dataSupplier = Preconditions.checkNotNull(dataSupplier);
   }
 
-  @Nullable
   @Override
-  public byte[] getLeaderData()
+  public Optional<byte[]> getLeaderData()
       throws ZooKeeperConnectionException, KeeperException, InterruptedException {
 
     String leaderId = getLeader(group.getMemberIds());
-    return leaderId == null ? null : group.getMemberData(leaderId);
+    return leaderId == null
+        ? Optional.<byte[]>absent()
+        : Optional.of(group.getMemberData(leaderId));
   }
 
   @Override
@@ -177,6 +177,7 @@ public class CandidateImpl implements Candidate {
       };
   }
 
+  @Nullable
   private String getLeader(Iterable<String> memberIds) {
     return Iterables.isEmpty(memberIds) ? null : judge.apply(memberIds);
   }
