@@ -79,7 +79,7 @@ class TunnelHelper(object):
     if HAS_APP:
       host = host or app.get_options().tunnel_host
     assert host is not None, 'Must specify tunnel host!'
-    port = port or TunnelHelper._get_random_port()
+    port = port or TunnelHelper.get_random_port()
     return host, port
 
   @staticmethod
