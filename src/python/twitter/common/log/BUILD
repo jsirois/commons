@@ -22,3 +22,11 @@ python_library(
     'src/python/twitter/common/options',
   ]
 )
+
+python_library(
+  name = "log-scribe",
+  dependencies = [
+    pants(':log'),
+    pants('src/thrift/org/apache/scribe:py-scribe'),
+  ]
+)

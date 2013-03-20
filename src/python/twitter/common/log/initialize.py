@@ -47,6 +47,7 @@ import sys
 import time
 
 from twitter.common.log.formatters import glog, plain
+from twitter.common.log.handlers import ScribeHandler
 from twitter.common.log.options import LogOptions
 from twitter.common.dirutil import safe_mkdir
 
@@ -92,8 +93,14 @@ _FILTER_TYPES = {
   logging.INFO: 'INFO',
   logging.WARN: 'WARNING',
   logging.ERROR: 'ERROR',
-  logging.FATAL: 'FATAL' # strangely python logging transaltes this to CRITICAL
+  logging.FATAL: 'FATAL' # strangely python logging translates this to CRITICAL
 }
+
+
+def print_stderr(message):
+  """Emit a message on standard error if logging to stderr is permitted."""
+  if LogOptions.stderr_log_level() != LogOptions.LOG_LEVEL_NONE:
+    print(message, file=sys.stderr)
 
 
 def _safe_setup_link(link_filename, real_filename):
@@ -182,8 +189,16 @@ def _setup_disk_logging(filebase):
   return handlers
 
 
-_STDERR_LOGGERS = []
-_DISK_LOGGERS = []
+def _setup_scribe_logging():
+  filter = GenericFilter(lambda r_l: r_l >= LogOptions.scribe_log_level())
+  formatter = ProxyFormatter(LogOptions.scribe_log_scheme)
+  scribe_handler = ScribeHandler(buffer=LogOptions.scribe_buffer(),
+                                 category=LogOptions.scribe_category(),
+                                 host=LogOptions.scribe_host(),
+                                 port=LogOptions.scribe_port())
+  scribe_handler.setFormatter(formatter)
+  scribe_handler.addFilter(filter)
+  return [scribe_handler]
 
 
 def _setup_stderr_logging():
@@ -195,6 +210,22 @@ def _setup_stderr_logging():
   return [stderr_handler]
 
 
+def teardown_disk_logging():
+  root_logger = logging.getLogger()
+  global _DISK_LOGGERS
+  for handler in _DISK_LOGGERS:
+    root_logger.removeHandler(handler)
+  _DISK_LOGGERS = []
+
+
+def teardown_scribe_logging():
+  root_logger = logging.getLogger()
+  global _SCRIBE_LOGGERS
+  for handler in _SCRIBE_LOGGERS:
+    root_logger.removeHandler(handler)
+  _SCRIBE_LOGGERS = []
+
+
 def teardown_stderr_logging():
   root_logger = logging.getLogger()
   global _STDERR_LOGGERS
@@ -203,12 +234,9 @@ def teardown_stderr_logging():
   _STDERR_LOGGERS = []
 
 
-def teardown_disk_logging():
-  root_logger = logging.getLogger()
-  global _DISK_LOGGERS
-  for handler in _DISK_LOGGERS:
-    root_logger.removeHandler(handler)
-  _DISK_LOGGERS = []
+_SCRIBE_LOGGERS = []
+_STDERR_LOGGERS = []
+_DISK_LOGGERS = []
 
 
 def init(filebase=None):
@@ -226,6 +254,7 @@ def init(filebase=None):
   root_logger.setLevel(logging.DEBUG)
 
   # clear existing handlers
+  teardown_scribe_logging()
   teardown_stderr_logging()
   teardown_disk_logging()
   for handler in root_logger.handlers:
@@ -238,13 +267,24 @@ def init(filebase=None):
     for handler in initializer(filebase):
       root_logger.addHandler(handler)
       _DISK_LOGGERS.append(handler)
+
+  try:
+    for handler in _setup_scribe_logging():
+      root_logger.addHandler(handler)
+      _SCRIBE_LOGGERS.append(handler)
+  except ScribeHandler.ScribeException as err:
+    print_stderr(err)
+
   for handler in _setup_stderr_logging():
     root_logger.addHandler(handler)
     _STDERR_LOGGERS.append(handler)
 
   logging._releaseLock()
 
-  if len(_DISK_LOGGERS) > 0 and LogOptions.stderr_log_level() != LogOptions.LOG_LEVEL_NONE:
-    print('Writing log files to disk in %s' % LogOptions.log_dir(), file=sys.stderr)
+  if len(_DISK_LOGGERS) > 0:
+    print_stderr('Writing log files to disk in %s' % LogOptions.log_dir())
+  if len(_SCRIBE_LOGGERS) > 0:
+    print_stderr('Sending log messages to scribe host=%s:%d category=%s'
+          % (LogOptions.scribe_host(), LogOptions.scribe_port(), LogOptions.scribe_category()))
 
   return root_logger

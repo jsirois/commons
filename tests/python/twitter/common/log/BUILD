@@ -14,12 +14,32 @@
 # limitations under the License.
 # ==================================================================================================
 
-python_tests(name = 'log',
+python_test_suite(name = 'log',
+  dependencies = [
+    pants(':test_log'),
+    pants(':test_log_with_scribe'),
+  ]
+)
+
+python_tests(name = 'test_log',
   sources = globs('*.py'),
   dependencies = [
     pants('src/python/twitter/common/lang'),
     pants('src/python/twitter/common/log'),
     pants('src/python/twitter/common/testing'),
+    python_requirement('mox'),
+  ],
+  coverage = 'twitter.common.log'
+)
+
+python_tests(name = 'test_log_with_scribe',
+  sources = globs('*.py'),
+  dependencies = [
+    pants('src/python/twitter/common/lang'),
+    pants('src/python/twitter/common/log'),
+    pants('src/python/twitter/common/testing'),
+    pants('src/thrift/org/apache/scribe:py-scribe'),
+    python_requirement('mox'),
   ],
   coverage = 'twitter.common.log'
 )

@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
+# TODO Backend support needs to be broken out into modules, a'la twitter.common.app.
 __author__ = 'Brian Wickman'
 
 import logging

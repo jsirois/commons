@@ -35,7 +35,12 @@ _DEFAULT_LOG_OPTS = {
   'twitter_common_log_stderr_log_level': 'ERROR',
   _DISK_LOG_LEVEL_OPTION: 'INFO',
   'twitter_common_log_log_dir': '/var/tmp',
-  'twitter_common_log_simple': False
+  'twitter_common_log_simple': False,
+  'twitter_common_log_scribe_buffer': False,
+  'twitter_common_log_scribe_host': 'localhost',
+  'twitter_common_log_scribe_log_level': 'NONE',
+  'twitter_common_log_scribe_port': 1463,
+  'twitter_common_log_scribe_category': 'python_default'
 }
 
 
@@ -85,6 +90,12 @@ class LogOptions(object):
   _DISK_LOG_SCHEME = None
   _LOG_DIR = None
   _SIMPLE = None
+  _SCRIBE_BUFFER = None
+  _SCRIBE_HOST = None
+  _SCRIBE_LOG_LEVEL = None
+  _SCRIBE_LOG_SCHEME = None
+  _SCRIBE_PORT = None
+  _SCRIBE_CATEGORY = None
 
   @staticmethod
   def _parse_loglevel(log_level, scheme='google'):
@@ -123,6 +134,112 @@ class LogOptions(object):
       return True
     except:
       return False
+
+  @staticmethod
+  def _is_scribe_logging_required():
+    return LogOptions._LOG_LEVEL_NONE_KEY != app.get_options().twitter_common_log_scribe_level
+
+  @staticmethod
+  def disable_scribe_logging():
+    """
+      Disables scribe logging altogether.
+    """
+    app.set_option("_SCRIBE_LOG_LEVEL", LogOptions._LOG_LEVEL_NONE_KEY, force=True)
+
+  @staticmethod
+  def set_scribe_category(category):
+    """
+      Set the scribe category for logging. Must be called before log.init() for
+      changes to take effect.
+    """
+    LogOptions._SCRIBE_CATEGORY = category
+
+  @staticmethod
+  def scribe_category():
+    """
+      Get the current category used when logging to the scribe daemon.
+    """
+    if LogOptions._SCRIBE_CATEGORY is None:
+      LogOptions._SCRIBE_CATEGORY = app.get_options().twitter_common_log_scribe_category
+    return LogOptions._SCRIBE_CATEGORY
+
+  @staticmethod
+  def set_scribe_log_level(log_level):
+    """
+      Set the log level for scribe.
+    """
+    LogOptions._SCRIBE_LOG_SCHEME, LogOptions._SCRIBE_LOG_LEVEL = (
+      LogOptions._parse_loglevel(log_level, scheme='google')
+    )
+
+  @staticmethod
+  def scribe_log_level():
+    """
+      Get the current scribe_log_level (in logging units specified by logging module.)
+    """
+    if LogOptions._SCRIBE_LOG_LEVEL is None:
+      LogOptions.set_scribe_log_level(app.get_options().twitter_common_log_scribe_log_level)
+    return LogOptions._SCRIBE_LOG_LEVEL
+
+  @staticmethod
+  def scribe_log_scheme():
+    """
+      Get the current scribe log scheme.
+    """
+    if LogOptions._SCRIBE_LOG_SCHEME is None:
+      LogOptions.set_scribe_log_level(app.get_options().twitter_common_log_scribe_log_level)
+    return LogOptions._SCRIBE_LOG_SCHEME
+
+  @staticmethod
+  def set_scribe_buffer(buffer_enabled):
+    """
+      Set buffer for scribe logging. Must be called before log.init() for
+      changes to take effect.
+    """
+    LogOptions._SCRIBE_BUFFER = buffer_enabled
+
+  @staticmethod
+  def scribe_buffer():
+    """
+      Get the current buffer setting for scribe logging.
+    """
+    if LogOptions._SCRIBE_BUFFER is None:
+      LogOptions._SCRIBE_BUFFER = app.get_options().twitter_common_log_scribe_buffer
+    return LogOptions._SCRIBE_BUFFER
+
+  @staticmethod
+  def set_scribe_host(host):
+    """
+      Set the scribe host for logging. Must be called before log.init() for
+      changes to take effect.
+    """
+    LogOptions._SCRIBE_HOST = host
+
+  @staticmethod
+  def scribe_host():
+    """
+      Get the current host running the scribe daemon.
+    """
+    if LogOptions._SCRIBE_HOST is None:
+      LogOptions._SCRIBE_HOST = app.get_options().twitter_common_log_scribe_host
+    return LogOptions._SCRIBE_HOST
+
+  @staticmethod
+  def set_scribe_port(port):
+    """
+      Set the scribe port for logging. Must be called before log.init() for
+      changes to take effect.
+    """
+    LogOptions._SCRIBE_PORT = port
+
+  @staticmethod
+  def scribe_port():
+    """
+      Get the current port used to connect to the scribe daemon.
+    """
+    if LogOptions._SCRIBE_PORT is None:
+      LogOptions._SCRIBE_PORT = app.get_options().twitter_common_log_scribe_port
+    return LogOptions._SCRIBE_PORT
 
   @staticmethod
   def set_stderr_log_level(log_level):
@@ -233,6 +350,14 @@ class LogOptions(object):
       raise optparse.OptionValueError('Failed to parse option: %s' % e)
     parser.values.twitter_common_log_disk_log_level = value
 
+  @staticmethod
+  def _scribe_options_callback(option, opt, value, parser):
+    try:
+      LogOptions.set_scribe_log_level(value)
+    except LogOptionsException as e:
+      raise optparse.OptionValueError('Failed to parse option: %s' % e)
+    parser.values.twitter_common_log_scribe_log_level = value
+
   __log_to_stderr_is_set = False
   __log_to_stdout_is_set = False
   @staticmethod
@@ -311,3 +436,39 @@ if HAVE_APP:
                  dest='twitter_common_log_simple',
                  help='Write a single log file rather than one log file per log level '
                       '[default: %default].')
+
+  app.add_option('--log_to_scribe',
+              callback=LogOptions._scribe_options_callback,
+              default=_DEFAULT_LOG_OPTS['twitter_common_log_scribe_log_level'],
+              type='string',
+              action='callback',
+              metavar='[scheme:]LEVEL',
+              dest='twitter_common_log_scribe_log_level',
+              help=_LOGGING_HELP % 'scribe')
+
+  app.add_option('--scribe_category',
+              type='string',
+              default=_DEFAULT_LOG_OPTS['twitter_common_log_scribe_category'],
+              metavar='CATEGORY',
+              dest='twitter_common_log_scribe_category',
+              help="The category used when logging to the scribe daemon. [default: %default].")
+
+  app.add_option('--scribe_buffer',
+              action='store_true',
+              default=_DEFAULT_LOG_OPTS['twitter_common_log_scribe_buffer'],
+              dest='twitter_common_log_scribe_buffer',
+              help="Buffer messages when scribe is unavailable rather than dropping them. [default: %default].")
+
+  app.add_option('--scribe_host',
+              type='string',
+              default=_DEFAULT_LOG_OPTS['twitter_common_log_scribe_host'],
+              metavar='HOST',
+              dest='twitter_common_log_scribe_host',
+              help="The host running the scribe daemon. [default: %default].")
+
+  app.add_option('--scribe_port',
+              type='int',
+              default=_DEFAULT_LOG_OPTS['twitter_common_log_scribe_port'],
+              metavar='PORT',
+              dest='twitter_common_log_scribe_port',
+              help="The port used to connect to the scribe daemon. [default: %default].")
