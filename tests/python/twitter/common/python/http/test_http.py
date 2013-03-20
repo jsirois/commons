@@ -3,7 +3,6 @@ import errno
 import os
 import socket
 import threading
-import unittest
 import urllib2
 
 from twitter.common.contextutil import temporary_dir

@@ -1,45 +1,48 @@
+from abc import abstractmethod
+
+from twitter.common.lang import Interface
 from twitter.common.string import ScanfParser
 
-class ProcessHandle(object):
+class ProcessHandle(Interface):
   """
     ProcessHandle interface.  Methods that must be exposed by whatever process
     monitoring mechanism you use.
   """
+  @abstractmethod
   def cpu_time(self):
     """
       Total cpu time of this process.
     """
-    raise NotImplementedError
 
+  @abstractmethod
   def wall_time(self):
     """
       Total wall time this process has been up.
     """
-    raise NotImplementedError
 
+  @abstractmethod
   def pid(self):
     """
       PID of the process.
     """
-    raise NotImplementedError
 
+  @abstractmethod
   def ppid(self):
     """
       Parent PID of the process.
     """
-    raise NotImplementedError
 
+  @abstractmethod
   def user(self):
     """
       The owner of the process.
     """
-    raise NotImplementedError
 
+  @abstractmethod
   def cwd(self):
     """
       The current working directory of the process.
     """
-    raise NotImplementedError
 
   def cmdline(self):
     """
@@ -126,4 +129,4 @@ class ProcessHandleParserBase(object):
     return self._attrs.get(probe_key)
 
   def refresh(self, line=None):
-    return self._realize() if line is None else self._realize_from_line(self, line)
+    return self._realize() if line is None else self._realize_from_line(line)
