@@ -286,13 +286,6 @@ public class ServerSetImpl implements ServerSet {
     }
   }
 
-  private static final Function<ServiceInstance, Endpoint> GET_PRIMARY_ENDPOINT =
-      new Function<ServiceInstance, Endpoint>() {
-        @Override public Endpoint apply(ServiceInstance serviceInstance) {
-          return serviceInstance.getServiceEndpoint();
-        }
-      };
-
   private class ServerSetWatcher {
     private final ZooKeeperClient zkClient;
     private final HostChangeMonitor<ServiceInstance> monitor;
@@ -440,23 +433,18 @@ public class ServerSetImpl implements ServerSet {
             .append(" members to ").append(newServerSet.size());
       }
 
-      MapDifference<Endpoint, ServiceInstance> changes =
-          Maps.difference(
-              Maps.uniqueIndex(serverSet, GET_PRIMARY_ENDPOINT),
-              Maps.uniqueIndex(newServerSet, GET_PRIMARY_ENDPOINT));
       Joiner joiner = Joiner.on("\n\t\t");
-      Map<Endpoint, ServiceInstance> left = changes.entriesOnlyOnLeft();
+
+      SetView<ServiceInstance> left = Sets.difference(serverSet, newServerSet);
       if (!left.isEmpty()) {
-        message.append("\n\tleft:\n\t\t").append(joiner.join(left.values()));
+        message.append("\n\tleft:\n\t\t").append(joiner.join(left));
       }
-      Map<Endpoint, ServiceInstance> joined = changes.entriesOnlyOnRight();
+
+      SetView<ServiceInstance> joined = Sets.difference(newServerSet, serverSet);
       if (!joined.isEmpty()) {
-        message.append("\n\tjoined:\n\t\t").append(joiner.join(joined.values()));
+        message.append("\n\tjoined:\n\t\t").append(joiner.join(joined));
       }
-      Map<Endpoint, ValueDifference<ServiceInstance>> differing = changes.entriesDiffering();
-      if (!differing.isEmpty()) {
-        message.append("\n\tstatus changed:\n\t\t").append(joiner.join(differing.values()));
-      }
+
       LOG.log(level, message.toString());
     }
   }
