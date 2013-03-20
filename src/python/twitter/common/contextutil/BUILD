@@ -18,6 +18,6 @@ python_library(
   name = 'contextutil',
   sources = globs('*.py'),
   dependencies=[
-    'src/python/twitter/common/dirutil'
+    pants('src/python/twitter/common/dirutil')
   ]
 )
