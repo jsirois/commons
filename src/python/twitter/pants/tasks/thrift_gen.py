@@ -26,6 +26,7 @@ from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_jvm, is_python
 from twitter.pants.targets import (
+  InternalTarget,
   JavaLibrary,
   JavaThriftLibrary,
   PythonLibrary,
@@ -182,7 +183,12 @@ class ThriftGen(CodeGen):
     tgt.id = target.id + '.thrift_gen'
     tgt.add_label('codegen')
     for dependee in dependees:
-      dependee.update_dependencies([tgt])
+      if isinstance(dependee, InternalTarget):
+        dependee.update_dependencies((tgt,))
+      else:
+        # TODO(John Sirois): rationalize targets with dependencies.
+        # JarLibrary or PythonTarget dependee on the thrift target
+        dependee.dependencies.add(tgt)
     return tgt
 
 
