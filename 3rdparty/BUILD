@@ -264,12 +264,12 @@ jar_library(name = 'gson',
 jar_library(name = 'guava',
             dependencies = [
               jar(
-                org = 'com.google.guava', name = 'guava', rev = '13.0',
-                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v13.0/javadoc/'
+                org = 'com.google.guava', name = 'guava', rev = '14.0.1',
+                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
               ).with_sources(),
 
-              # This dependency should not need to be explicit but its currently required to work
-              # around a doc generation bug (RTS-524).
+              # Defined in provided scope so we provide here.
+              pants(':jsr305'),
               jar(org = 'javax.inject', name = 'javax.inject', rev = '1').with_sources(),
             ]
            )
