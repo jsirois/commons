@@ -18,7 +18,7 @@ __author__ = 'Benjy Weinberger'
 
 import os
 
-from twitter.pants import  has_sources, is_scalac_plugin
+from twitter.pants import has_sources, is_scalac_plugin
 from twitter.pants.targets.scala_library import ScalaLibrary
 from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.jvm_dependency_cache import JvmDependencyCache
@@ -29,6 +29,7 @@ from twitter.pants.tasks.scala.zinc_utils import ZincUtils
 
 def _is_scala(target):
   return has_sources(target, '.scala')
+
 
 
 class ScalaCompile(NailgunTask):
