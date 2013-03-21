@@ -17,9 +17,7 @@
 from __future__ import print_function
 
 import os
-import errno
 import re
-import tempfile
 
 from collections import defaultdict
 
@@ -65,7 +63,7 @@ class ScroogeGen(NailgunTask):
 
     self.compilers = defaultdict(lambda: defaultdict(dict))
 
-    for compiler,lang2targets in compiler_to_lang_to_targets(context.targets(is_gentarget)).items():
+    for compiler,lang2targets in compiler_to_lang_to_tgts(context.targets(is_gentarget)).items():
       for lang, targets in lang2targets.items():
         compiler_config = INFO_FOR_COMPILER[compiler]['config']
         compiler_lang_info = self.compilers[compiler][lang]
@@ -107,8 +105,8 @@ class ScroogeGen(NailgunTask):
     # actually doing the work of generating)
     # AWESOME-1563
 
-    for compiler, lang2targets in compiler_to_lang_to_targets(filter(is_gentarget, targets)).items():
-      for lang, compiler_lang_targets in lang2targets.items():
+    for compiler, lang_to_tgts in compiler_to_lang_to_tgts(filter(is_gentarget, targets)).items():
+      for lang, compiler_lang_targets in lang_to_tgts.items():
         bases, sources = calculate_compile_sources(compiler_lang_targets, is_gentarget)
         compiler_lang_info = self.compilers[compiler][lang]
         opts = []
@@ -143,12 +141,14 @@ class ScroogeGen(NailgunTask):
             raise TaskError("java %s ... exited non-zero (%i)" % \
                               (INFO_FOR_COMPILER[compiler]['main'], returncode))
 
-          gen_files_for_source = self.parse_gen_file_map(gen_file_map.name, compiler_lang_info['outdir'])
+          gen_files_for_source = self.parse_gen_file_map(gen_file_map.name,
+                                                         compiler_lang_info['outdir'])
 
         langtarget_by_gentarget = {}
         for target in compiler_lang_targets:
           dependees = dependees_by_gentarget.get(target, [])
-          langtarget_by_gentarget[target] = self.createtarget(target, dependees, gen_files_for_source)
+          langtarget_by_gentarget[target] = self.createtarget(target, dependees,
+                                                              gen_files_for_source)
 
         genmap = self.context.products.get(lang)
         # synmap is a reverse map
@@ -183,11 +183,10 @@ class ScroogeGen(NailgunTask):
     for source_file in target.sources:
       source = os.path.join(target.target_base, source_file)
       services = calculate_services(source)
-      compiler_lang_info = self.compilers[target.compiler][target.language]
       genfiles = gen_files_for_source[source]
       has_service = has_service or services
       files.extend(genfiles)
-    deps = geninfo.deps['service' if has_service else 'structs']
+    deps = OrderedSet(geninfo.deps['service' if has_service else 'structs'])
     deps.update(target.dependencies)
     compiler_lang_info = self.compilers[target.compiler][target.language]
     outdir = compiler_lang_info['outdir']
@@ -239,17 +238,17 @@ def calculate_services(source):
 
 
 def is_gentarget(target):
-  result = isinstance(target, JavaThriftLibrary) \
-      and hasattr(target, 'compiler') \
-      and hasattr(target, 'language') \
-      and target.compiler in INFO_FOR_COMPILER
+  result = (isinstance(target, JavaThriftLibrary)
+            and hasattr(target, 'compiler')
+            and hasattr(target, 'language')
+            and target.compiler in INFO_FOR_COMPILER)
 
   if result and target.language not in INFO_FOR_COMPILER[target.compiler]['langs']:
     raise TaskError("%s can not generate %s" % (target.compiler, target.language))
   return result
 
 
-def compiler_to_lang_to_targets(targets):
+def compiler_to_lang_to_tgts(targets):
   result = defaultdict(lambda: defaultdict(set))
   for target in targets:
     result[target.compiler][target.language].add(target)
@@ -267,7 +266,6 @@ def namespace_map(targets):
           result[lhs] = rhs
           target_for_lhs[lhs] = target
         elif current_rhs != rhs:
-          raise TaskError("Conflicting namespace_map values:\n\t%s {'%s': '%s'}\n\t%s {'%s': '%s'}" %
-                          (target_for_lhs[lhs], lhs, current_rhs,
-                           target, lhs, rhs))
+          raise TaskError("Conflicting namespace_map values:\n\t%s {'%s': '%s'}\n\t%s {'%s': '%s'}"
+                          % (target_for_lhs[lhs], lhs, current_rhs, target, lhs, rhs))
   return result
