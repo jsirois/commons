@@ -436,7 +436,7 @@ public class JUnitConsoleRunner {
         }
         this.parallelThreads = parallelThreads;
         if (parallelThreads == 0) {
-          this.parallelThreads = Runtime.getRuntime().availableProcessors() * 3 / 2;
+          this.parallelThreads = Runtime.getRuntime().availableProcessors();
         }
       }
 
