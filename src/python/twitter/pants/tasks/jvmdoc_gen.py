@@ -169,7 +169,7 @@ class JvmdocGen(Task):
       if command:
         create_jvmdoc(command, gendir)
     if self.open:
-      binary_util.open(os.path.join(gendir, 'index.html'))
+      binary_util.ui_open(os.path.join(gendir, 'index.html'))
 
   def _generate_individual(self, classpath, targets, create_jvmdoc_command):
     jobs = {}
