@@ -31,6 +31,12 @@ object OstrichStatsAdapter extends StatsProvider {
   // Science stats has a single global namespace - grab the ostrich equivalent.
   private[this] lazy val stats = OstrichStats.get("")
 
+  /**
+   * Returns this `OstrichStatsAdapter` since ostrich stats don't have an equivalent tracking mode
+   * built-in but rely instead on attaching a [[com.twitter.ostrich.stats.StatsListener]].
+   */
+  def untracked() = this
+
   def makeCounter(name: String) = createCounter(name)
 
   def makeGauge[T <: Number](name: String, gauge: Supplier[T]) = {
