@@ -51,6 +51,10 @@ class PythonTestResult(object):
     return PythonTestResult('TIMEOUT')
 
   @staticmethod
+  def cancelled():
+    return PythonTestResult('CANCELLED')
+
+  @staticmethod
   def exception():
     return PythonTestResult('EXCEPTION')
 
@@ -205,6 +209,9 @@ class PythonTestBuilder(object):
       # TODO(wickman)  If coverage is enabled, write an intermediate .html that points to
       # each of the coverage reports generated and webbrowser.open to that page.
       rv = PythonTestBuilder.wait_on(po, timeout=target.timeout)
+    except KeyboardInterrupt:
+      print('Test interrupted by user')
+      rv = PythonTestResult.cancelled()
     except Exception as e:
       import traceback
       print('Failed to run test!', file=sys.stderr)
