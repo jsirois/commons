@@ -44,8 +44,6 @@ from twitter.pants.targets import (
 from .antlr_builder import PythonAntlrBuilder
 from .thrift_builder import PythonThriftBuilder
 
-import pkg_resources
-
 
 def get_platforms(platform_list):
   def translate(platform):
@@ -118,11 +116,11 @@ class PythonChroot(object):
     self._config = Config.load()
     self._target = target
     self._root = root_dir
+    self._key_generator = CacheKeyGenerator()
     self._extra_targets = list(extra_targets) if extra_targets is not None else []
     self._resolver = MultiResolver.from_target(self._config, target, conn_timeout=conn_timeout)
     self._builder = builder or PEXBuilder(tempfile.mkdtemp())
 
-    self._key_generator = CacheKeyGenerator()
     artifact_cache_root = os.path.join(self._config.get('python-setup', 'artifact_cache'),
                                        '%s' % PythonIdentity.get())
     self._artifact_cache = FileBasedArtifactCache(None, self._root, artifact_cache_root,

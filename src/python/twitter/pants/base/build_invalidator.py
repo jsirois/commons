@@ -20,11 +20,11 @@ import os
 
 from abc import abstractmethod
 from collections import namedtuple
-from functools import partial
 
 from twitter.common.collections import maybe_list
 from twitter.common.dirutil import safe_mkdir
-from twitter.common.lang import AbstractClass, Compatibility
+from twitter.common.lang import Compatibility, Interface
+
 from twitter.pants.base.hash_utils import hash_all
 from twitter.pants.base.target import Target
 
@@ -33,38 +33,51 @@ from twitter.pants.base.target import Target
 #  - id identifies the set of targets.
 #  - hash is a fingerprint of all invalidating inputs to the build step, i.e., it uniquely
 #    determines a given version of the artifacts created when building the target set.
-#  - num_sources is the number of source files used to build this version of the target set.
-#    Needed only for displaying stats.
+#  - num_sources is the number of source files used to build this version of the target set. Needed
+#    only for displaying stats.
 
 CacheKey = namedtuple('CacheKey', ['id', 'hash', 'num_sources'])
 
 
-class SourceScope(AbstractClass):
+class SourceScope(Interface):
   """Selects sources of a given scope from targets."""
-
-  @staticmethod
-  def for_selector(selector):
-    class Scope(SourceScope):
-      def select(self, target):
-        return selector(target)
-    return Scope()
 
   @abstractmethod
   def select(self, target):
     """Selects source files from the given target and returns them as absolute paths."""
 
+  @abstractmethod
   def valid(self, target):
     """Returns True if the given target can be used with this SourceScope."""
+
+
+class NoSources(SourceScope):
+  """A SourceScope where all targets are valid but no sources are ever selected."""
+
+  def select(self, target):
+    return []
+
+  def valid(self, target):
+    return True
+
+NO_SOURCES = NoSources()
+
+
+class DefaultSourceScope(SourceScope):
+  """Selects sources from subclasses of TargetWithSources."""
+
+  def __init__(self, recursive, include_buildfile):
+    self._recursive = recursive
+    self._include_buildfile = include_buildfile
+
+  def select(self, tgt):
+    return tgt.expand_files(self._recursive, self._include_buildfile)
+
+  def valid(self, target):
     return hasattr(target, 'expand_files')
 
-
-NO_SOURCES = SourceScope.for_selector(lambda t: ())
-
-def get_target_sources(recursive, include_buildfile, t):
-  return t.expand_files(recursive, include_buildfile) if hasattr(t, "expand_files") else []
-
-TARGET_SOURCES = SourceScope.for_selector(partial(get_target_sources, False, False))
-TRANSITIVE_SOURCES = SourceScope.for_selector(partial(get_target_sources, True, False))
+TARGET_SOURCES = DefaultSourceScope(recursive=False, include_buildfile=False)
+TRANSITIVE_SOURCES = DefaultSourceScope(recursive=True, include_buildfile=False)
 
 
 class CacheKeyGenerator(object):
@@ -187,7 +200,8 @@ class BuildInvalidator(object):
   def existing_hash(self, id):
     """Returns the existing hash for the specified id.
 
-    Returns None if there is no existing hash for this id."""
+    Returns None if there is no existing hash for this id.
+    """
     return self._read_sha_by_id(id)
 
   def _sha_file(self, cache_key):

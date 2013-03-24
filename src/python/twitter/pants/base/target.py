@@ -33,8 +33,11 @@ class TargetDefinitionException(Exception):
 
 
 class Target(object):
-  """The baseclass for all pants targets.  Handles registration of a target amongst all parsed
-  targets as well as location of the target parse context."""
+  """The baseclass for all pants targets.
+
+  Handles registration of a target amongst all parsed targets as well as location of the target
+  parse context.
+  """
 
   _targets_by_address = {}
   _addresses_by_buildfile = collections.defaultdict(OrderedSet)
@@ -114,11 +117,15 @@ class Target(object):
 
   def __init__(self, name, reinit_check=True):
     # This check prevents double-initialization in multiple-inheritance situations.
+    # TODO(John Sirois): fix target inheritance - use super() to linearize or use alternatives to
+    # multiple inheritance.
     if not reinit_check or not hasattr(self, '_initialized'):
       self.name = name
       self.description = None
 
       self.address = self.locate()
+
+      # TODO(John Sirois): id is a builtin - use another name
       self.id = self._create_id()
 
       self.labels = set()

@@ -85,7 +85,7 @@ class Help(Task):
     if len(args) > 1 and (not args[1].startswith('-')):
       default = args[1]
       del args[1]
-    option_group.add_option(mkflag("goal"), dest = "help_goal", default=default)
+    option_group.add_option(mkflag("goal"), dest="help_goal", default=default)
 
   def execute(self, targets):
     goal = self.context.options.help_goal

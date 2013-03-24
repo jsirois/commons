@@ -20,6 +20,7 @@ import collections
 import pprint
 import pystache
 
+from twitter.common.lang import Compatibility
 
 def _expand(map):
   # Pystache can't handle sets so convert to lists.
@@ -30,7 +31,7 @@ def _expand(map):
   # block exactly once iff a list is not empty.
   # Note: if the original map contains foo?, it will take precedence over our synthetic foo?.
   map.update((k + '?', True) for k, v in map.items() if v and not k.endswith('?'))
-  
+
   return map
 
 
@@ -65,7 +66,11 @@ class Generator(object):
   """Generates pants intermediary output files using a configured mustache template."""
 
   def __init__(self, template_text, **template_data):
-    self._template =  pystache.parse(unicode(template_text))
+    # pystache does a typecheck for unicode in python 2.x but rewrites its sources to deal unicode
+    # via str in python 3.x.
+    if Compatibility.PY2:
+      template_text = unicode(template_text)
+    self._template =  pystache.parse(template_text)
     self.template_data = template_data
 
   def write(self, stream):
