@@ -272,7 +272,7 @@ def init(filebase=None):
     for handler in _setup_scribe_logging():
       root_logger.addHandler(handler)
       _SCRIBE_LOGGERS.append(handler)
-  except ScribeHandler.ScribeException as err:
+  except ScribeHandler.ScribeHandlerException as err:
     print_stderr(err)
 
   for handler in _setup_stderr_logging():
