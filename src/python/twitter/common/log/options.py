@@ -137,7 +137,7 @@ class LogOptions(object):
 
   @staticmethod
   def _is_scribe_logging_required():
-    return LogOptions._LOG_LEVEL_NONE_KEY != app.get_options().twitter_common_log_scribe_level
+    return LogOptions._LOG_LEVEL_NONE_KEY != app.get_options().twitter_common_log_scribe_log_level
 
   @staticmethod
   def disable_scribe_logging():

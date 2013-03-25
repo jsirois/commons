@@ -40,7 +40,8 @@ class ScribeHandler(Handler):
     port: Scribe port.
     """
     if not _SCRIBE_PRESENT:
-      raise self.ScribeHandlerException("Could not initialize ScribeHandler: Scribe modules not present.")
+      raise self.ScribeHandlerException(
+        "Could not initialize ScribeHandler: Scribe modules not present.")
     self._buffer_enabled = kwargs.pop("buffer")
     self._category = kwargs.pop("category")
     self._client = None

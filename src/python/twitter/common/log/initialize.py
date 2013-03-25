@@ -268,12 +268,13 @@ def init(filebase=None):
       root_logger.addHandler(handler)
       _DISK_LOGGERS.append(handler)
 
-  try:
-    for handler in _setup_scribe_logging():
-      root_logger.addHandler(handler)
-      _SCRIBE_LOGGERS.append(handler)
-  except ScribeHandler.ScribeHandlerException as err:
-    print_stderr(err)
+  if LogOptions._is_scribe_logging_required():
+    try:
+      for handler in _setup_scribe_logging():
+        root_logger.addHandler(handler)
+        _SCRIBE_LOGGERS.append(handler)
+    except ScribeHandler.ScribeHandlerException as err:
+      print_stderr(err)
 
   for handler in _setup_stderr_logging():
     root_logger.addHandler(handler)
