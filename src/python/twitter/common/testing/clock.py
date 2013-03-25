@@ -1,9 +1,10 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 import threading
+import time
 
+from twitter.common.lang import Interface
 
-class ClockInterface(object):
-  __metaclass__ = ABCMeta
+class ClockInterface(Interface):
 
   @abstractmethod
   def time(self):
@@ -49,6 +50,8 @@ class ThreadedClock(ClockInterface):
       return waiter
 
   def tick(self, amount):
+    # yield thread, in case any others are waiting to sleep() on this clock
+    time.sleep(0.1)
     now = self._time
     end = now + amount
 

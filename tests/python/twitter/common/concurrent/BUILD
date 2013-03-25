@@ -19,5 +19,6 @@ python_tests(name = 'concurrent',
   dependencies = [
     pants('src/python/twitter/common/concurrent'),
     pants('src/python/twitter/common/contextutil'),
+    pants('src/python/twitter/common/testing'),
   ]
 )

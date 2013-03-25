@@ -15,7 +15,7 @@
 # ==================================================================================================
 
 """
-Interface to Glog-stlye formatter.
+Interface to Glog-style formatter.
 
 import twitter.common.log
 

@@ -201,8 +201,12 @@ class Timer(object):
     2.0020849704742432
 
   """
+
+  def __init__(self, clock=time):
+    self._clock = clock
+
   def __enter__(self):
-    self.start = time.time()
+    self.start = self._clock.time()
     self.finish = None
     return self
 
@@ -211,7 +215,7 @@ class Timer(object):
     if self.finish:
       return self.finish - self.start
     else:
-      return time.time() - self.start
+      return self._clock.time() - self.start
 
   def __exit__(self, typ, val, traceback):
-    self.finish = time.time()
+    self.finish = self._clock.time()

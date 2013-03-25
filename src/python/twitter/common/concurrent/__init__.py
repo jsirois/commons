@@ -14,39 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-from Queue import Queue, Empty
-from threading import Thread
-
-from twitter.common.lang import Compatibility
-from twitter.common.quantity import Amount, Time
-
 from concurrent.futures import *
+from .deadline import deadline, Timeout
 from .deferred import defer
-
-
-class Timeout(Exception):
-  pass
-
-def deadline(closure, timeout=Amount(150, Time.MILLISECONDS)):
-  """Run a closure with a timeout, raising an exception if the timeout is exceeded.
-
-    Args:
-      closure - function to be run (e.g. functools.partial, or lambda)
-    Keyword args:
-      timeout - in seconds, or Amount of Time, [default: Amount(150, Time.MILLISECONDS]
-  """
-  if isinstance(timeout, Compatibility.numeric):
-    pass
-  elif isinstance(timeout, Amount) and isinstance(timeout.unit(), Time):
-    timeout = timeout.as_(Time.SECONDS)
-  else:
-    raise ValueError('timeout must be either numeric or Amount of Time.')
-  q = Queue(maxsize=1)
-  class AnonymousThread(Thread):
-    def run(self):
-      q.put(closure())
-  AnonymousThread().start()
-  try:
-    return q.get(timeout=timeout)
-  except Empty:
-    raise Timeout("Timeout exceeded!")
+from .event_muxer import EventMuxer
