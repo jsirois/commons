@@ -68,10 +68,13 @@ class BuildRootTest(unittest.TestCase):
   def setUpClass(cls):
     cls.build_root = mkdtemp(suffix='_BUILD_ROOT')
     set_buildroot(cls.build_root)
+    cls._cwd = os.getcwd()
+    os.chdir(cls.build_root)
     Target._clear_all_addresses()
 
   @classmethod
   def tearDownClass(cls):
+    os.chdir(cls._cwd)
     safe_rmtree(cls.build_root)
 
   @classmethod

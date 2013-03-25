@@ -16,9 +16,24 @@
 
 import hashlib
 
-def hash_all(strs):
-  """Returns a hash of the concatenation of all the strings in strs."""
-  sha = hashlib.sha1()
+
+def hash_all(strs, digest=None):
+  """Returns a hash of the concatenation of all the strings in strs.
+
+  If a hashlib message digest is not supplied a new sha1 message digest is used.
+  """
+  digest = digest or hashlib.sha1()
   for s in strs:
-    sha.update(s)
-  return sha.hexdigest()
+    digest.update(s)
+  return digest.hexdigest()
+
+
+def hash_file(path, digest=None):
+  """Hashes the contents of the file at the given path and returns the hash digest in hex form.
+
+  If a hashlib message digest is not supplied a new sha1 message digest is used.
+  """
+  digest = digest or hashlib.sha1()
+  with open(path, "rb") as fd:
+    digest.update(fd.read())
+  return digest.hexdigest()

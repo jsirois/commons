@@ -42,8 +42,7 @@ class JavaTests(JvmTarget):
 
     JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags)
 
-    self.add_label('java')
-    self.add_label('tests')
+    self.add_labels('java', 'tests')
 
     self.resources = list(self.resolve_all(resources, Resources))
     self.add_label('java')

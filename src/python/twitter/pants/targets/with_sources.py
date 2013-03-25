@@ -35,7 +35,7 @@ class TargetWithSources(Target):
   def __init__(self, name, sources=None):
     Target.__init__(self, name, is_meta=False)
 
-    self.add_label('sources')
+    self.add_labels('sources')
     self.target_base = SourceRoot.find(self)
     self.sources = None
     self._sources = sources or []

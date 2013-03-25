@@ -200,8 +200,8 @@ class Target(object):
     self.description = description
     return self
 
-  def add_label(self, label):
-    self.labels.add(label)
+  def add_labels(self, *label):
+    self.labels.update(label)
 
   def remove_label(self, label):
     self.labels.remove(label)

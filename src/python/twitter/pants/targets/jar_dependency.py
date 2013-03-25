@@ -25,6 +25,16 @@ class Artifact(object):
 
   See: http://ant.apache.org/ivy/history/latest-milestone/ivyfile/artifact.html
   """
+
+  _HASH_KEYS = (
+    'name',
+    'type_',
+    'ext',
+    'conf',
+    'url',
+    'classifier',
+  )
+
   def __init__(self, name, type_, ext=None, conf=None, url=None, classifier=None):
     """Initializes a new artifact specification.
 
@@ -41,9 +51,12 @@ class Artifact(object):
     self.name = name
     self.type_ = type_
     self.ext = ext
+    self.conf = conf
     self.url = url
     self.classifier = classifier
-    self.conf = conf
+
+  def cache_key(self):
+    return ''.join(str(getattr(self, key)) for key in self._HASH_KEYS)
 
 
 class  JarDependency(ExternalDependency):
@@ -73,17 +86,15 @@ class  JarDependency(ExternalDependency):
   If you want to use a maven classifier variant of a jar, use the classifier param. If you want
   to include multiple artifacts with differing classifiers, use with_artifact.
   """
-  _JAR_HASH_KEYS = (
+
+  _HASH_KEYS = (
     'org',
     'name',
     'rev',
     'force',
     'excludes',
     'transitive',
-    'ext',
-    'url',
     'mutable',
-    '_configurations'
   )
 
   def __init__(self, org, name, rev=None, force=False, ext=None, url=None, apidocs=None,
@@ -175,7 +186,10 @@ class  JarDependency(ExternalDependency):
     return self.id
 
   def cache_key(self):
-    return ''.join(getattr(self, key) for key in self._JAR_HASH_KEYS)
+    key = ''.join(str(getattr(self, key)) for key in self._HASH_KEYS)
+    key += ''.join(sorted(self._configurations))
+    key += ''.join(a.cache_key() for a in sorted(self.artifacts, key=lambda a: a.name + a.type_))
+    return key
 
   def resolve(self):
     yield self

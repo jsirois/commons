@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.base import Target
+from twitter.pants.base import Target, TargetDefinitionException
 from twitter.pants.targets.util import resolve
 
 
@@ -28,6 +28,9 @@ class JarLibrary(Target):
         JarLibraries or JavaTargets"""
 
     Target.__init__(self, name)
+
+    if dependencies is None:
+      raise TargetDefinitionException(self, "A dependencies list must be supplied even if empty.")
 
     self.add_label('jars')
     self.dependencies = resolve(dependencies)

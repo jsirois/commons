@@ -15,7 +15,6 @@
 # ==================================================================================================
 
 import hashlib
-import itertools
 import os
 import sys
 
@@ -28,6 +27,12 @@ from twitter.pants.base.artifact_cache import create_artifact_cache
 from twitter.pants.base.build_invalidator import CacheKeyGenerator
 from twitter.pants.tasks.cache_manager import CacheManager, InvalidationCheck
 from twitter.pants.tasks.cache_manager import CacheManager, VersionedTargetSet
+
+
+__all__ = (
+  'TaskError',
+  'Task'
+)
 
 
 class TaskError(Exception):
@@ -149,9 +154,9 @@ class Task(object):
   @contextmanager
   def invalidated_with_artifact_cache_check(self,
                                             targets,
-                                            only_buildfiles = False,
-                                            invalidate_dependents = False,
-                                            partition_size_hint = sys.maxint):
+                                            only_buildfiles=False,
+                                            invalidate_dependents=False,
+                                            partition_size_hint=sys.maxint):
     """Checks targets for invalidation, first checking the artifact cache.
     Subclasses call this to figure out what to work on.
 
@@ -261,9 +266,3 @@ class Task(object):
           pass  # TODO: Verify that the artifact we just built is identical to the cached one.
         self.context.log.info('Caching artifacts for %s' % str(vt.targets))
         self._artifact_cache.insert(vt.cache_key, build_artifacts)
-
-
-__all__ = (
-  'TaskError',
-  'Task'
-)

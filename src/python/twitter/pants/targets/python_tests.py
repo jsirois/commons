@@ -40,8 +40,7 @@ class PythonTests(PythonTarget):
     self._soft_dependencies = bool(soft_dependencies)
     self._coverage = maybe_list(coverage) if coverage is not None else []
     PythonTarget.__init__(self, name, sources, resources, dependencies)
-    self.add_label('python')
-    self.add_label('tests')
+    self.add_labels('python', 'tests')
 
   @property
   def timeout(self):
