@@ -38,16 +38,17 @@ class Extract(Task):
   _EXTRACT_BASE = None
 
   @classmethod
-  def compiled_idl(cls, dependency, compiler=None, language=None, namespace_map=None):
+  def compiled_idl(cls, idl_dep, generated_deps=None, compiler=None, language=None, namespace_map=None):
     """Marks a jar as containing IDL files that should be fetched and processed locally.
 
-    dependency:     A dependency resolvable to a single jar library.
+    idl_dep:        A dependency resolvable to a single jar library.
+    generated_deps: Dependencies for the code that will be generated from "idl_dep"
     compiler:       The thrift compiler to apply to the fetched thrift IDL files.
     language:       The language to generate code for - supported by some compilers
     namespace_map:  A mapping from IDL declared namespaces to custom namespaces - supported by some
                     compilers.
     """
-    deps = list(filter(is_concrete, dependency.resolve()))
+    deps = list(filter(is_concrete, idl_dep.resolve()))
     if not len(deps) == 1:
       raise TaskError('Can only arrange for compiled idl for a single dependency at a time, '
                       'given:\n\t%s' % '\n\t'.join(map(str, deps)))
@@ -79,7 +80,7 @@ class Extract(Task):
         target_name = '-'.join(filter(None, (jar.id, compiler, language, namespace_signature)))
         placeholder = JavaThriftLibrary(target_name,
                                         sources=None,
-                                        dependencies=[jar],
+                                        dependencies=[jar] + (generated_deps or []),
                                         compiler=compiler,
                                         language=language,
                                         namespace_map=namespace_map)
