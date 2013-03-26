@@ -92,7 +92,7 @@ class Jira(object):
   def api_call(self, endpoint, post_json=None, authorization=None):
     url = urlparse.urljoin(self._base_url, endpoint)
     headers = {'User-Agent': 'twitter.common.jira'}
-    base64string = authorization or base64.b64encode('%s:%s' % (self._user, self._getpass()))[:-1]
+    base64string = authorization or base64.b64encode('%s:%s' % (self._user, self._getpass()))
     headers['Authorization'] = 'Basic %s' % base64string
     log.info(headers)
     data = json.dumps(post_json) if post_json else None
