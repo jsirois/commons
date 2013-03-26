@@ -177,31 +177,32 @@ class JvmdocGen(Task):
       if command:
         jobs[gendir] = (target, command)
 
-    with contextlib.closing(
-          multiprocessing.Pool(processes=min(len(jobs), multiprocessing.cpu_count()))) as pool:
-      # map would be a preferable api here but fails after the 1st batch with an internal:
-      # ...
-      #  File "...src/python/twitter/pants/tasks/jar_create.py", line 170, in javadocjar
-      #      pool.map(createjar, jobs)
-      #    File "...lib/python2.6/multiprocessing/pool.py", line 148, in map
-      #      return self.map_async(func, iterable, chunksize).get()
-      #    File "...lib/python2.6/multiprocessing/pool.py", line 422, in get
-      #      raise self._value
-      #  NameError: global name 'self' is not defined
-      futures = []
-      for gendir, (target, command) in jobs.items():
-        futures.append(pool.apply_async(create_jvmdoc, args=(command, gendir)))
+    if jobs:
+      with contextlib.closing(
+            multiprocessing.Pool(processes=min(len(jobs), multiprocessing.cpu_count()))) as pool:
+        # map would be a preferable api here but fails after the 1st batch with an internal:
+        # ...
+        #  File "...src/python/twitter/pants/tasks/jar_create.py", line 170, in javadocjar
+        #      pool.map(createjar, jobs)
+        #    File "...lib/python2.6/multiprocessing/pool.py", line 148, in map
+        #      return self.map_async(func, iterable, chunksize).get()
+        #    File "...lib/python2.6/multiprocessing/pool.py", line 422, in get
+        #      raise self._value
+        #  NameError: global name 'self' is not defined
+        futures = []
+        for gendir, (target, command) in jobs.items():
+          futures.append(pool.apply_async(create_jvmdoc, args=(command, gendir)))
 
-      for future in futures:
-        result, gendir = future.get()
-        target, command = jobs[gendir]
-        if result != 0:
-          message = 'Failed to process %s for %s [%d]: %s' % (
-                    self._jvmdoc.tool_name, target, result, command)
-          if self.ignore_failure:
-            self.context.log.warn(message)
-          else:
-            raise TaskError(message)
+        for future in futures:
+          result, gendir = future.get()
+          target, command = jobs[gendir]
+          if result != 0:
+            message = 'Failed to process %s for %s [%d]: %s' % (
+                      self._jvmdoc.tool_name, target, result, command)
+            if self.ignore_failure:
+              self.context.log.warn(message)
+            else:
+              raise TaskError(message)
 
   def _gendir(self, target):
     return os.path.join(self._output_dir, target.id)
