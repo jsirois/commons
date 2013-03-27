@@ -51,25 +51,25 @@ if WITH_APP:
       default='zookeeper.local.twitter.com:2181',
       metavar='HOST:PORT[,HOST:PORT,...]',
       dest='twitter_common_zookeeper_ensemble',
-      help='Comma-separated list of host:port of ZooKeeper servers')
+      help='A comma-separated list of host:port of ZooKeeper servers.')
   app.add_option(
       '--zookeeper_timeout',
       type='float',
       default=15.0,
       dest='twitter_common_zookeeper_timeout',
-      help='default timeout (in seconds) for ZK operations')
+      help='The default timeout (in seconds) for ZK operations.')
   app.add_option(
       '--zookeeper_reconnects',
       type='int',
       default=0,
       dest='twitter_common_zookeeper_reconnects',
-      help='number permitted reconnections before failing zookeeper (0 = infinite)')
+      help='The number of permitted reconnections before failing zookeeper (0 = infinite).')
   app.add_option(
-      '--enable_zookeeper_debug_logging',
-      dest='twitter_common_zookeeper_debug',
-      default=False,
-      action='store_true',
-      help='whether to enable ZK debug logging to stderr')
+      '--zookeeper_log_level',
+      dest='twitter_common_zookeeper_log_level_override',
+      choices=('NONE', 'DEBUG','INFO','WARN','ERROR','FATAL'),
+      default='',
+      help='Override the default ZK logging level.')
 
   class ZookeeperLoggingSubsystem(app.Module):
     # Map the ZK debug log to the same level as stderr logging.
@@ -85,16 +85,22 @@ if WITH_APP:
       app.Module.__init__(self, __name__, description='Zookeeper logging subsystem.')
 
     def setup_function(self):
-      if app.get_options().twitter_common_zookeeper_debug:
-        zookeeper.set_debug_level(zookeeper.LOG_LEVEL_DEBUG)
-      else:
-        self._set_default_log_level()
+      log_level_override = app.get_options().twitter_common_zookeeper_log_level_override
+      self._set_log_level(log_level_override=log_level_override)
 
-    def _set_default_log_level(self):
-      log_level = LogOptions.stderr_log_level()
+    def _set_log_level(self, log_level_override=''):
+      stderr_log_level = LogOptions.stderr_log_level()
+      # set default level to FATAL.
+      # we do this here (instead of add_option) to distinguish when an override is set.
+      if stderr_log_level == log.INFO and log_level_override != 'INFO':
+        stderr_log_level = log.FATAL
+      # default to using stderr logging level, setting override if applicable
+      log_level = getattr(log, log_level_override, stderr_log_level)
+      # set the logger
       zk_log_level = ZookeeperLoggingSubsystem._ZK_LOG_LEVEL_MAP.get(
           log_level, zookeeper.LOG_LEVEL_ERROR)
       zookeeper.set_debug_level(zk_log_level)
+
 
   app.register_module(ZookeeperLoggingSubsystem())
 
