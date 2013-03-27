@@ -17,6 +17,7 @@
 from Queue import Queue, Empty
 from threading import Thread
 
+from twitter.common.exceptions import ExceptionalThread
 from twitter.common.lang import Compatibility
 from twitter.common.quantity import Amount, Time
 
@@ -24,13 +25,18 @@ from twitter.common.quantity import Amount, Time
 class Timeout(Exception):
   pass
 
-def deadline(closure, timeout=Amount(150, Time.MILLISECONDS)):
+def deadline(closure, timeout=Amount(150, Time.MILLISECONDS), daemon=False, propagate=False):
   """Run a closure with a timeout, raising an exception if the timeout is exceeded.
 
-    Args:
-      closure - function to be run (e.g. functools.partial, or lambda)
-    Keyword args:
-      timeout - in seconds, or Amount of Time, [default: Amount(150, Time.MILLISECONDS]
+    args:
+      closure   - function to be run (e.g. functools.partial, or lambda)
+    kwargs:
+      timeout   - in seconds, or Amount of Time, [default: Amount(150, Time.MILLISECONDS]
+      daemon    - booleanish indicating whether to daemonize the thread used to run the closure
+                  (otherwise, a timed-out closure can potentially exist beyond the life of the
+                  calling thread) [default: False]
+      propagate - booleanish indicating whether to re-raise exceptions thrown by the closure
+                  [default: False]
   """
   if isinstance(timeout, Compatibility.numeric):
     pass
@@ -40,10 +46,23 @@ def deadline(closure, timeout=Amount(150, Time.MILLISECONDS)):
     raise ValueError('timeout must be either numeric or Amount of Time.')
   q = Queue(maxsize=1)
   class AnonymousThread(Thread):
+    def __init__(self):
+      super(AnonymousThread, self).__init__()
+      self.daemon = bool(daemon)
     def run(self):
-      q.put(closure())
+      try:
+        result = closure()
+      except Exception as result:
+        if not propagate:
+          # conform to standard behaviour of an exception being raised inside a Thread
+          raise result
+      q.put(result)
   AnonymousThread().start()
   try:
-    return q.get(timeout=timeout)
+    result = q.get(timeout=timeout)
   except Empty:
     raise Timeout("Timeout exceeded!")
+  else:
+    if propagate and isinstance(result, Exception):
+      raise result
+    return result
