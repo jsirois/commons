@@ -21,7 +21,9 @@ class OinkBundleCreate(Task):
   def execute(self, targets):
     all_jars = []
     def _visitor(target):
-      all_jars.append(self.context.products.get('jars').get(target))
+      jar_products = self.context.products.get('jars').get(target)
+      if jar_products is not None:
+        all_jars.append(jar_products)
 
     for oink_query in filter(self.is_oink_query, targets):
       oink_query.walk(_visitor, is_java)
