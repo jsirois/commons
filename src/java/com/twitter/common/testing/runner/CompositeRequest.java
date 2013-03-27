@@ -2,9 +2,12 @@ package com.twitter.common.testing.runner;
 
 import java.util.List;
 
+import org.junit.internal.AssumptionViolatedException;
+import org.junit.internal.runners.model.EachTestNotifier;
 import org.junit.runner.Description;
 import org.junit.runner.Request;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runner.notification.StoppedByUserException;
 import org.junit.runners.ParentRunner;
 import org.junit.runners.model.InitializationError;
 
@@ -41,7 +44,17 @@ public class CompositeRequest extends ParentRunner<Request> {
 
   @Override
   protected void runChild(Request child, RunNotifier notifier) {
-    child.getRunner().run(notifier);
+    // This mirrors the implementation of ParentRunner.run
+    EachTestNotifier eachNotifier = new EachTestNotifier(notifier, describeChild(child));
+    try {
+      child.getRunner().run(notifier);
+    } catch (AssumptionViolatedException e) {
+      eachNotifier.fireTestIgnored();
+    } catch (StoppedByUserException e) {
+      throw e;
+    } catch (Throwable e) {
+      eachNotifier.addFailure(e);
+    }
   }
 
 }

@@ -32,7 +32,7 @@ public class ConcurrentCompositeRequest extends CompositeRequest {
           Runnable runnable = new Runnable() {
             @Override
             public void run() {
-              child.getRunner().run(notifier);
+              runChild(child, notifier);
             }
           };
           if (child instanceof AnnotatedClassRequest) {
