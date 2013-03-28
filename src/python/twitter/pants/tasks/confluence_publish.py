@@ -29,8 +29,8 @@ class ConfluencePublish(Task):
 
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
-    option_group.add_option(mkflag("url"), dest="confluence_publish_url",
-                            help="The url of the confluence site to post to.")
+    cls.url_option = option_group.add_option(mkflag("url"), dest="confluence_publish_url",
+                                             help="The url of the confluence site to post to.")
 
     option_group.add_option(mkflag("force"), mkflag("force", negate=True),
                             dest = "confluence_publish_force",
@@ -52,8 +52,13 @@ class ConfluencePublish(Task):
 
     self.url = (
       context.options.confluence_publish_url
-      or context.config.get('confluence-publish', 'url', default='http://localhost')
+      or context.config.get('confluence-publish', 'url')
     )
+
+    if not self.url:
+      raise TaskError("Unable to proceed publishing to confluence. Please configure a 'url' under "
+                      "the 'confluence-publish' heading in pants.ini or using the %s command line "
+                      "option." % self.url_option)
 
     self.force = context.options.confluence_publish_force
     self.open = context.options.confluence_publish_open
