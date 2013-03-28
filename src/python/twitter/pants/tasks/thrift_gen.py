@@ -14,11 +14,12 @@
 # limitations under the License.
 # ==================================================================================================
 
+import errno
 import os
 import re
 import subprocess
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from twitter.common import log
 from twitter.common.collections import OrderedSet
@@ -35,11 +36,30 @@ from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.thrift_util import calculate_compile_roots, select_thrift_binary
 
+
+def _copytree(from_base, to_base):
+  def abort(error):
+    raise TaskError('Failed to copy from %s to %s: %s' % (from_base, to_base, error))
+
+  # TODO(John Sirois): Consider adding a unit test and lifting this to common/dirutils or similar
+  def safe_link(src, dst):
+    try:
+      os.link(src, dst)
+    except OSError as e:
+      if e.errno != errno.EEXIST:
+        raise e
+
+  for dirpath, dirnames, filenames in os.walk(from_base, topdown=True, onerror=abort):
+    to_path = os.path.join(to_base, os.path.relpath(dirpath, from_base))
+    for dirname in dirnames:
+      safe_mkdir(os.path.join(to_path, dirname))
+    for filename in filenames:
+      safe_link(os.path.join(dirpath, filename), os.path.join(to_path, filename))
+
+
 class ThriftGen(CodeGen):
-  class GenInfo(object):
-    def __init__(self, gen, deps):
-      self.gen = gen
-      self.deps = deps
+  GenInfo = namedtuple('GenInfo', ['gen', 'deps'])
+  ThriftSession = namedtuple('ThriftSession', ['outdir', 'cmd', 'process'])
 
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
@@ -57,10 +77,13 @@ class ThriftGen(CodeGen):
   def __init__(self, context):
     CodeGen.__init__(self, context)
 
-    self.output_dir = (
+    output_dir = (
       context.options.thrift_gen_create_outdir
       or context.config.get('thrift-gen', 'workdir')
     )
+    self.combined_dir = os.path.join(output_dir, 'combined')
+    self.session_dir = os.path.join(output_dir, 'sessions')
+
     self.strict = context.config.getbool('thrift-gen', 'strict')
     self.verbose = context.config.getbool('thrift-gen', 'verbose')
 
@@ -73,7 +96,7 @@ class ThriftGen(CodeGen):
         deps[category] = dependencies
         for depspec in depspecs:
           dependencies.update(context.resolve(depspec))
-      return ThriftGen.GenInfo(gen, deps)
+      return self.GenInfo(gen, deps)
 
     self.gen_java = create_geninfo('java')
     self.gen_python = create_geninfo('python')
@@ -117,13 +140,10 @@ class ThriftGen(CodeGen):
     else:
       raise TaskError('Unrecognized thrift gen lang: %s' % lang)
 
-    safe_mkdir(self.output_dir)
-
     args = [
       thrift_binary,
       '--gen', gen,
       '-recurse',
-      '-o', self.output_dir,
     ]
 
     if self.strict:
@@ -133,16 +153,29 @@ class ThriftGen(CodeGen):
     for base in bases:
       args.extend(('-I', base))
 
-    processes = []
+    sessions = []
     for source in sources:
+      outdir = os.path.join(self.session_dir, '.'.join(os.path.dirname(source).split(os.path.sep)))
+      safe_mkdir(outdir)
+
       cmd = args[:]
+      cmd.extend(('-o', outdir))
       cmd.append(source)
       log.debug('Executing: %s' % ' '.join(cmd))
-      processes.append(subprocess.Popen(cmd))
+      sessions.append(self.ThriftSession(outdir, cmd, subprocess.Popen(cmd)))
 
-    # TODO(John Sirois): Use map sources to targets and invalidate less thrift targets on failure.
-    if sum(p.wait() for p in processes) != 0:
-      raise TaskError
+    result = 0
+    for session in sessions:
+      if result != 0:
+        session.process.kill()
+      else:
+        result = session.process.wait()
+        if result != 0:
+          self.context.log.error('Failed: %s' % ' '.join(session.cmd))
+        else:
+          _copytree(session.outdir, self.combined_dir)
+    if result != 0:
+      raise TaskError('thrift compile failed with exit code %d' % result)
 
   def createtarget(self, lang, gentarget, dependees):
     if lang == 'java':
@@ -154,7 +187,7 @@ class ThriftGen(CodeGen):
 
   def _create_java_target(self, target, dependees):
     def create_target(files, deps):
-       return self.context.add_new_target(os.path.join(self.output_dir, 'gen-java'),
+       return self.context.add_new_target(os.path.join(self.combined_dir, 'gen-java'),
                                           JavaLibrary,
                                           name=target.id,
                                           provides=target.provides,
@@ -164,7 +197,7 @@ class ThriftGen(CodeGen):
 
   def _create_python_target(self, target, dependees):
     def create_target(files, deps):
-     return self.context.add_new_target(os.path.join(self.output_dir, 'gen-py'),
+     return self.context.add_new_target(os.path.join(self.combined_dir, 'gen-py'),
                                         PythonLibrary,
                                         name=target.id,
                                         sources=files,
