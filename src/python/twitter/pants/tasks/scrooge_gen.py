@@ -18,15 +18,15 @@ from __future__ import print_function
 
 import os
 import re
+import tempfile
 
 from collections import defaultdict
 
 from twitter.common.collections import OrderedSet
-from twitter.common.contextutil import temporary_file
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot
-from twitter.pants.binary_util import profile_classpath, runjava_indivisible
+from twitter.pants.binary_util import profile_classpath, runjava_indivisible, JvmCommandLine
 from twitter.pants.targets import (
   JavaLibrary,
   JavaThriftLibrary,
@@ -58,36 +58,19 @@ class ScroogeGen(NailgunTask):
     option_group.add_option(mkflag("outdir"), dest="scrooge_gen_create_outdir",
                             help="Emit generated code in to this directory.")
 
-  def __init__(self, context):
+  def __init__(self, context, strict=False, verbose=True):
     NailgunTask.__init__(self, context)
+    self.strict = strict
+    self.verbose = verbose
 
-    self.compilers = defaultdict(lambda: defaultdict(dict))
+  def _outdir(self, target):
+    compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+    fallback = os.path.join(self.context.config.getdefault('pants_workdir'), target.compiler)
+    outdir = (self.context.options.scrooge_gen_create_outdir
+              or self.context.config.get(compiler_config, 'workdir', default=fallback))
 
-    for compiler,lang2targets in compiler_to_lang_to_tgts(context.targets(is_gentarget)).items():
-      for lang, targets in lang2targets.items():
-        compiler_config = INFO_FOR_COMPILER[compiler]['config']
-        compiler_lang_info = self.compilers[compiler][lang]
-        compiler_lang_info['classpath'] = profile_classpath(compiler_config)
-        compiler_lang_info['outdir'] = (
-          context.options.scrooge_gen_create_outdir
-          or context.config.get(compiler_config, 'workdir')
-          )
-        compiler_lang_info['outdir'] = os.path.relpath(compiler_lang_info['outdir'])
-        compiler_lang_info['strict']  = context.config.getbool(compiler_config, 'strict')
-        compiler_lang_info['verbose'] = context.config.getbool(compiler_config, 'verbose')
-
-        def create_geninfo(key):
-          gen_info = context.config.getdict(compiler_config, key)
-          gen = gen_info['gen']
-          deps = dict()
-          for category, depspecs in gen_info['deps'].items():
-            dependencies = OrderedSet()
-            deps[category] = dependencies
-            for depspec in depspecs:
-              dependencies.update(context.resolve(depspec))
-          return self.GenInfo(gen, deps)
-
-        compiler_lang_info['gen'] = create_geninfo(lang)
+    outdir = os.path.relpath(outdir)
+    return outdir
 
   def execute(self, targets):
     gentargets_by_dependee = self.context.dependants(
@@ -105,61 +88,84 @@ class ScroogeGen(NailgunTask):
     # actually doing the work of generating)
     # AWESOME-1563
 
-    for compiler, lang_to_tgts in compiler_to_lang_to_tgts(filter(is_gentarget, targets)).items():
-      for lang, compiler_lang_targets in lang_to_tgts.items():
-        bases, sources = calculate_compile_sources(compiler_lang_targets, is_gentarget)
-        compiler_lang_info = self.compilers[compiler][lang]
-        opts = []
+    cmdlines = []
+    gentargets = filter(is_gentarget, targets)
 
-        if not compiler_lang_info['strict']:
-          opts.append('--disable-strict')
-        if compiler_lang_info['verbose']:
-          opts.append('--verbose')
+    for target in gentargets:
+      opts = []
 
-        # TODO(Robert Nielsen): we need both of the following configurable in the BUILD file
-        opts.append('--finagle')
-        opts.append('--ostrich')
+      # -- from target
+      language = target.language
+      opts.append(('--language', language))
 
-        safe_mkdir(compiler_lang_info['outdir'])
-        opts.extend(('--language', lang,
-                     '--dest', compiler_lang_info['outdir']))
+      if hasattr(target, 'finagle'):
+        opts.append(('--finagle',))
+      if hasattr(target, 'ostrich'):
+        opts.append(('--ostrich',))
+      if hasattr(target, 'namespace_map'):
+        for lhs, rhs in namespace_map([target]).items():
+          opts.append(('--namespace-map', '%s=%s' % (lhs, rhs)))
 
-        for base in bases:
-          opts.extend(('--import-path', base))
+      bases, sources = calculate_compile_sources([target], is_gentarget)
 
-        for lhs, rhs in namespace_map(compiler_lang_targets).items():
-          opts.extend(('--namespace-map', '%s=%s' % (lhs, rhs)))
+      for base in bases:
+        opts.append(('--import-path', base))
 
-        with temporary_file() as gen_file_map:
-          gen_file_map.close()
-          opts.extend(('--gen-file-map', gen_file_map.name))
+      # -- from compiler_config
+      compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+      outdir = self._outdir(target)
+      opts.append(('--dest', '%s' % outdir))
+      safe_mkdir(outdir)
 
-          returncode = runjava_indivisible(main=INFO_FOR_COMPILER[compiler]['main'],
-                                           classpath=compiler_lang_info['classpath'],
-                                           opts=opts, args=sources)
-          if 0 != returncode:
-            raise TaskError("java %s ... exited non-zero (%i)" % \
-                              (INFO_FOR_COMPILER[compiler]['main'], returncode))
+      strict = self.context.config.getbool(compiler_config, 'strict', default=self.strict)
+      if not strict:
+        opts.append(('--disable-strict',))
 
-          gen_files_for_source = self.parse_gen_file_map(gen_file_map.name,
-                                                         compiler_lang_info['outdir'])
+      verbose = self.context.config.getbool(compiler_config, 'verbose', default=self.verbose)
+      if verbose:
+        opts.append(('--verbose',))
 
-        langtarget_by_gentarget = {}
-        for target in compiler_lang_targets:
-          dependees = dependees_by_gentarget.get(target, [])
-          langtarget_by_gentarget[target] = self.createtarget(target, dependees,
-                                                              gen_files_for_source)
+      gen_file_map_fd, gen_file_map_path = tempfile.mkstemp()
+      os.close(gen_file_map_fd)
+      opts.append(('--gen-file-map', gen_file_map_path))
 
-        genmap = self.context.products.get(lang)
-        # synmap is a reverse map
-        # such as a map of java library target generated from java thrift target
-        synmap = self.context.products.get(lang + ':rev')
-        for gentarget, langtarget in langtarget_by_gentarget.items():
-          synmap.add(langtarget, get_buildroot(), [gentarget])
-          genmap.add(gentarget, get_buildroot(), [langtarget])
-          for dep in gentarget.internal_dependencies:
-            if is_gentarget(dep):
-              langtarget.update_dependencies([langtarget_by_gentarget[dep]])
+      # -- for JvmCommandLine
+      classpath = profile_classpath(compiler_config)
+      main = INFO_FOR_COMPILER[target.compiler]['main']
+      args = sources
+
+      cmdline = JvmCommandLine(classpath=classpath,
+                               main=main,
+                               opts=tuple(opts),
+                               args=args)
+      cmdlines.append(cmdline)
+
+    # here we could merge the cmdlines that are equivalent (other than args/files)
+
+    for cmdline in cmdlines:
+      returncode = cmdline.call()
+
+      if 0 != returncode:
+        raise TaskError("java %s ... exited non-zero (%i)" % (main, returncode))
+
+      gen_files_for_source = self.parse_gen_file_map(gen_file_map_path, outdir)
+      os.remove(gen_file_map_path)
+
+      langtarget_by_gentarget = {}
+      for target in gentargets:
+        dependees = dependees_by_gentarget.get(target, [])
+        langtarget_by_gentarget[target] = self.createtarget(target, dependees, gen_files_for_source)
+
+      genmap = self.context.products.get(language)
+      # synmap is a reverse map
+      # such as a map of java library target generated from java thrift target
+      synmap = self.context.products.get(language + ':rev')
+      for gentarget, langtarget in langtarget_by_gentarget.items():
+        synmap.add(langtarget, get_buildroot(), [gentarget])
+        genmap.add(gentarget, get_buildroot(), [langtarget])
+        for dep in gentarget.internal_dependencies:
+          if is_gentarget(dep):
+            langtarget.update_dependencies([langtarget_by_gentarget[dep]])
 
   def createtarget(self, gentarget, dependees, gen_files_for_source):
     assert is_gentarget(gentarget)
@@ -171,9 +177,21 @@ class ScroogeGen(NailgunTask):
                                          provides=gentarget.provides,
                                          sources=files,
                                          dependencies=deps)
-    compiler_lang_info = self.compilers[gentarget.compiler][gentarget.language]
+
+    def create_geninfo(key):
+      compiler_config = INFO_FOR_COMPILER[gentarget.compiler]['config']
+      gen_info = self.context.config.getdict(compiler_config, key)
+      gen = gen_info['gen']
+      deps = dict()
+      for category, depspecs in gen_info['deps'].items():
+        dependencies = OrderedSet()
+        deps[category] = dependencies
+        for depspec in depspecs:
+          dependencies.update(self.context.resolve(depspec))
+      return self.GenInfo(gen, deps)
+
     return self._inject_target(gentarget, dependees,
-                               compiler_lang_info['gen'],
+                               create_geninfo(gentarget.language),
                                gen_files_for_source,
                                create_target)
 
@@ -188,8 +206,7 @@ class ScroogeGen(NailgunTask):
       files.extend(genfiles)
     deps = OrderedSet(geninfo.deps['service' if has_service else 'structs'])
     deps.update(target.dependencies)
-    compiler_lang_info = self.compilers[target.compiler][target.language]
-    outdir = compiler_lang_info['outdir']
+    outdir = self._outdir(target)
     target_type = INFO_FOR_LANG[target.language]['target_type']
     tgt = create_target(files, deps, outdir, target_type)
     tgt.id = target.id
@@ -245,13 +262,6 @@ def is_gentarget(target):
 
   if result and target.language not in INFO_FOR_COMPILER[target.compiler]['langs']:
     raise TaskError("%s can not generate %s" % (target.compiler, target.language))
-  return result
-
-
-def compiler_to_lang_to_tgts(targets):
-  result = defaultdict(lambda: defaultdict(set))
-  for target in targets:
-    result[target.compiler][target.language].add(target)
   return result
 
 

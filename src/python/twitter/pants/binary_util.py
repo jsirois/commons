@@ -18,6 +18,7 @@ from __future__ import division, print_function
 
 import os
 import errno
+import itertools
 import posixpath
 import subprocess
 
@@ -150,6 +151,58 @@ def safe_classpath(logger=None):
     logger('Scrubbing CLASSPATH=%s' % classpath)
   with environment_as(CLASSPATH=None):
     yield
+
+
+class JvmCommandLine(object):
+  def __init__(self, jvmargs=None, classpath=None, main=None, opts=None, args=None):
+    object.__init__(self)
+    self.jvmargs = jvmargs
+    self.classpath = classpath
+    self.main = main
+    self.opts = opts
+    self.args = args
+
+  def __str__(self):
+    cmd = self.callable_cmd()
+    str = ' '.join(cmd)
+    del cmd
+    return str
+
+  def call(self, indivisible=True, **kwargs):
+    returncode = 0
+    if indivisible:
+      cmd_with_args = self.callable_cmd()
+      with safe_classpath():
+        returncode = _subprocess_call(cmd_with_args, **kwargs)
+    else:
+      cmd = self.callable_cmd(use_args=False)
+      with safe_classpath():
+        returncode = _subprocess_call_with_args(cmd, self.args, **kwargs)
+    return returncode
+
+  def callable_cmd(self, use_args=True):
+    """Returns a list ready to be used by subprocess.call() or subprocess.Popen()
+    opts= can be either a list of strings or (better) a list of tuples
+    args= is a list of paths"""
+
+    args = self.args if use_args else None
+    cmd = ['java']
+    if self.jvmargs:
+      cmd.extend(self.jvmargs)
+    if self.classpath:
+      cmd.extend(('-cp' if self.main else '-jar', os.pathsep.join(self.classpath)))
+    if self.main:
+      cmd.append(self.main)
+    if self.opts:
+      # opts can be [ opt1, val1, opt2, val2, opt3, opt4 ]
+      # or
+      # opts can be [(opt1, val1), (opt2, val2), (opt3,), (opt4,)]
+      # the latter is prefered because it adds more useful structure
+      # itertools.chain flattens the latter into the former
+      cmd.extend(itertools.chain(*self.opts))
+    if self.args and use_args:
+      cmd.extend(self.args)
+    return cmd
 
 
 def _runjava_cmd(jvmargs=None, classpath=None, main=None, opts=None, args=None):
