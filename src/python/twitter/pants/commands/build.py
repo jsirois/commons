@@ -22,7 +22,7 @@ from . import Command
 
 from twitter.common.collections import OrderedSet
 from twitter.pants import is_concrete, is_python
-from twitter.pants.base import Address, Target
+from twitter.pants.base import Address, Config, Target
 from twitter.pants.targets import InternalTarget
 from twitter.pants.python import PythonBuilder
 
@@ -35,7 +35,8 @@ class Build(Command):
     parser.set_usage("\n"
                      "  %prog build (options) [spec] (build args)\n"
                      "  %prog build (options) [spec]... -- (build args)")
-    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int", default=1,
+    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int",
+                      default=Config.load().getdefault('connection_timeout'),
                       help="Number of seconds to wait for http connections.")
     parser.disable_interspersed_args()
     parser.epilog = """Builds the specified Python target(s). Use ./pants goal for JVM and other targets."""

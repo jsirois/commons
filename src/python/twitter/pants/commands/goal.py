@@ -161,7 +161,8 @@ class Goal(Command):
   __command__ = 'goal'
 
   GLOBAL_OPTIONS = [
-    Option("-t", "--timeout", dest="conn_timeout", type='int', default=1,
+    Option("-t", "--timeout", dest="conn_timeout", type='int',
+           default=Config.load().getdefault('connection_timeout'),
            help="Number of seconds to wait for http connections."),
     Option("-x", "--time", action="store_true", dest="time", default=False,
            help="Times goal phases and outputs a report."),

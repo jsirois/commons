@@ -26,7 +26,7 @@ from . import Command
 from twitter.common.python.pex import PEX
 
 from twitter.pants import is_concrete
-from twitter.pants.base import Address, Target
+from twitter.pants.base import Address, Config, Target
 from twitter.pants.targets import PythonBinary
 from twitter.pants.python.python_chroot import PythonChroot
 from twitter.pants.python.resolver import PythonResolver
@@ -40,7 +40,8 @@ class Py(Command):
     parser.set_usage("\n"
                      "  %prog py (options) [spec] args\n")
     parser.disable_interspersed_args()
-    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int", default=1,
+    parser.add_option("-t", "--timeout", dest="conn_timeout", type="int",
+                      default=Config.load().getdefault('connection_timeout'),
                       help="Number of seconds to wait for http connections.")
     parser.add_option("--pex", dest="pex", default=False, action='store_true',
                       help="dump a .pex of this chroot")
