@@ -106,19 +106,22 @@ class MarkdownToHtml(Task):
 
     self.open = context.options.markdown_to_html_open
 
+    pants_workdir = context.config.getdefault('pants_workdir')
     self.outdir = (
       context.options.markdown_to_html_outdir
-      or context.config.get('markdown-to-html', 'workdir')
+      or context.config.get('markdown-to-html',
+                            'workdir',
+                            default=os.path.join(pants_workdir, 'markdown'))
     )
 
     self.extensions = set(
       context.options.markdown_to_html_extensions
-      or context.config.getlist('markdown-to-html', 'extensions', ['.md'])
+      or context.config.getlist('markdown-to-html', 'extensions', default=['.md', '.markdown'])
     )
 
     self.standalone = context.options.markdown_to_html_standalone
 
-    self.code_style = context.config.get('markdown-to-html', 'code-style')
+    self.code_style = context.config.get('markdown-to-html', 'code-style', default='friendly')
     if hasattr(context.options, 'markdown_to_html_code_style'):
       if context.options.markdown_to_html_code_style:
         self.code_style = context.options.markdown_to_html_code_style

@@ -52,7 +52,7 @@ class ConfluencePublish(Task):
 
     self.url = (
       context.options.confluence_publish_url
-      or context.config.get('confluence-publish', 'url')
+      or context.config.get('confluence-publish', 'url', default='http://localhost')
     )
 
     self.force = context.options.confluence_publish_force
