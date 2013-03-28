@@ -45,9 +45,10 @@ class PEX(object):
     cls.debug('%s => %.3fms' % (prefix, 1000.0 * (end_time - start_time)))
 
   def __init__(self, pex=sys.argv[0]):
-    self._pex = PythonDirectoryWrapper.get(pex)
-    if not self._pex:
-      raise self.NotFound('Could not find PEX at %s!' % pex)
+    try:
+      self._pex = PythonDirectoryWrapper.get(pex)
+    except PythonDirectoryWrapper.Error as e:
+      raise self.NotFound('Could not open PEX at %s: %s!' % (pex, e))
     self._pex_info = PexInfo.from_pex(self._pex)
     self._env = PEXEnvironment(self._pex.path(), self._pex_info)
 
