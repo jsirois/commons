@@ -21,11 +21,15 @@ import java.util.concurrent.TimeUnit
 
 import com.google.common.base.Supplier
 
+import org.junit.runner.RunWith
+
 import org.specs.mock.Mockito
+import org.specs.runner.JUnitSuiteRunner
 import org.specs.SpecificationWithJUnit
 
 import com.twitter.ostrich.stats.{Stats => OstrichStats, Distribution}
 
+@RunWith(classOf[JUnitSuiteRunner])
 class OstrichStatsAdapterSpec extends SpecificationWithJUnit with Mockito {
   "An OstrichStatsAdapter" should {
 

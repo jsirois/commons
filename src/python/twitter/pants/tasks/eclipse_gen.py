@@ -26,10 +26,7 @@ from twitter.pants.base.generator import TemplateData, Generator
 from twitter.pants.tasks.ide_gen import IdeGen
 
 
-__author__ = 'John Sirois'
-
-
-_TEMPLATE_BASEDIR = os.path.join('eclipse', 'templates')
+_TEMPLATE_BASEDIR = os.path.join('templates', 'eclipse')
 
 
 _VERSIONS = {
@@ -120,7 +117,6 @@ class EclipseGen(IdeGen):
         lib_path = source_set.path if source_set.path.endswith('.egg') else '%s/' % source_set.path
         pythonpaths.append(create_source_template(base_path(source_set), includes=[lib_path]))
 
-    source_bases_list = [{'path': path, 'id': id} for (path, id) in source_bases.items()]
     configured_project = TemplateData(
       name=self.project_name,
       java=TemplateData(
@@ -129,7 +125,7 @@ class EclipseGen(IdeGen):
       ),
       has_python=project.has_python,
       has_scala=project.has_scala and not project.skip_scala,
-      source_bases=source_bases_list,
+      source_bases=source_bases.items(),
       pythonpaths=pythonpaths,
       debug_port=project.debug_port,
     )
@@ -147,10 +143,7 @@ class EclipseGen(IdeGen):
       for classpath_entry in classpath_entries:
         jar = classpath_entry.jar
         source_jar = classpath_entry.source_jar
-        libs.append(TemplateData(
-          jar=os.path.relpath(jar, self.cwd),
-          source_jar=os.path.relpath(source_jar, self.cwd) if source_jar else None
-        ))
+        libs.append((jar, source_jar if source_jar else None))
     add_jarlibs(project.internal_jars)
     add_jarlibs(project.external_jars)
 
@@ -159,6 +152,8 @@ class EclipseGen(IdeGen):
       has_tests=project.has_tests,
       libs=libs,
       has_scala=project.has_scala,
+
+      # Eclipse insists the outdir be a relative path unlike other paths
       outdir=os.path.relpath(outdir, get_buildroot()),
     )
 
@@ -174,14 +169,14 @@ class EclipseGen(IdeGen):
 
     for resource in _SETTINGS:
       with safe_open(os.path.join(self.cwd, '.settings', resource), 'w') as prefs:
-        prefs.write(pkgutil.get_data(__name__, os.path.join('eclipse', 'files', resource)))
+        prefs.write(pkgutil.get_data(__name__, os.path.join('files', 'eclipse', resource)))
 
     factorypath = TemplateData(
       project_name=self.project_name,
 
       # The easiest way to make sure eclipse sees all annotation processors is to put all libs on
       # the apt factorypath - this does not seem to hurt eclipse performance in any noticeable way.
-      jarpaths=["('%s', %s)" % (lib.jar, "'%s'" % lib.source_jar if lib.source_jar else 'None') for lib in libs]
+      jarpaths=libs
     )
     apply_template(self.apt_filename, self.apt_template, factorypath =factorypath)
 

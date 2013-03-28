@@ -118,13 +118,16 @@ class IdeGen(JvmBinaryTask):
     else:
       self.java_jdk = '1.%d' % self.java_language_level
 
-    self.work_dir = (
+    self.work_dir = os.path.abspath(
       context.options.ide_gen_project_dir
       or os.path.join(
         context.config.get('ide', 'workdir'), self.__class__.__name__, self.project_name
       )
     )
-    self.cwd = context.options.ide_gen_project_cwd or self.work_dir
+    self.cwd = (
+      os.path.abspath(context.options.ide_gen_project_cwd) if context.options.ide_gen_project_cwd
+      else self.work_dir
+    )
 
     self.intransitive = context.options.ide_gen_intransitive
 
