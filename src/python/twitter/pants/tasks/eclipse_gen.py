@@ -141,9 +141,7 @@ class EclipseGen(IdeGen):
     libs = []
     def add_jarlibs(classpath_entries):
       for classpath_entry in classpath_entries:
-        jar = classpath_entry.jar
-        source_jar = classpath_entry.source_jar
-        libs.append((jar, source_jar if source_jar else None))
+        libs.append((classpath_entry.jar, classpath_entry.source_jar))
     add_jarlibs(project.internal_jars)
     add_jarlibs(project.external_jars)
 
