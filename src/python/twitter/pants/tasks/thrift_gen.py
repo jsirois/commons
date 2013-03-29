@@ -155,7 +155,7 @@ class ThriftGen(CodeGen):
 
     sessions = []
     for source in sources:
-      outdir = os.path.join(self.session_dir, '.'.join(os.path.dirname(source).split(os.path.sep)))
+      outdir = os.path.join(self.session_dir, '.'.join(source.split(os.path.sep)))
       safe_mkdir(outdir)
 
       cmd = args[:]
