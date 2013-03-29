@@ -156,11 +156,14 @@ def safe_classpath(logger=None):
 class JvmCommandLine(object):
   def __init__(self, jvmargs=None, classpath=None, main=None, opts=None, args=None):
     object.__init__(self)
-    self.jvmargs = jvmargs
-    self.classpath = classpath
+
+    tuplize = lambda x: tuple(x) if x else None
+
+    self.jvmargs = tuplize(jvmargs)
+    self.classpath = tuplize(classpath)
     self.main = main
-    self.opts = opts
-    self.args = args
+    self.opts = tuplize(opts)
+    self.args = tuplize(args)
 
   def __str__(self):
     cmd = self.callable_cmd()

@@ -72,6 +72,18 @@ class ScroogeGen(NailgunTask):
     outdir = os.path.relpath(outdir)
     return outdir
 
+  def _verbose(self, target):
+    compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+    return self.context.config.getbool(compiler_config, 'verbose', default=self.verbose)
+
+  def _strict(self, target):
+    compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+    return self.context.config.getbool(compiler_config, 'strict', default=self.strict)
+
+  def _classpth(self, target):
+    compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+    return profile_classpath(compiler_config)
+
   def execute(self, targets):
     gentargets_by_dependee = self.context.dependants(
       on_predicate=is_gentarget,
@@ -88,7 +100,7 @@ class ScroogeGen(NailgunTask):
     # actually doing the work of generating)
     # AWESOME-1563
 
-    cmdlines = []
+    cmdlines = {}
     gentargets = filter(is_gentarget, targets)
 
     for target in gentargets:
@@ -111,18 +123,15 @@ class ScroogeGen(NailgunTask):
       for base in bases:
         opts.append(('--import-path', base))
 
-      # -- from compiler_config
-      compiler_config = INFO_FOR_COMPILER[target.compiler]['config']
+      # -- from target & compiler_config
       outdir = self._outdir(target)
       opts.append(('--dest', '%s' % outdir))
       safe_mkdir(outdir)
 
-      strict = self.context.config.getbool(compiler_config, 'strict', default=self.strict)
-      if not strict:
+      if not self._strict(target):
         opts.append(('--disable-strict',))
 
-      verbose = self.context.config.getbool(compiler_config, 'verbose', default=self.verbose)
-      if verbose:
+      if self._verbose(target):
         opts.append(('--verbose',))
 
       gen_file_map_fd, gen_file_map_path = tempfile.mkstemp()
@@ -130,26 +139,28 @@ class ScroogeGen(NailgunTask):
       opts.append(('--gen-file-map', gen_file_map_path))
 
       # -- for JvmCommandLine
-      classpath = profile_classpath(compiler_config)
+      classpath = self._classpth(target)
       main = INFO_FOR_COMPILER[target.compiler]['main']
       args = sources
 
       cmdline = JvmCommandLine(classpath=classpath,
                                main=main,
-                               opts=tuple(opts),
+                               opts=opts,
                                args=args)
-      cmdlines.append(cmdline)
+      cmdlines[cmdline] = gen_file_map_path
 
     # here we could merge the cmdlines that are equivalent (other than args/files)
 
-    for cmdline in cmdlines:
+    for cmdline in cmdlines.keys():
+      gen_file_map_path = cmdlines[cmdline]
       returncode = cmdline.call()
+
+      if 0 == returncode:
+        gen_files_for_source = self.parse_gen_file_map(gen_file_map_path, outdir)
+      os.remove(gen_file_map_path)
 
       if 0 != returncode:
         raise TaskError("java %s ... exited non-zero (%i)" % (main, returncode))
-
-      gen_files_for_source = self.parse_gen_file_map(gen_file_map_path, outdir)
-      os.remove(gen_file_map_path)
 
       langtarget_by_gentarget = {}
       for target in gentargets:
