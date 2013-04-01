@@ -172,7 +172,6 @@ class JvmCommandLine(object):
     return str
 
   def call(self, indivisible=True, **kwargs):
-    returncode = 0
     if indivisible:
       cmd_with_args = self.callable_cmd()
       with safe_classpath():
@@ -188,7 +187,6 @@ class JvmCommandLine(object):
     opts= can be either a list of strings or (better) a list of tuples
     args= is a list of paths"""
 
-    args = self.args if use_args else None
     cmd = ['java']
     if self.jvmargs:
       cmd.extend(self.jvmargs)
