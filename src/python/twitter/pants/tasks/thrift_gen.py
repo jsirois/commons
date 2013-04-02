@@ -25,7 +25,7 @@ from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
-from twitter.pants import is_jvm, is_python
+from twitter.pants import get_buildroot, is_jvm, is_python
 from twitter.pants.targets import (
   InternalTarget,
   JavaLibrary,
@@ -155,7 +155,12 @@ class ThriftGen(CodeGen):
 
     sessions = []
     for source in sources:
-      outdir = os.path.join(self.session_dir, '.'.join(source.split(os.path.sep)))
+      # Create a unique session dir for this thrift root.  Sources may be full paths but we only
+      # need the path relative to the build root to ensure uniqueness.
+      # TODO(John Sirois): file paths should be normalized early on and uniformly, fix the need to
+      # relpath here at all.
+      relsource = os.path.relpath(source, get_buildroot())
+      outdir = os.path.join(self.session_dir, '.'.join(relsource.split(os.path.sep)))
       safe_mkdir(outdir)
 
       cmd = args[:]
