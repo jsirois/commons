@@ -14,33 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-python_library(name='base-test',
-  sources=['build_root_test.py'],
+python_tests(name='fs',
+  sources=globs('*.py'),
   dependencies=[
-    pants("src/python/twitter/pants:pants-lib"),
-    pants("src/python/twitter/pants:pants-deps"),
-  ]
-)
-
-python_tests(name='utils',
-  sources=globs('test_*.py'),
-  dependencies = [
-    pants("src/python/twitter/pants:pants-lib"),
-    pants("src/python/twitter/pants:pants-deps"),
-  ]
-)
-
-python_test_suite(name = 'all',
-  dependencies = [
-    pants(':utils'),
-    pants('tests/python/twitter/pants/base'),
-    pants('tests/python/twitter/pants/buildtimestats'),
-    pants('tests/python/twitter/pants/commands'),
-    pants('tests/python/twitter/pants/fs'),
-    pants('tests/python/twitter/pants/java'),
-    pants('tests/python/twitter/pants/python:all'),
-    pants('tests/python/twitter/pants/scm'),
-    pants('tests/python/twitter/pants/targets'),
-    pants('tests/python/twitter/pants/tasks'),
+    pants('src/python/twitter/pants:pants-lib'),
   ]
 )

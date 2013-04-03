@@ -26,7 +26,7 @@ from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import is_concrete, Config
 from twitter.pants.base import ParseContext
-from twitter.pants.binary_util import safe_extract
+from twitter.pants.fs.archive import ZIP
 from twitter.pants.targets import JarDependency, JavaThriftLibrary, SourceRoot
 from twitter.pants.tasks import Task, TaskError
 
@@ -122,7 +122,7 @@ class Extract(Task):
 
   def _extract(self, jarpath):
     self.context.log.debug('Extracting idl jar to: %s' % self._EXTRACT_BASE)
-    safe_extract(jarpath, self._EXTRACT_BASE)
+    ZIP.extract(jarpath, self._EXTRACT_BASE)
     with open_zip(jarpath) as jar:
       sources = filter(lambda path: path.endswith('.thrift'), jar.namelist())
       self.context.log.debug('Found thrift IDL sources: %s' % sources)

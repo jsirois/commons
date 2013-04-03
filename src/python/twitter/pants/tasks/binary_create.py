@@ -22,7 +22,7 @@ from twitter.common.contextutil import temporary_dir
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot, get_version, is_internal
-from twitter.pants.binary_util import safe_extract
+from twitter.pants.fs.archive import ZIP
 from twitter.pants.java import open_jar, Manifest
 from twitter.pants.tasks.jvm_binary_task import JvmBinaryTask
 
@@ -103,7 +103,7 @@ class BinaryCreate(JvmBinaryTask):
     self.context.log.debug('  dumping %s' % jarpath)
 
     with temporary_dir() as tmpdir:
-      safe_extract(jarpath, tmpdir)
+      ZIP.extract(jarpath, tmpdir)
       for root, dirs, files in os.walk(tmpdir):
         for file in files:
           path = os.path.join(root, file)

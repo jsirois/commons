@@ -1,8 +1,9 @@
 import os
 
-from twitter.common.contextutil import open_tar
-from twitter.common.dirutil import safe_delete, safe_mkdir
+from twitter.common.dirutil import safe_mkdir
+
 from twitter.pants import get_buildroot, is_java
+from twitter.pants.fs.archive import TGZ
 from twitter.pants.targets.oink_query import OinkQuery
 from twitter.pants.tasks import Task
 
@@ -56,7 +57,5 @@ class OinkBundleCreate(Task):
         os.symlink(os.path.join(get_buildroot(), oink_query.target_base, source),
                    os.path.join(bundledir, source))
 
-      tarpath = os.path.join(self.outdir, '%s.tar.gz' % oink_query.name)
-      safe_delete(tarpath)
-      with open_tar(tarpath, 'w:gz', dereference=True) as tar:
-        tar.add(bundledir, '')
+      tarpath = TGZ.create(bundledir, self.outdir, oink_query.name)
+      self.context.log.info('created %s' % os.path.relpath(tarpath, get_buildroot()))

@@ -25,7 +25,7 @@ import subprocess
 from contextlib import closing, contextmanager
 
 from twitter.common import log
-from twitter.common.contextutil import environment_as, open_zip, temporary_dir, temporary_file
+from twitter.common.contextutil import environment_as, temporary_dir, temporary_file
 from twitter.common.dirutil import chmod_plus_x, safe_delete, safe_mkdir, safe_open, touch
 from twitter.common.lang import Compatibility
 
@@ -365,18 +365,3 @@ def open(*files):
       print('Sorry, open currently not supported for ' + osname)
     else:
       _OPENER_BY_OS[osname](files)
-
-
-def safe_extract(path, dest_dir):
-  """
-    OS X's python 2.6.1 has a bug in zipfile that makes it unzip directories as regular files.
-    This method should work on for python 2.6-3.x.
-  """
-
-  with open_zip(path) as zip:
-    for path in zip.namelist():
-      # While we're at it, we also perform this safety test.
-      if path.startswith('/') or path.startswith('..'):
-        raise ValueError('Jar file contains unsafe path: %s' % path)
-      if not path.endswith('/'):  # Ignore directories. extract() will create parent dirs as needed.
-        zip.extract(path, dest_dir)
