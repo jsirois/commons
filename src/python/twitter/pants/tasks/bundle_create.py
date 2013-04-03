@@ -36,8 +36,8 @@ class BundleCreate(JvmBinaryTask):
   def setup_parser(cls, option_group, args, mkflag):
     JvmBinaryTask.setup_parser(option_group, args, mkflag)
 
-    archive = mkflag("archive")
-    option_group.add_option(archive, dest="bundle_create_archive",
+    archive_flag = mkflag("archive")
+    option_group.add_option(archive_flag, dest="bundle_create_archive",
                             type="choice", choices=list(archive.TYPE_NAMES),
                             help="[%%default] Create an archive from the bundle. "
                                  "Choose from %s" % sorted(archive.TYPE_NAMES))
@@ -46,7 +46,7 @@ class BundleCreate(JvmBinaryTask):
                             dest="bundle_create_prefix", default=False,
                             action="callback", callback=mkflag.set_bool,
                             help="[%%default] Used in conjunction with %s this packs the archive "
-                                 "with its basename as the path prefix." % archive)
+                                 "with its basename as the path prefix." % archive_flag)
 
   def __init__(self, context):
     JvmBinaryTask.__init__(self, context)
