@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
+import org.apache.zookeeper.server.NIOServerCnxn;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.ZooKeeperServer.BasicDataTreeBuilder;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
@@ -50,14 +50,11 @@ public class ZooKeeperTestServer {
   public static final Amount<Integer, Time> DEFAULT_SESSION_TIMEOUT =
       Amount.of(100, Time.MILLISECONDS);
 
-  private static final int UNLIMITED_ZK_CONNECTIONS = -1;
-
   protected final ZooKeeperServer zooKeeperServer;
   private final ShutdownRegistry shutdownRegistry;
-  private NIOServerCnxnFactory connectionFactory;
+  private NIOServerCnxn.Factory connectionFactory;
   private int port;
   private final Amount<Integer, Time> defaultSessionTimeout;
-  private boolean isStarted;
 
   /**
    * @param port the port to start the zoo keeper server on - {@code 0} picks an ephemeral port
@@ -94,14 +91,6 @@ public class ZooKeeperTestServer {
           @Override protected void registerJMX() {
             // noop
           }
-
-          // Allow the ability to restart the ZooKeeperServer. Trying to re-start a closed
-          // sessionTracker (i.e. Thread) will throw IllegalThreadStateException. Nulling it out
-          // will force a new one to be created upon restart.
-          @Override public void shutdown() {
-            super.shutdown();
-            sessionTracker = null;
-          }
         };
   }
 
@@ -110,8 +99,7 @@ public class ZooKeeperTestServer {
    * (@{code 0}), then the actual chosen port is returned.
    */
   public final int startNetwork() throws IOException, InterruptedException {
-    connectionFactory = new NIOServerCnxnFactory();
-    connectionFactory.configure(new InetSocketAddress(port), UNLIMITED_ZK_CONNECTIONS);
+    connectionFactory = new NIOServerCnxn.Factory(new InetSocketAddress(port));
     connectionFactory.startup(zooKeeperServer);
     shutdownRegistry.addAction(new Command() {
       @Override public void execute() {
@@ -119,7 +107,6 @@ public class ZooKeeperTestServer {
       }
     });
     port = zooKeeperServer.getClientPort();
-    isStarted = true;
     return port;
   }
 
@@ -128,7 +115,7 @@ public class ZooKeeperTestServer {
    */
   public final void restartNetwork() throws IOException, InterruptedException {
     checkEphemeralPortAssigned();
-    Preconditions.checkState(!isStarted, "Must call shutdownNetwork() before restarting network");
+    Preconditions.checkState(!connectionFactory.isAlive());
     startNetwork();
   }
 
@@ -136,9 +123,8 @@ public class ZooKeeperTestServer {
    * Shuts down the in-process zookeeper network server.
    */
   public final void shutdownNetwork() {
-    if (connectionFactory != null && isStarted) {
+    if (connectionFactory != null && connectionFactory.isAlive()) {
       connectionFactory.shutdown();
-      isStarted = false;
     }
   }
 
