@@ -16,13 +16,19 @@
 
 from __future__ import print_function
 
-from twitter.pants import is_jvm, is_python, PythonRequirement
+from twitter.pants import is_concrete, is_jvm, is_jvm_app, is_python, PythonRequirement
 from twitter.pants.targets.jar_dependency import JarDependency
-from twitter.pants.tasks import TaskError
-from twitter.pants.tasks.console_task import ConsoleTask
+
+from . import TaskError
+from .console_task import ConsoleTask
+
 
 class Dependencies(ConsoleTask):
   """Generates a textual list (using the target format) for the dependency set of a target."""
+
+  @staticmethod
+  def _is_jvm(target):
+    return is_jvm(target) or is_jvm_app(target)
 
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
@@ -50,8 +56,8 @@ class Dependencies(ConsoleTask):
     if (self.context.options.dependencies_is_internal_only and
         self.context.options.dependencies_is_external_only):
 
-      error_str = "At most one of %s or %s can be selected." % ( self.internal_only_flag,
-                                                                 self.external_only_flag )
+      error_str = "At most one of %s or %s can be selected." % (self.internal_only_flag,
+                                                                self.external_only_flag)
       raise TaskError(error_str)
 
     self.is_internal_only = self.context.options.dependencies_is_internal_only
@@ -59,7 +65,7 @@ class Dependencies(ConsoleTask):
 
   def console_output(self, unused_method_argument):
     for target in self.context.target_roots:
-      if all(is_jvm(t) for t in target.resolve()):
+      if all(self._is_jvm(t) for t in target.resolve() if is_concrete(t)):
         for line in self._dependencies_list(target):
           yield line
 
@@ -104,13 +110,13 @@ class Dependencies(ConsoleTask):
 
         visited.add(dep)
 
-        if is_jvm(dep):
+        if self._is_jvm(dep):
           for internal_dependency in dep.internal_dependencies:
             for line in print_deps(visited, internal_dependency):
               yield line
 
         if not self.is_internal_only:
-          if is_jvm(dep):
+          if self._is_jvm(dep):
             for jar_dep in dep.jar_dependencies:
               internal, address  = self._dep_id(jar_dep)
               if not internal:
