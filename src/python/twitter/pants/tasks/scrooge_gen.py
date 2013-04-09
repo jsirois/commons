@@ -16,11 +16,13 @@
 
 from __future__ import print_function
 
+import glob
 import os
 import re
+import sys
 import tempfile
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
@@ -33,7 +35,7 @@ from twitter.pants.targets import (
   ScalaLibrary)
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.nailgun_task import NailgunTask
-from twitter.pants.thrift_util import calculate_compile_sources
+from twitter.pants.thrift_util import calculate_compile_dirs_sources
 
 INFO_FOR_COMPILER = { 'scrooge':        { 'config': 'scrooge-gen',
                                           'main':   'com.twitter.scrooge.Main',
@@ -46,6 +48,23 @@ INFO_FOR_COMPILER = { 'scrooge':        { 'config': 'scrooge-gen',
 INFO_FOR_LANG = { 'scala':  { 'target_type': ScalaLibrary },
                   'java':   { 'target_type': JavaLibrary  } }
 
+
+# like an associate array, but sub-sequences may have only one element (uses default)
+def value_from_seq_of_seq(seq_of_seq, key, default=None):
+  result = default
+  for seq in seq_of_seq:
+    if len(seq) == 1 and key == seq[0]:
+      break
+    elif len(seq) == 2 and key == seq[0]:
+      result = seq[1]
+      break
+    elif len(seq) == 0:
+      raise ValueError('A sequence of sequences may not have less than one element'
+                       ' in a sub-sequence.')
+    elif len(seq) > 2:
+      raise ValueError('A sequence of sequences may not have more than two elements'
+                       ' in a sub-sequence.')
+  return result
 
 class ScroogeGen(NailgunTask):
   class GenInfo(object):
@@ -100,30 +119,27 @@ class ScroogeGen(NailgunTask):
     # actually doing the work of generating)
     # AWESOME-1563
 
-    cmdlines = {}
+    PartialCmd = namedtuple('PartialCmd', ['classpath', 'main', 'opts']) 
+
+    partial_cmds = defaultdict(set)
     gentargets = filter(is_gentarget, targets)
 
     for target in gentargets:
       opts = []
 
-      # -- from target
       language = target.language
       opts.append(('--language', language))
 
-      if hasattr(target, 'finagle'):
+      if target.rpc_style == 'ostrich':
         opts.append(('--finagle',))
-      if hasattr(target, 'ostrich'):
         opts.append(('--ostrich',))
-      if hasattr(target, 'namespace_map'):
+      elif target.rpc_style == 'finagle':
+        opts.append(('--finagle',))
+
+      if target.namespace_map:
         for lhs, rhs in namespace_map([target]).items():
           opts.append(('--namespace-map', '%s=%s' % (lhs, rhs)))
 
-      bases, sources = calculate_compile_sources([target], is_gentarget)
-
-      for base in bases:
-        opts.append(('--import-path', base))
-
-      # -- from target & compiler_config
       outdir = self._outdir(target)
       opts.append(('--dest', '%s' % outdir))
       safe_mkdir(outdir)
@@ -134,28 +150,47 @@ class ScroogeGen(NailgunTask):
       if self._verbose(target):
         opts.append(('--verbose',))
 
+      classpath = self._classpth(target)
+      main = INFO_FOR_COMPILER[target.compiler]['main']
+
+      partial_cmd = PartialCmd(tuple(classpath), main, tuple(opts))
+      partial_cmds[partial_cmd].add(target)
+
+    for partial_cmd, targets in partial_cmds.items():
+      classpath = partial_cmd.classpath
+      main =      partial_cmd.main
+      opts = list(partial_cmd.opts)
+
+      # TODO(Robert Nielsen): we broke scrooge 3.x support to add scrooge 2.x support
+      # will fix this in a following CL AWESOME-3161
+      import_paths, sources = calculate_compile_dirs_sources(targets, is_gentarget)
+
+      # This chunk of code is optional, but it might help find bugs because scrooge
+      # found the wrong file and used it.
+      thrift_file_to_import_paths = defaultdict(set)
+      for import_path in import_paths:
+        for thrift_file in map(lambda p: os.path.basename(p), glob.glob("%s/*.thrift")):
+          thrift_file_to_import_paths[thrift_file].add(import_path)
+      for thrift_file, import_paths in thrift_file_to_import_paths.items():
+        if len(import_paths) > 1:
+          self.context.log.warning("%s found in multiple import-paths: [%s]" % ", ".join(import_paths))
+
+      for import_path in import_paths:
+        opts.append(('--import-path', import_path))
+
       gen_file_map_fd, gen_file_map_path = tempfile.mkstemp()
       os.close(gen_file_map_fd)
       opts.append(('--gen-file-map', gen_file_map_path))
 
-      # -- for JvmCommandLine
-      classpath = self._classpth(target)
-      main = INFO_FOR_COMPILER[target.compiler]['main']
-      args = sources
-
       cmdline = JvmCommandLine(classpath=classpath,
                                main=main,
                                opts=opts,
-                               args=args)
-      cmdlines[cmdline] = gen_file_map_path
+                               args=sources)
 
-    # here we could merge the cmdlines that are equivalent (other than args/files)
-
-    for cmdline in cmdlines.keys():
-      gen_file_map_path = cmdlines[cmdline]
       returncode = cmdline.call()
 
       if 0 == returncode:
+        outdir = value_from_seq_of_seq(opts, '--dest')
         gen_files_for_source = self.parse_gen_file_map(gen_file_map_path, outdir)
       os.remove(gen_file_map_path)
 
@@ -163,7 +198,7 @@ class ScroogeGen(NailgunTask):
         raise TaskError("java %s ... exited non-zero (%i)" % (main, returncode))
 
       langtarget_by_gentarget = {}
-      for target in gentargets:
+      for target in targets:
         dependees = dependees_by_gentarget.get(target, [])
         langtarget_by_gentarget[target] = self.createtarget(target, dependees, gen_files_for_source)
 

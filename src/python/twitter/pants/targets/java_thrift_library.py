@@ -15,10 +15,20 @@
 # ==================================================================================================
 
 from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
-
+from twitter.pants.base import TargetDefinitionException
 
 class JavaThriftLibrary(ExportableJvmLibrary):
   """Defines a target that builds java or scala stubs from a thrift IDL file."""
+
+
+  _COMPILERS = frozenset(['thrift', 'scrooge', 'scrooge-legacy'])
+  _COMPILER_DEFAULT = 'thrift'
+
+  _LANGUAGES = frozenset(['java', 'scala'])
+  _LANGUAGE_DEFAULT = 'java'
+
+  _RPC_STYLES = frozenset(['sync', 'finagle', 'ostrich'])
+  _RPC_STYLE_DEFAULT = 'sync'
 
   def __init__(self,
                name,
@@ -26,10 +36,9 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                provides = None,
                dependencies = None,
                excludes = None,
-               compiler = None,
-               language = None,
-               finagle = False,
-               ostrich = False,
+               compiler = _COMPILER_DEFAULT,
+               language = _LANGUAGE_DEFAULT,
+               rpc_style = _RPC_STYLE_DEFAULT,
                namespace_map = None,
                buildflags = None):
 
@@ -41,10 +50,13 @@ class JavaThriftLibrary(ExportableJvmLibrary):
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
-    compiler: An optional compiler used to compile the thrift files.
-    language: The language used to generate the output files.
-    finagle: An optional boolean that adds finagle support when set to True.
-    ostrich: An optional boolean that adds ostrich support when set to True.
+    compiler: An optional compiler used to compile the thrift files {'thrift', 'scrooge',
+                                                                               'scrooge-legacy'}.
+        Defaults to 'thrift'.
+    language: An optional language used to generate the output files {'java', 'scala'}.
+        Defaults to 'java'.
+    rpc_style: An optional rpc style in code generation {'sync', 'finagle', 'ostrich'}.
+        Defaults to 'sync'.
     namespace_map: A dictionary of namespaces to remap (old: new)
     buildflags: A list of additional command line arguments to pass to the underlying build system
         for this target"""
@@ -59,12 +71,22 @@ class JavaThriftLibrary(ExportableJvmLibrary):
     self.add_label('java')
     self.add_label('codegen')
 
-    # TODO(John Sirois): the default compiler should be grabbed from the workspace config
-    self.compiler = compiler or 'thrift'
+    def check_value_for_arg(arg, value, values):
+      if value not in values:
+        raise TargetDefinitionException(self, "%s may only be set to %s ('%s' not valid)" %
+                                        (arg, ', or '.join(map(repr, values)), value))
+      return value
 
-    self.language = language
-    self.finagle = finagle
-    self.ostrich = ostrich
+    # TODO(John Sirois): the default compiler should be grabbed from the workspace config
+    compiler = compiler or self._COMPILER_DEFAULT # some gen BUILD files explicitly set this to None
+    self.compiler = check_value_for_arg('compiler', compiler, self._COMPILERS)
+
+    language = language or self._LANGUAGE_DEFAULT
+    self.language = check_value_for_arg('language', language, self._LANGUAGES)
+
+    rpc_style = rpc_style or self._RPC_STYLE_DEFAULT
+    self.rpc_style = check_value_for_arg('rpc_style', rpc_style, self._RPC_STYLES)
+
     self.namespace_map = namespace_map
 
   def _as_jar_dependency(self):
