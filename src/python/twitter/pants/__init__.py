@@ -28,6 +28,7 @@ def get_version():
 
 _BUILDROOT = None
 
+
 def get_buildroot():
   """Returns the pants ROOT_DIR, calculating it if needed."""
 
@@ -61,6 +62,7 @@ def set_buildroot(path):
 from twitter.pants.scm import Scm
 
 _SCM = None
+
 
 def get_scm():
   """Returns the pants Scm if any."""
