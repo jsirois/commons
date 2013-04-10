@@ -47,7 +47,7 @@ def find_root_thrifts(basedirs, sources, log=None):
   return root_sources
 
 
-def calculate_compile_dirs_sources(targets, is_thrift_target):
+def calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY(targets, is_thrift_target):
   """Calculates the set of thrift source files that need to be compiled
   as well as their associated import/include directories.
   It does not exclude sources that are included in other sources.
@@ -66,10 +66,21 @@ def calculate_compile_dirs_sources(targets, is_thrift_target):
       sources.add(os.path.join(target.target_base, source))
   for target in targets:
     target.walk(collect_sources, predicate=is_thrift_target)
+
+  # This chunk of code is optional, but it might help find bugs because scrooge
+  # found the wrong file and used it.
+  thrift_file_to_import_paths = defaultdict(set)
+  for import_path in dirs:
+    for thrift_file in map(lambda p: os.path.basename(p), glob.glob('%s/*.thrift' % import_path)):
+      thrift_file_to_import_paths[thrift_file].add(import_path)
+    for thrift_file, import_paths in thrift_file_to_import_paths.items():
+      if len(import_paths) > 1:
+        self.context.log.warning("'%s' found in multiple import-paths: [%s]" % (
+            thrift_file, ', '.join(import_paths)))
+
   return dirs, sources
 
 
-# TODO(Robert Nielsen): this code can be inlined into calculate_compile_roots() below
 def calculate_compile_sources(targets, is_thrift_target):
   """Calculates the set of thrift source files that need to be compiled.
   It does not exclude sources that are included in other sources.

@@ -35,14 +35,19 @@ from twitter.pants.targets import (
   ScalaLibrary)
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.nailgun_task import NailgunTask
-from twitter.pants.thrift_util import calculate_compile_dirs_sources
+from twitter.pants.thrift_util import (
+  calculate_compile_sources,
+  calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY)
 
 INFO_FOR_COMPILER = { 'scrooge':        { 'config': 'scrooge-gen',
                                           'main':   'com.twitter.scrooge.Main',
+                                          'calculate_compile_sources': calculate_compile_sources,
                                           'langs':  frozenset(['scala', 'java']) },
 
                       'scrooge-legacy': { 'config': 'scrooge-legacy-gen',
                                           'main':   'com.twitter.scrooge.Main',
+                                          'calculate_compile_sources': 
+                                            calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY,
                                           'langs':  frozenset(['scala']) } }
 
 INFO_FOR_LANG = { 'scala':  { 'target_type': ScalaLibrary },
@@ -161,19 +166,9 @@ class ScroogeGen(NailgunTask):
       main =      partial_cmd.main
       opts = list(partial_cmd.opts)
 
-      # TODO(Robert Nielsen): we broke scrooge 3.x support to add scrooge 2.x support
-      # will fix this in a following CL AWESOME-3161
-      import_paths, sources = calculate_compile_dirs_sources(targets, is_gentarget)
-
-      # This chunk of code is optional, but it might help find bugs because scrooge
-      # found the wrong file and used it.
-      thrift_file_to_import_paths = defaultdict(set)
-      for import_path in import_paths:
-        for thrift_file in map(lambda p: os.path.basename(p), glob.glob("%s/*.thrift")):
-          thrift_file_to_import_paths[thrift_file].add(import_path)
-      for thrift_file, import_paths in thrift_file_to_import_paths.items():
-        if len(import_paths) > 1:
-          self.context.log.warning("%s found in multiple import-paths: [%s]" % ", ".join(import_paths))
+      compiler = list(targets)[0].compiler # any target will do (they all have the same compiler)
+      calculate_compile_sources = INFO_FOR_COMPILER[compiler]['calculate_compile_sources']
+      import_paths, sources = calculate_compile_sources(targets, is_gentarget)
 
       for import_path in import_paths:
         opts.append(('--import-path', import_path))
