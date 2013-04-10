@@ -273,12 +273,6 @@ arguments to pass to tools, etc.
 
     pants goal test src/test/java/yourproject
 
-    # Forgot your test's name but know you changed src/main/python/foo:foo?
-    pants goal test `./pants goal dependees src/main/python/foo:foo`
-
-    # Run dependees' tests for src/main/python/foo:foo, too.
-    pants goal test `./pants goal dependees src/main/python/foo:foo --dependees-transitive`
-
 **Packaging Binaries**
 
 To create a jar containing just the code built by a target, use the

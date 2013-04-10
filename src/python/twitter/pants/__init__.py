@@ -184,8 +184,8 @@ def has_jvm_targets(targets):
 
 def extract_jvm_targets(targets):
   """Returns an iterator over the jvm targets the given sequence of targets resolve to.  The given
-  targets can be a mix of types and any non jvm targets (as determined by is_jvm(...) will be
-  filtered out from the returned iterator."""
+  targets can be a mix of types and only valid jvm targets (as determined by is_jvm(...) will be
+  returned by the iterator."""
 
   for target in targets:
     if target is None:
