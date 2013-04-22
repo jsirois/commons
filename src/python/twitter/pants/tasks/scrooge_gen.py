@@ -16,10 +16,8 @@
 
 from __future__ import print_function
 
-import glob
 import os
 import re
-import sys
 import tempfile
 
 from collections import defaultdict, namedtuple
@@ -28,16 +26,16 @@ from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot
-from twitter.pants.binary_util import profile_classpath, runjava_indivisible, JvmCommandLine
+from twitter.pants.binary_util import profile_classpath, JvmCommandLine
 from twitter.pants.targets import (
-  JavaLibrary,
-  JavaThriftLibrary,
-  ScalaLibrary)
+    JavaLibrary,
+    JavaThriftLibrary,
+    ScalaLibrary)
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.nailgun_task import NailgunTask
 from twitter.pants.thrift_util import (
-  calculate_compile_sources,
-  calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY)
+    calculate_compile_sources,
+    calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY)
 
 INFO_FOR_COMPILER = { 'scrooge':        { 'config': 'scrooge-gen',
                                           'main':   'com.twitter.scrooge.Main',
@@ -46,7 +44,7 @@ INFO_FOR_COMPILER = { 'scrooge':        { 'config': 'scrooge-gen',
 
                       'scrooge-legacy': { 'config': 'scrooge-legacy-gen',
                                           'main':   'com.twitter.scrooge.Main',
-                                          'calculate_compile_sources': 
+                                          'calculate_compile_sources':
                                             calculate_compile_sources_HACK_FOR_SCROOGE_LEGACY,
                                           'langs':  frozenset(['scala']) } }
 
@@ -70,6 +68,7 @@ def value_from_seq_of_seq(seq_of_seq, key, default=None):
       raise ValueError('A sequence of sequences may not have more than two elements'
                        ' in a sub-sequence.')
   return result
+
 
 class ScroogeGen(NailgunTask):
   class GenInfo(object):
@@ -124,7 +123,7 @@ class ScroogeGen(NailgunTask):
     # actually doing the work of generating)
     # AWESOME-1563
 
-    PartialCmd = namedtuple('PartialCmd', ['classpath', 'main', 'opts']) 
+    PartialCmd = namedtuple('PartialCmd', ['classpath', 'main', 'opts'])
 
     partial_cmds = defaultdict(set)
     gentargets = filter(is_gentarget, targets)
@@ -251,8 +250,8 @@ class ScroogeGen(NailgunTask):
     target_type = INFO_FOR_LANG[target.language]['target_type']
     tgt = create_target(files, deps, outdir, target_type)
     tgt.id = target.id
-    tgt.derived_from=target
-    tgt.add_labels('codegen')
+    tgt.derived_from = target
+    tgt.add_labels('codegen', 'synthetic')
     for dependee in dependees:
       dependee.update_dependencies([tgt])
     return tgt

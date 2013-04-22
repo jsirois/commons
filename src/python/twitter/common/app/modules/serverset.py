@@ -24,6 +24,7 @@ try:
 except ImportError:
   import logging as log
 
+class ParseError(Exception): pass
 
 def add_port_to(option_name):
   def add_port_callback(option, opt, value, parser):
@@ -96,7 +97,8 @@ class ServerSetModule(app.Module):
 
   @property
   def zh(self):
-    return self._zh
+    if self._zookeeper:
+      return self._zookeeper._zh
 
   def _assert_valid_inputs(self, options):
     if not options.serverset_module_enable:

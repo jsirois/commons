@@ -17,6 +17,7 @@
 from twitter.pants import is_concrete
 from twitter.pants.base import ParseContext, Target, Address
 
+
 class Pants(Target):
   """A pointer to a pants target."""
 
@@ -54,9 +55,9 @@ class Pants(Target):
       yield dep
 
   def get(self):
-    """
-      De-reference this pants pointer to a single target.  If the pointer aliases more than one
-      target a LookupError is raised.
+    """De-reference this pants pointer to a single target.
+
+    If the pointer aliases more than one target a LookupError is raised.
     """
     resolved = list(filter(is_concrete, self.resolve()))
     if len(resolved) > 1:

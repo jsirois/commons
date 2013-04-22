@@ -14,7 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-import sys
 from twitter.common.lang import Compatibility
 from twitter.common.python.platforms import Platform
 from twitter.pants.base import TargetDefinitionException
@@ -34,7 +33,7 @@ class PythonBinary(PythonTarget):
                ignore_errors=False,
                allow_pypi=False,
                platforms=(),
-               interpreters=(sys.version[:3],),
+               interpreters=(Platform.python(),),
                provides=None):
     """
       name: target name
@@ -92,3 +91,7 @@ class PythonBinary(PythonTarget):
     PythonTarget.__init__(self, name, [] if source is None else [source],
                           dependencies=dependencies,
                           provides=provides)
+
+  @property
+  def platforms(self):
+    return self._platforms

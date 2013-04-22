@@ -25,6 +25,10 @@ python_library(
   provides = setup_py(
     name = 'twitter.common.app',
     version = '0.0.0',
-    description = "Twitter's Python application lifecycle framework."
+    description = "Twitter's Python application lifecycle framework.",
+    namespace_packages = [
+      'twitter',
+      'twitter.common'
+    ]
   )
 )

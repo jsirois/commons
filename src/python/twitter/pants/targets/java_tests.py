@@ -21,13 +21,8 @@ from .resources import Resources
 class JavaTests(JvmTarget):
   """Defines a target that tests a java library."""
 
-  def __init__(self,
-               name,
-               sources = None,
-               dependencies = None,
-               excludes = None,
-               resources = None,
-               buildflags = None):
+  def __init__(self, name, sources=None, dependencies=None, excludes=None, resources=None,
+               buildflags=None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -37,13 +32,11 @@ class JavaTests(JvmTarget):
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
-    buildflags: A list of additional command line arguments to pass to the underlying build system
-        for this target"""
+    resources: An optional list of Resources that should be in this target's classpath.
+    buildflags: DEPRECATED - A list of additional command line arguments to pass to the underlying
+        build system for this target - now ignored.
+    """
 
-    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags)
-
+    JvmTarget.__init__(self, name, sources, dependencies, excludes)
     self.add_labels('java', 'tests')
-
     self.resources = list(self.resolve_all(resources, Resources))
-    self.add_label('java')
-    self.add_label('tests')

@@ -14,12 +14,13 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
 from twitter.pants.base import TargetDefinitionException
+
+from .exportable_jvm_library import ExportableJvmLibrary
+
 
 class JavaThriftLibrary(ExportableJvmLibrary):
   """Defines a target that builds java or scala stubs from a thrift IDL file."""
-
 
   _COMPILERS = frozenset(['thrift', 'scrooge', 'scrooge-legacy'])
   _COMPILER_DEFAULT = 'thrift'
@@ -30,17 +31,9 @@ class JavaThriftLibrary(ExportableJvmLibrary):
   _RPC_STYLES = frozenset(['sync', 'finagle', 'ostrich'])
   _RPC_STYLE_DEFAULT = 'sync'
 
-  def __init__(self,
-               name,
-               sources,
-               provides = None,
-               dependencies = None,
-               excludes = None,
-               compiler = _COMPILER_DEFAULT,
-               language = _LANGUAGE_DEFAULT,
-               rpc_style = _RPC_STYLE_DEFAULT,
-               namespace_map = None,
-               buildflags = None):
+  def __init__(self, name, sources, provides=None, dependencies=None, excludes=None,
+               compiler=_COMPILER_DEFAULT, language=_LANGUAGE_DEFAULT, rpc_style=_RPC_STYLE_DEFAULT,
+               namespace_map=None, buildflags=None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -58,18 +51,12 @@ class JavaThriftLibrary(ExportableJvmLibrary):
     rpc_style: An optional rpc style in code generation {'sync', 'finagle', 'ostrich'}.
         Defaults to 'sync'.
     namespace_map: A dictionary of namespaces to remap (old: new)
-    buildflags: A list of additional command line arguments to pass to the underlying build system
-        for this target"""
+    buildflags: DEPRECATED - A list of additional command line arguments to pass to the underlying
+        build system for this target - now ignored.
+    """
 
-    ExportableJvmLibrary.__init__(self,
-                                  name,
-                                  sources,
-                                  provides,
-                                  dependencies,
-                                  excludes,
-                                  buildflags)
-    self.add_label('java')
-    self.add_label('codegen')
+    ExportableJvmLibrary.__init__(self, name, sources, provides, dependencies, excludes)
+    self.add_labels('codegen', 'java')
 
     def check_value_for_arg(arg, value, values):
       if value not in values:
@@ -77,8 +64,10 @@ class JavaThriftLibrary(ExportableJvmLibrary):
                                         (arg, ', or '.join(map(repr, values)), value))
       return value
 
-    # TODO(John Sirois): the default compiler should be grabbed from the workspace config
-    compiler = compiler or self._COMPILER_DEFAULT # some gen BUILD files explicitly set this to None
+    # TODO(John Sirois): The defaults should be grabbed from the workspace config.
+
+    # some gen BUILD files explicitly set this to None
+    compiler = compiler or self._COMPILER_DEFAULT
     self.compiler = check_value_for_arg('compiler', compiler, self._COMPILERS)
 
     language = language or self._LANGUAGE_DEFAULT

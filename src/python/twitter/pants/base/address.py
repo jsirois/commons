@@ -53,7 +53,6 @@ class Address(object):
   def __init__(self, buildfile, target_name):
     self.buildfile = buildfile
     self.target_name = target_name
-    self.is_meta = is_meta
 
   def reference(self, referencing_buildfile_path=None):
     """How to reference this address in a BUILD file."""

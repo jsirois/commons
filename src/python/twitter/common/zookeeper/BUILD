@@ -18,9 +18,9 @@ python_library(
   name = 'testing',
   sources = TEST_SERVER,
   dependencies = [
-    ':zookeeper',
-    'src/python/twitter/common/dirutil',
-    'src/python/twitter/common/rpc/finagle',
-    'src/thrift/com/twitter/common/zookeeper/testing/angrybird:py-thrift'
+    pants(':zookeeper'),
+    pants('src/python/twitter/common/dirutil'),
+    pants('src/python/twitter/common/rpc/finagle'),
+    pants('src/thrift/com/twitter/common/zookeeper/testing/angrybird:py-thrift')
   ]
 )

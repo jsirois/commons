@@ -23,12 +23,15 @@ from collections import defaultdict
 from optparse import OptionParser
 
 from twitter.common.collections import OrderedDict, OrderedSet
+
 from twitter.pants.base import TargetDefinitionException
 from twitter.pants.buildtimestats import BuildTimeStats
-from twitter.pants.goal import GoalError
-from twitter.pants.goal.group import Group
-from twitter.pants.goal.context import Context
 from twitter.pants.tasks import TaskError
+
+from .context import Context
+from .group import Group
+
+from . import GoalError
 
 
 #Set this value to True if you want to upload pants runtime stats to a HTTP server.
@@ -133,12 +136,12 @@ class Phase(PhaseBase):
           yield goal
 
   @staticmethod
-  def attempt(context, phases, timer=None):
+  def attempt(context, phases):
     """
       Attempts to reach the goals for the supplied phases, optionally recording phase timings and
       then logging then when all specified phases have completed.
     """
-    timer = timer or Timer()
+    timer = context.timer or Timer()
     start = timer.now()
     executed = OrderedDict()
 
@@ -188,7 +191,7 @@ class Phase(PhaseBase):
         print("Phase [Goal->Task] Order:\n")
 
       for phase in phases:
-        Group.execute(phase, tasks_by_goal, context, executed, timer)
+        Group.execute(phase, tasks_by_goal, context, executed)
 
       emit_timings()
       return 0

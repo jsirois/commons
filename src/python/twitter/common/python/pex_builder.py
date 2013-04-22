@@ -24,11 +24,12 @@ from zipimport import zipimporter
 from twitter.common.lang import Compatibility
 from twitter.common.dirutil import chmod_plus_x
 from twitter.common.dirutil.chroot import Chroot
-from twitter.common.python.interpreter import PythonIdentity
-from twitter.common.python.marshaller import CodeMarshaller
-from twitter.common.python.pex_info import PexInfo
-from twitter.common.python.pex import PEX
-from twitter.common.python.util import DistributionHelper
+
+from .interpreter import PythonIdentity
+from .marshaller import CodeMarshaller
+from .pex_info import PexInfo
+from .pex import PEX
+from .util import DistributionHelper
 
 from pkg_resources import (
   Distribution,
@@ -92,7 +93,6 @@ class PEXBuilder(object):
     self._chroot.link(filename, env_filename, "source")
     if filename.endswith('.py'):
       env_filename_pyc = os.path.splitext(env_filename)[0] + '.pyc'
-      # with PEX.timed('Compiling %s' % env_filename_pyc):
       with open(filename) as fp:
         pyc_object = CodeMarshaller.from_py(fp.read(), env_filename)
       self._chroot.write(pyc_object.to_pyc(), env_filename_pyc, 'source')
@@ -155,35 +155,23 @@ class PEXBuilder(object):
 
   def _prepare_bootstrap(self):
     """
-      Write enough of distribute and pip into the .pex .bootstrap directory so that
+      Write enough of distribute into the .pex .bootstrap directory so that
       we can be fully self-contained.
     """
     bare_env = pkg_resources.Environment()
 
-    pip_req = pkg_resources.Requirement.parse('pip>=1.1')
     distribute_req = pkg_resources.Requirement.parse('distribute>=0.6.24')
-    pip_dist = distribute_dist = None
+    distribute_dist = None
 
     for dist in DistributionHelper.all_distributions(sys.path):
-      if dist in pip_req and bare_env.can_add(dist):
-        pip_dist = dist
       if dist in distribute_req and bare_env.can_add(dist):
         distribute_dist = dist
-      if pip_dist and distribute_dist:
         break
-    if not pip_dist:
-      raise DistributionNotFound('Could not find pip!')
-    if not distribute_dist:
+    else:
       raise DistributionNotFound('Could not find distribute!')
 
-    PEX.debug('Writing .bootstrap library.')
-    for fn, content in DistributionHelper.walk_data(pip_dist):
-      if fn.startswith('pip/'):
-        # PEX.debug('BOOTSTRAP: Writing %s' % fn)
-        self._chroot.write(content, os.path.join(self.BOOTSTRAP_DIR, fn), 'resource')
     for fn, content in DistributionHelper.walk_data(distribute_dist):
       if fn.startswith('pkg_resources.py') or fn.startswith('setuptools'):
-        # PEX.debug('BOOTSTRAP: Writing %s' % fn)
         self._chroot.write(content, os.path.join(self.BOOTSTRAP_DIR, fn), 'resource')
     libraries = (
       'twitter.common.dirutil',
@@ -191,7 +179,8 @@ class PEXBuilder(object):
       'twitter.common.contextutil',
       'twitter.common.lang',
       'twitter.common.python',
-      'twitter.common.python.http'
+      'twitter.common.python.http',
+      'twitter.common.quantity'
     )
     for name in libraries:
       dirname = name.replace('.', '/')
@@ -201,7 +190,6 @@ class PEXBuilder(object):
         provider = pkg_resources.ZipProvider(mod)
       for fn in provider.resource_listdir(''):
         if fn.endswith('.py'):
-          # PEX.debug('BOOTSTRAP: Writing %s' % os.path.join(dirname, fn))
           self._chroot.write(provider.get_resource_string(name, fn),
             os.path.join(self.BOOTSTRAP_DIR, dirname, fn), 'resource')
     for initdir in ('twitter', 'twitter/common'):
@@ -347,9 +335,6 @@ class PEXBuilderHelper(object):
       cls.logger.error("Nothing to build (or run)!")
       parser.print_help()
       sys.exit(cls.error_code.NOTHING_TO_BUILD)
-    if len(options.repos) > 0:
-      cls.logger.error("Repositories feature is not implemented! Bug us!!")
-      sys.exit(cls.error_code.NOT_IMPLEMENTED)
     if options.lightweight:
       cls.logger.error("Lightweight PEXs not implemented! Bug us!!")
       sys.exit(cls.error_code.NOT_IMPLEMENTED)
@@ -358,9 +343,12 @@ class PEXBuilderHelper(object):
   def main(cls):
     from itertools import chain
     from twitter.common.python.distiller import Distiller
-    from twitter.common.python.fetcher import Fetcher
+    from twitter.common.python.fetcher import Fetcher, PyPIFetcher
+    from twitter.common.python.http import Crawler
     from twitter.common.python.installer import Installer
+    from twitter.common.python.obtainer import Obtainer
     from twitter.common.python.resolver import Resolver
+    from twitter.common.python.translator import Translator
 
     parser = cls.configure_clp()
     options, args = parser.parse_args()
@@ -368,19 +356,19 @@ class PEXBuilderHelper(object):
     cls.exit_on_erroneous_inputs(options, parser)
 
     pex_builder = PEXBuilder()
-    fetcher = Fetcher(options.repos, external=options.use_pypi)
-    resolver = Resolver(fetcher = fetcher,
-                        caches = [os.path.expanduser(options.cache_dir)],
-                        install_cache = os.path.expanduser(options.cache_dir))
+
+    fetchers = [Fetcher(options.repos)]
+    if options.use_pypi:
+      fetchers.append(PyPIFetcher())
+    resolver = Resolver(cache=options.cache_dir, fetchers=fetchers, install_cache=options.cache_dir)
     reqs = cls.get_all_valid_reqs(options.requirements, options.requirements_txt)
     cls.logger.info("Requirements specified: " + str(reqs))
-    resolveds = [resolver.resolve(req) for req in reqs]
+    resolveds = resolver.resolve(reqs)
     cls.logger.info("Resolved requirements: " + str(resolveds))
-    for resolved in resolveds:
-      for pkg in resolved:
-        cls.logger.info("Adding to PEX: Distribution: {0}".format(pkg))
-        pex_builder.add_distribution(pkg)
-        pex_builder.add_requirement(pkg.as_requirement())
+    for pkg in resolveds:
+      cls.logger.info("Adding to PEX: Distribution: {0}".format(pkg))
+      pex_builder.add_distribution(pkg)
+      pex_builder.add_requirement(pkg.as_requirement())
     for source_dir in options.source_dirs:
       dist = Installer(source_dir).distribution()
       egg_path = Distiller(dist).distill()
@@ -388,10 +376,6 @@ class PEXBuilderHelper(object):
         source_dir, egg_path)
       )
       pex_builder.add_egg(egg_path)
-      for dist in chain(*[resolver.resolve(req) for req in dist.requires()]):
-        cls.logger.info("Adding resolved dependency to PEX: {0}".format(dist))
-        pex_builder.add_distribution(dist)
-        pex_builder.add_requirement(dist.as_requirement())
     if options.entry_point is not None:
       if options.entry_point.endswith(".py"):
         cls.logger.info("Adding entry point to PEX: File: {0}".format(options.entry_point))
@@ -407,10 +391,12 @@ class PEXBuilderHelper(object):
     else:
       pex_builder.freeze()
       cls.logger.info("Running PEX file at {0} with args {1}".format(pex_builder.path(), args))
+      from .pex import PEX
       pex = PEX(pex_builder.path())
       return pex.run(args=list(args))
 
     logging.shutdown()
+
 
 def main():
   """Entry point of pex.pex"""

@@ -27,12 +27,12 @@ class Artifact(object):
   """
 
   _HASH_KEYS = (
-    'name',
-    'type_',
-    'ext',
-    'conf',
-    'url',
-    'classifier',
+      'name',
+      'type_',
+      'ext',
+      'conf',
+      'url',
+      'classifier',
   )
 
   def __init__(self, name, type_, ext=None, conf=None, url=None, classifier=None):
@@ -112,7 +112,7 @@ class  JarDependency(ExternalDependency):
     if ext or url or type_ or classifier:
       self.with_artifact(name=name, type_=type_, ext=ext, url=url, classifier=classifier)
 
-    self.id = repr(self)
+    self.id = "%s-%s-%s" % (self.org, self.name, self.rev)
     self._configurations = ['default']
 
     # Support legacy method names
@@ -165,11 +165,10 @@ class  JarDependency(ExternalDependency):
     return False
 
   def __eq__(self, other):
-    result = other and (
-      type(other) == JarDependency) and (
-      self.org == other.org) and (
-      self.name == other.name) and (
-      self.rev == other.rev)
+    result = (isinstance(other, type(self)) and
+              self.org == other.org and
+              self.name == other.name and
+              self.rev == other.rev)
     return result
 
   def __hash__(self):

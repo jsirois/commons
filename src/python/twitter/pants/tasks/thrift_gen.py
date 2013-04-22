@@ -27,11 +27,11 @@ from twitter.common.dirutil import safe_mkdir
 
 from twitter.pants import get_buildroot, is_jvm, is_python
 from twitter.pants.targets import (
-  InternalTarget,
-  JavaLibrary,
-  JavaThriftLibrary,
-  PythonLibrary,
-  PythonThriftLibrary)
+    InternalTarget,
+    JavaLibrary,
+    JavaThriftLibrary,
+    PythonLibrary,
+    PythonThriftLibrary)
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.code_gen import CodeGen
 from twitter.pants.thrift_util import calculate_compile_roots, select_thrift_binary
@@ -106,10 +106,8 @@ class ThriftGen(CodeGen):
       if self.context.products.isrequired(lang):
         self.gen_langs.add(lang)
 
-    self.thrift_binary = select_thrift_binary(
-      context.config,
-      version=context.options.thrift_version
-    )
+    self.thrift_binary = select_thrift_binary(context.config,
+                                              version=context.options.thrift_version)
 
   def invalidate_for(self):
     return self.gen_langs
@@ -218,7 +216,7 @@ class ThriftGen(CodeGen):
     deps = geninfo.deps['service' if has_service else 'structs']
     tgt = create_target(files, deps)
     tgt.id = target.id + '.thrift_gen'
-    tgt.add_label('codegen')
+    tgt.add_labels('codegen')
     for dependee in dependees:
       if isinstance(dependee, InternalTarget):
         dependee.update_dependencies((tgt,))

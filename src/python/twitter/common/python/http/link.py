@@ -2,11 +2,11 @@ import contextlib
 import os
 import posixpath
 import tarfile
-import tempfile
 import zipfile
 
 from twitter.common.dirutil import safe_mkdir, safe_mkdtemp
 from twitter.common.lang import Compatibility
+from twitter.common.python.base import maybe_requirement
 
 if Compatibility.PY3:
   import urllib.parse as urlparse
@@ -30,6 +30,9 @@ class Link(object):
   def __init__(self, url, opener=None):
     self._url = urlparse.urlparse(url)
     self._opener = opener
+
+  def __eq__(self, link):
+    return self.__class__ == link.__class__ and self._url == link._url
 
   @property
   def filename(self):
@@ -94,8 +97,7 @@ class ExtendedLink(Link):
 
   def satisfies(self, requirement):
     """Does the signature of this filename match the requirement (pkg_resources.Requirement)?"""
-    if not isinstance(requirement, Requirement):
-      requirement = Requirement.parse(requirement)
+    requirement = maybe_requirement(requirement)
     return Distribution(project_name=self.name, version=self.raw_version,
       py_version=self.py_version, platform=self.platform) in requirement
 
@@ -104,11 +106,11 @@ class SourceLink(ExtendedLink):
   """A Target providing source that can be built into a Distribution via Installer."""
 
   EXTENSIONS = {
-    '.tar': tarfile.TarFile.open,
-    '.tar.gz': tarfile.TarFile.open,
-    '.tar.bz2': tarfile.TarFile.open,
-    '.tgz': tarfile.TarFile.open,
-    '.zip': zipfile.ZipFile,
+    '.tar': (tarfile.TarFile.open, tarfile.ReadError),
+    '.tar.gz': (tarfile.TarFile.open, tarfile.ReadError),
+    '.tar.bz2': (tarfile.TarFile.open, tarfile.ReadError),
+    '.tgz': (tarfile.TarFile.open, tarfile.ReadError),
+    '.zip': (zipfile.ZipFile, zipfile.BadZipfile)
   }
 
   @classmethod
@@ -135,9 +137,9 @@ class SourceLink(ExtendedLink):
   def __init__(self, url, **kw):
     super(SourceLink, self).__init__(url, **kw)
 
-    for ext, cls in self.EXTENSIONS.items():
+    for ext, class_info in self.EXTENSIONS.items():
       if self.filename.endswith(ext):
-        self._archive_class = cls
+        self._archive_class = class_info
         fragment = self.filename[:-len(ext)]
         break
     else:
@@ -165,9 +167,13 @@ class SourceLink(ExtendedLink):
     """Unpack this source target into the path if supplied.  If the path is not supplied, a
        temporary directory will be created."""
     path = location or safe_mkdtemp()
-    with contextlib.closing(self._archive_class(filename)) as package:
-      package.extractall(path=path)
-    return SourceLink.first_nontrivial_dir(path)
+    archive_class, error_class = self._archive_class
+    try:
+      with contextlib.closing(archive_class(filename)) as package:
+        package.extractall(path=path)
+    except error_class:
+      raise self.UnreadableLink('Could not read %s' % self.url)
+    return self.first_nontrivial_dir(path)
 
   def fetch(self, location=None, conn_timeout=None):
     target = super(SourceLink, self).fetch(conn_timeout=conn_timeout)

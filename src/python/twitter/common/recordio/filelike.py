@@ -1,4 +1,25 @@
+# ==================================================================================================
+# Copyright 2013 Twitter, Inc.
+# --------------------------------------------------------------------------------------------------
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this work except in compliance with the License.
+# You may obtain a copy of the License in the LICENSE file, or at:
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==================================================================================================
+
+"""Encapsulate a file-like object to provide a common interface for RecordIO streams"""
+
+import errno
 import os
+
+from twitter.common import log
 
 
 # TODO(wickman) This needs to be py 3.x friendly.
@@ -13,7 +34,7 @@ _VALID_STRINGIO_CLASSES.append(StringIO)
 try:
   from cStringIO import StringIO
   _VALID_STRINGIO_CLASSES.append(type(StringIO())) # cStringIO.StringI
-  _VALID_STRINGIO_CLASSES.append(type(StringIO('foo'))) # cStringIO.StringO 
+  _VALID_STRINGIO_CLASSES.append(type(StringIO('foo'))) # cStringIO.StringO
 except ImportError:
   pass
 
@@ -21,8 +42,7 @@ _VALID_STRINGIO_CLASSES = tuple(_VALID_STRINGIO_CLASSES)
 
 
 class FileLike(object):
-  class Error(Exception):
-    pass
+  class Error(Exception): pass
 
   @staticmethod
   def get(fp):
@@ -30,6 +50,8 @@ class FileLike(object):
       return StringIOFileLike(fp)
     elif isinstance(fp, file):
       return FileLike(fp)
+    elif isinstance(fp, FileLike):
+      return fp
     else:
       raise ValueError('Unknown file-like object %s' % fp)
 
@@ -79,7 +101,7 @@ class FileLike(object):
       self._fp.flush()
       os.fsync(self._fp.fileno())
     except (IOError, OSError) as e:
-      log.error("Failed to fsync on %s! Error: %s" % (fp.name, e))
+      log.error("Failed to fsync on %s! Error: %s" % (self._fp.name, e))
 
 
 class StringIOFileLike(FileLike):

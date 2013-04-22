@@ -17,8 +17,9 @@
 from twitter.common.collections import maybe_list
 
 from twitter.pants.base import Target
-from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
-from twitter.pants.targets.resources import WithLegacyResources
+
+from .exportable_jvm_library import ExportableJvmLibrary
+from .resources import WithLegacyResources
 
 from . import JavaLibrary
 
@@ -26,15 +27,8 @@ from . import JavaLibrary
 class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
   """Defines the source code and dependencies of a scala library."""
 
-  def __init__(self, name,
-               sources = None,
-               java_sources = None,
-               provides = None,
-               dependencies = None,
-               excludes = None,
-               resources = None,
-               deployjar = False,
-               buildflags = None):
+  def __init__(self, name, sources=None, java_sources=None, provides=None, dependencies=None,
+               excludes=None, resources=None, deployjar=False, buildflags=None):
 
     """name:      The name of this target, addressable via pants via the portion of the address spec
                   following the colon.
@@ -55,18 +49,10 @@ class ScalaLibrary(ExportableJvmLibrary, WithLegacyResources):
                   build system for this target - now ignored.
     """
 
-    ExportableJvmLibrary.__init__(self,
-                                  name,
-                                  sources,
-                                  provides,
-                                  dependencies,
-                                  excludes,
-                                  buildflags)
-
+    ExportableJvmLibrary.__init__(self, name, sources, provides, dependencies, excludes)
     WithLegacyResources.__init__(self, name, sources=sources, resources=resources)
 
-    self.add_label('scala')
-    self.deployjar = deployjar
+    self.add_labels('scala')
 
     # Defer resolves until done parsing the current BUILD file, certain source_root arrangements
     # might allow java and scala sources to co-mingle and so have targets in the same BUILD.

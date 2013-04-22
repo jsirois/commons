@@ -20,21 +20,23 @@ except ImportError:
   from StringIO import StringIO
 
 from contextlib import contextmanager
+import mox
 import os
 import struct
 import tempfile
 
-from twitter.common.recordio import RecordIO
-from twitter.common.recordio import RecordWriter, RecordReader
-from twitter.common.recordio.filelike import FileLike
+from twitter.common.recordio import RecordIO, RecordWriter, RecordReader, StringCodec
+from twitter.common.recordio.filelike import FileLike, StringIOFileLike
 
 import pytest
 
-from recordio_test_harness import DurableFile as DurableFileBase
-from recordio_test_harness import EphemeralFile as EphemeralFileBase
+from recordio_test_harness import (
+    DurableFile as DurableFileBase,
+    EphemeralFile as EphemeralFileBase
+)
 
 
-class RecordioTestBase(object):
+class RecordioTestBase(mox.MoxTestBase):
   @classmethod
   @contextmanager
   def DurableFile(cls, mode):
@@ -47,9 +49,32 @@ class RecordioTestBase(object):
     with EphemeralFileBase(mode) as fp:
       yield fp
 
-  def test_paranoid_append_returns_false_on_nonexistent_file(self):
+  def test_append_fails_on_nonexistent_file(self):
     fn = tempfile.mktemp()
     assert RecordWriter.append(fn, 'hello world!') == False
+
+  def test_append_fails_on_inaccessible_file(self):
+    with RecordioTestBase.EphemeralFile('w') as fp:
+      os.fchmod(fp.fileno(), 000)
+      with pytest.raises(IOError):
+        RecordWriter.append(fp.name, 'hello world!')
+
+  def test_append_raises_on_bad_codec(self):
+    fn = tempfile.mktemp()
+    with pytest.raises(RecordIO.InvalidCodec):
+      RecordIO.Writer.append(fn, 'hello world!', 'not a codec!')
+
+  def test_append_fails_on_errors(self):
+    record = 'hello'
+    self.mox.StubOutWithMock(RecordIO.Writer, 'do_write')
+    RecordIO.Writer.do_write(mox.IsA(file), record, mox.IsA(StringCodec)).AndRaise(IOError)
+    RecordIO.Writer.do_write(mox.IsA(file), record, mox.IsA(StringCodec)).AndRaise(OSError)
+
+    self.mox.ReplayAll()
+
+    with RecordioTestBase.EphemeralFile('r+') as fp:
+      assert RecordIO.Writer.append(fp.name, record, StringCodec()) == False
+      assert RecordIO.Writer.append(fp.name, record, StringCodec()) == False
 
   def test_basic_recordwriter_write(self):
     test_string = "hello world"
@@ -63,15 +88,77 @@ class RecordioTestBase(object):
   def test_basic_recordwriter_write_synced(self):
     test_string = "hello world"
     with self.EphemeralFile('r+') as fp:
-      RecordWriter.do_write(fp, test_string, RecordIO.StringCodec(), sync=True)
+      RecordWriter.do_write(fp, test_string, StringCodec(), sync=True)
       fp.seek(0)
       rr = RecordReader(fp)
       assert rr.read() == test_string
 
-  def test_sanity_check_bytes(self):
+  def test_basic_recordwriter_write_fail(self):
+    test_string = "hello"
+    header = struct.pack('>L', len(test_string))
+    fp = self.mox.CreateMock(file)
+    fp.write(header).AndRaise(IOError)
+    fp.write(header).AndRaise(OSError)
+
+    self.mox.ReplayAll()
+
+    assert RecordWriter.do_write(fp, test_string, StringCodec()) == False
+    assert RecordWriter.do_write(fp, test_string, StringCodec()) == False
+
+  def test_basic_recordreader_iterator(self):
+    test_strings = ["hello", "world", "etc"]
+    with self.EphemeralFile('r+') as fp:
+      for string in test_strings:
+        RecordWriter.do_write(fp, string, StringCodec(), sync=True)
+      fp.seek(0)
+      rr = RecordReader(fp)
+      assert list(rr) == test_strings
+
+  def test_basic_recordreader_iter_failure(self):
+    self.mox.StubOutWithMock(RecordIO.Reader, 'do_read')
+    fp = self.mox.CreateMock(FileLike)
+    fp.mode = 'r+'
+    fp.dup().AndReturn(fp)
+    RecordIO.Reader.do_read(fp, mox.IsA(StringCodec)).AndRaise(RecordIO.Error)
+    fp.close()
+
+    self.mox.ReplayAll()
+
+    rr = RecordReader(fp)
+    assert list(rr) == []
+
+  def test_basic_recordreader_dup_failure(self):
+    fp = self.mox.CreateMock(FileLike)
+    fp.mode = 'r+'
+    fp.Error = FileLike.Error
+    fp.dup().AndRaise(FileLike.Error)
+
+    self.mox.ReplayAll()
+
+    rr = RecordReader(fp)
+    assert list(rr) == []
+    self.mox.VerifyAll()
+
+  def test_bad_header_size(self):
     with self.EphemeralFile('r+') as fp:
       fpw = FileLike.get(fp)
-      fpw.write(struct.pack('>L', RecordIO.SANITY_CHECK_BYTES+1))
+      fpw.write(struct.pack('>L', RecordIO.MAXIMUM_RECORD_SIZE))
+      fpw._fp.truncate(RecordIO.RECORD_HEADER_SIZE - 1)
+      fpw.flush()
+      fpw.seek(0)
+
+      rr = RecordReader(fp)
+      with pytest.raises(RecordIO.PrematureEndOfStream):
+        rr.read()
+      assert fpw.tell() != 0
+      fpw.seek(0)
+      assert rr.try_read() is None
+      assert fpw.tell() == 0
+
+  def test_record_too_large(self):
+    with self.EphemeralFile('r+') as fp:
+      fpw = FileLike.get(fp)
+      fpw.write(struct.pack('>L', RecordIO.MAXIMUM_RECORD_SIZE+1))
       fpw.write('a')
       fpw.flush()
       fpw.seek(0)
@@ -86,22 +173,59 @@ class RecordioTestBase(object):
     with pytest.raises(RecordIO.InvalidFileHandle):
       RecordReader(None)
 
+  def test_raises_if_initialized_with_bad_codec(self):
+    with self.EphemeralFile('r+') as fp:
+      with pytest.raises(RecordIO.InvalidCodec):
+        RecordIO.Writer(fp, "not_a_codec")
+
   def test_premature_end_of_stream(self):
     with self.EphemeralFile('r+') as fp:
-      fp.write(struct.pack('>L', 1))
-      fp.seek(0)
-      rr = RecordReader(fp)
+      fpr = FileLike.get(fp)
+      fpr = fp
+      fpr.write(struct.pack('>L', 1))
+      fpr.seek(0)
+      rr = RecordReader(fpr)
       with pytest.raises(RecordIO.PrematureEndOfStream):
         rr.read()
 
   def test_premature_end_of_stream_mid_message(self):
     with self.EphemeralFile('r+') as fp:
-      fp.write(struct.pack('>L', 2))
-      fp.write('a')
-      fp.seek(0)
-      rr = RecordReader(fp)
+      fpr = FileLike.get(fp)
+      fpr = fp
+      fpr.write(struct.pack('>L', 2))
+      fpr.write('a')
+      fpr.seek(0)
+      rr = RecordReader(fpr)
       with pytest.raises(RecordIO.PrematureEndOfStream):
         rr.read()
+
+  def test_filelike_dup_raises(self):
+    self.mox.StubOutWithMock(os, 'fdopen')
+    self.mox.StubOutWithMock(os, 'close')
+    os.fdopen(mox.IsA(int), mox.IsA(str)).AndRaise(OSError)
+    os.close(mox.IsA(int)).AndRaise(OSError)
+
+    self.mox.ReplayAll()
+
+    with RecordioTestBase.EphemeralFile('r+') as fp:
+      fl = FileLike(fp)
+      with pytest.raises(FileLike.Error):
+        fl.dup()
+
+  def test_basic_recordwriter_write_synced_raises(self):
+    test_string = "hello world"
+    self.mox.StubOutWithMock(os, 'fsync')
+    with RecordioTestBase.EphemeralFile('r+') as fp:
+      os.fsync(fp.fileno()).AndRaise(OSError)
+
+      self.mox.ReplayAll()
+
+      rw = RecordWriter(FileLike(fp))
+      rw.set_sync(True)
+      rw.write(test_string)
+      fp.seek(0)
+      rr = RecordReader(fp)
+      assert rr.read() == test_string
 
 
 class TestRecordioBuiltin(RecordioTestBase):
@@ -146,46 +270,29 @@ class TestRecordioBuiltin(RecordioTestBase):
       with pytest.raises(RecordIO.InvalidFileHandle):
         RecordWriter(fp)
 
-  def test_recordwriter_works_with_append(self):
-    with self.EphemeralFile('a') as fp:
-      try:
-        RecordWriter(fp)
-      except:
-        assert False, 'Failed to initialize RecordWriter in append mode'
-
-  def test_recordwriter_works_with_readplus(self):
-    with self.EphemeralFile('r+') as fp:
-      try:
-        RecordWriter(fp)
-      except:
-        assert False, 'Failed to initialize RecordWriter in r+ mode'
-
-  def test_recordwriter_works_with_write(self):
-    with self.EphemeralFile('w') as fp:
-      try:
-        RecordWriter(fp)
-      except:
-        assert False, 'Failed to initialize RecordWriter in w mode'
+  def test_recordwriter_initializing(self):
+    for mode in ('a', 'r+', 'w'):
+      with self.EphemeralFile(mode) as fp:
+        try:
+          RecordWriter(fp)
+        except Exception as e:
+          assert False, (
+              "Failed to initialize RecordWriter in '%s' mode (exception: %s)" % (mode, e))
 
   def test_recordreader_works_with_plus(self):
-    with self.EphemeralFile('a+') as fp:
-      try:
-        RecordReader(fp)
-      except:
-        assert False, 'Failed to initialize RecordWriter in a+ mode'
-    with self.EphemeralFile('w+') as fp:
-      try:
-        RecordReader(fp)
-      except:
-        assert False, 'Failed to initialize RecordWriter in w+ mode'
+    for mode in ('a+', 'w+'):
+      with self.EphemeralFile(mode) as fp:
+        try:
+          RecordReader(fp)
+        except Exception as e:
+          assert False, (
+              "Failed to initialize RecordReader in '%s' mode (exception: %s)" % (mode, e))
 
   def test_recordreader_fails_with_writeonly(self):
-    with self.EphemeralFile('a') as fp:
-      with pytest.raises(RecordIO.InvalidFileHandle):
-        RecordReader(fp)
-    with self.EphemeralFile('w') as fp:
-      with pytest.raises(RecordIO.InvalidFileHandle):
-        RecordReader(fp)
+    for mode in ('a', 'w'):
+      with self.EphemeralFile(mode) as fp:
+        with pytest.raises(RecordIO.InvalidFileHandle):
+          RecordReader(fp)
 
   def test_basic_recordreader_try_read(self):
     test_string = "hello world"
@@ -222,9 +329,15 @@ class TestRecordioBuiltin(RecordioTestBase):
         assert rr.read() == test_string
 
 
-
 class TestRecordioStringIO(RecordioTestBase):
   @classmethod
   @contextmanager
   def EphemeralFile(cls, mode):
     yield StringIO()
+
+  def test_string_codec(self):
+    for bad_value in (None, 1234, object):
+      with pytest.raises(RecordIO.InvalidTypeException):
+        assert StringCodec().encode(bad_value)
+      with pytest.raises(RecordIO.InvalidTypeException):
+        assert StringCodec().decode(bad_value)

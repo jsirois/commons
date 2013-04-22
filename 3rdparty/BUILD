@@ -352,6 +352,9 @@ jar_library(name = 'kryo-serializers',
             ]
            )
 
+jar_library(name = 'log4j',
+            dependencies = [ jar(org = 'log4j', name = 'log4j', rev = '1.2.15').with_sources() ])
+
 # TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
 def lucene_jar_library(name, jar_name, rev, force=False):
   jar_library(name = name,
@@ -405,7 +408,7 @@ jar_library(name = 'mustache',
 
 jar_library(name = 'ostrich',
             dependencies = [
-              jar(org = 'com.twitter', name = 'ostrich', rev = '8.2.2').with_sources()
+              jar(org = 'com.twitter', name = 'ostrich', rev = '8.2.3').with_sources()
             ])
 
 jar_library(name = 'protobuf-2.4.1',

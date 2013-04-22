@@ -21,38 +21,6 @@ import threading
 
 import bottle
 
-class QuittableServer(bottle.ServerAdapter):
-  """
-    A wrapper around wsgiref.simple_server that exposes its shutdown method.
-  """
-  def __init__(self, *args, **kwargs):
-    bottle.ServerAdapter.__init__(self, *args, **kwargs)
-    self._srv = None
-    self._lock = threading.Condition()
-    self._run = False
-
-  def run(self, handler):
-    self._run = True
-    from wsgiref.simple_server import make_server
-    with self._lock:
-      self._srv = make_server(self.host, self.port, handler, **self.options)
-      self._lock.notifyAll()
-    self._srv.serve_forever()
-
-  def shutdown(self):
-    """
-      Shutdown a server that has had its run() method called.
-    """
-    if not self._run:
-      return
-    # the lock/wait shenanigans are required because the construction of this
-    # server takes place lazily in a separate thread.
-    with self._lock:
-      while not self._srv:
-        self.wait()
-      self._srv.shutdown()
-      self._run = False
-
 class HttpServer(object):
   """
     Wrapper around bottle to make class-bound servers a little easier
@@ -102,6 +70,10 @@ class HttpServer(object):
 
   ROUTES_ATTRIBUTE = '__routes__'
   VIEW_ATTRIBUTE = '__view__'
+
+  Request = bottle.request
+  Response = bottle.HTTPResponse
+  redirect = staticmethod(bottle.redirect)
 
   @staticmethod
   def route(*args, **kwargs):
@@ -169,11 +141,11 @@ class HttpServer(object):
     """
     for attr in dir(cls):
       class_attr = getattr(cls, attr)
-      if hasattr(class_attr, HttpServer.VIEW_ATTRIBUTE):
-        args, kw = getattr(class_attr, HttpServer.VIEW_ATTRIBUTE)
-        setattr(self, attr, bottle.view(*args, **kw)(getattr(cls, attr)))
       if hasattr(class_attr, HttpServer.ROUTES_ATTRIBUTE):
         self._bind_method(cls, attr)
+        if hasattr(class_attr, HttpServer.VIEW_ATTRIBUTE):
+          args, kw = getattr(class_attr, HttpServer.VIEW_ATTRIBUTE)
+          setattr(self, attr, bottle.view(*args, **kw)(getattr(self, attr)))
         for args, kwargs in getattr(class_attr, HttpServer.ROUTES_ATTRIBUTE):
           kwargs = copy.deepcopy(kwargs)
           kwargs.update({'callback': getattr(self, attr)})

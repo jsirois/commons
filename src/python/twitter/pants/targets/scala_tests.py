@@ -21,34 +21,25 @@ from .resources import Resources
 class ScalaTests(JvmTarget):
   """Defines a target that tests a scala library."""
 
-  def __init__(self,
-               name,
-               sources = None,
-               java_sources = None,
-               dependencies = None,
-               excludes = None,
-               resources = None,
-               buildflags = None):
-
+  def __init__(self, name, sources=None, java_sources=None, dependencies=None, excludes=None,
+               resources=None, buildflags=None):
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
-    sources: A list of paths containing the scala source files this modules tests are compiled from
-    provides: An optional Dependency object indicating the The ivy artifact to export
+    sources: A list of paths containing the scala source files this modules tests are compiled from.
+    java_sources: An optional JavaLibrary target or list of targets containing the java libraries
+        this library has a circular dependency on.  Prefer using dependencies to express
+        non-circular dependencies.
     dependencies: An optional list of Dependency objects specifying the binary (jar) dependencies of
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
     resources: An optional list of Resources that should be in this target's classpath.
-    buildflags: A list of additional command line arguments to pass to the underlying build system
-        for this target"""
+    buildflags: DEPRECATED - A list of additional command line arguments to pass to the underlying
+        build system for this target - now ignored.
+    """
 
-    JvmTarget.__init__(self,
-                       name,
-                       sources,
-                       dependencies,
-                       excludes,
-                       buildflags)
-    self.add_label('scala')
-    self.add_label('tests')
+    JvmTarget.__init__(self, name, sources, dependencies, excludes)
+
+    self.add_labels('scala', 'tests')
     self.java_sources = java_sources
     self.resources = list(self.resolve_all(resources, Resources))

@@ -16,6 +16,7 @@
 
 import os
 
+
 def resolve_target_sources(target_sources, extension):
   """given a list of pants targets, extract their sources as a list"""
   resolved_sources = []
@@ -28,11 +29,12 @@ def resolve_target_sources(target_sources, extension):
             for source in resolved.sources if source.endswith(extension))
   return resolved_sources
 
+
 from .annotation_processor import AnnotationProcessor
 from .artifact import Artifact
 from .benchmark import Benchmark
 from .credentials import Credentials
-from .doc import Doc, Page, Wiki
+from .doc import Page, Wiki
 from .exclude import Exclude
 from .exportable_jvm_library import ExportableJvmLibrary
 from .internal import InternalTarget
@@ -58,19 +60,20 @@ from .python_requirement import PythonRequirement
 from .python_target import PythonTarget
 from .python_tests import PythonTests, PythonTestSuite
 from .repository import Repository
+from .resources import Resources
 from .scala_library import ScalaLibrary
 from .scala_tests import ScalaTests
 from .scalac_plugin import ScalacPlugin
 from .sources import SourceRoot
 from .with_sources import TargetWithSources
 
-__all__ = [
+
+__all__ = (
   'AnnotationProcessor',
   'Artifact',
   'Benchmark',
   'Bundle',
   'Credentials',
-  'Doc',
   'Exclude',
   'ExportableJvmLibrary',
   'InternalTarget',
@@ -101,10 +104,11 @@ __all__ = [
   'PythonTests',
   'PythonTestSuite',
   'Repository',
+  'Resources',
   'ScalaLibrary',
   'ScalaTests',
   'ScalacPlugin',
   'SourceRoot',
   'TargetWithSources',
   'Wiki'
-]
+)

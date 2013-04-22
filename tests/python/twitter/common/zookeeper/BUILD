@@ -4,7 +4,6 @@ python_test_suite(
     pants(':client'),
     pants('tests/python/twitter/common/zookeeper/group'),
     pants('tests/python/twitter/common/zookeeper/serverset:all'),
-    pants('tests/python/twitter/common/zookeeper/serversets:all'),
   ],
 )
 

@@ -14,23 +14,11 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'Mark McBride'
+from twitter.pants.base import Target
 
-from twitter.pants.base import Target, TargetDefinitionException
-from twitter.pants.targets.pants_target import Pants
-from twitter.pants.targets.internal import InternalTarget
-from twitter.pants.targets.with_sources import TargetWithSources
-
-class Doc(InternalTarget, TargetWithSources):
-  """A target that processes documentation in a directory"""
-  def __init__(self, name, dependencies=(), sources=None, resources=None):
-    InternalTarget.__init__(self, name, dependencies, None)
-    TargetWithSources.__init__(self, name, sources=sources)
-    if not sources:
-      raise TargetDefinitionException(self, 'No sources specified')
-    self.add_label('doc')
-    self.name = name
-    self.resources = self._resolve_paths(self.target_base, resources) if resources else []
+from .internal import InternalTarget
+from .pants_target import Pants
+from .with_sources import TargetWithSources
 
 
 class Wiki(Target):
@@ -57,9 +45,8 @@ class Page(InternalTarget, TargetWithSources):
     return self.sources[0]
 
   def register_wiki(self, wiki, **kwargs):
-    """
-      Adds this page to the given wiki for publishing.  Wiki-specific configuration is passed as
-      kwargs.
+    """Adds this page to the given wiki for publishing.  Wiki-specific configuration is passed as
+    kwargs.
     """
     if isinstance(wiki, Pants):
       wiki = wiki.get()

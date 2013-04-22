@@ -15,7 +15,8 @@
 # ==================================================================================================
 
 from twitter.pants.base import Target, TargetDefinitionException
-from twitter.pants.targets.util import resolve
+
+from .util import resolve
 
 
 class JarLibrary(Target):
@@ -25,14 +26,15 @@ class JarLibrary(Target):
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
     dependencies: one or more JarDependencies this JarLibrary bundles or Pants pointing to other
-        JarLibraries or JavaTargets"""
+        JarLibraries or JavaTargets
+    """
 
     Target.__init__(self, name)
 
     if dependencies is None:
       raise TargetDefinitionException(self, "A dependencies list must be supplied even if empty.")
 
-    self.add_label('jars')
+    self.add_labels('jars')
     self.dependencies = resolve(dependencies)
     self.dependency_addresses = set()
     for dependency in self.dependencies:

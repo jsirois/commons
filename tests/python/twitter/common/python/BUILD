@@ -19,6 +19,7 @@ python_test_suite(name = 'all',
   dependencies = [
     pants('tests/python/twitter/common/python/http:all'),
     pants(':test_nested'),
+    pants(':test_obtainer'),
     pants(':test_platform'),
     pants(':test_pex_builder_main'),
   ]
@@ -27,7 +28,14 @@ python_test_suite(name = 'all',
 python_tests(name = 'test_nested',
   sources = ['test_nested.py'],
   dependencies = [
-    'src/python/twitter/common/python'
+    pants('src/python/twitter/common/python')
+  ]
+)
+
+python_tests(name = 'test_obtainer',
+  sources = ['test_obtainer.py'],
+  dependencies = [
+    pants('src/python/twitter/common/python')
   ]
 )
 

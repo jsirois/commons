@@ -24,6 +24,7 @@ import stat
 import tempfile
 import threading
 
+
 def safe_mkdir(directory, clean=False):
   """
     Ensure a directory is present.  If it's not there, create it.  If it is,
@@ -256,6 +257,7 @@ def unlock_file(fp, close=False):
 
 from twitter.common.dirutil.lock import Lock
 from twitter.common.dirutil.tail import tail_f
+from twitter.common.dirutil.fileset import Fileset
 
 __all__ = (
   'chmod_plus_x',

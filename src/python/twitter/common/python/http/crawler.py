@@ -26,6 +26,10 @@ class CrawlerBase(object):
     self._opener = opener
     self._threads = threads
 
+  @property
+  def opener(self):
+    return self._opener
+
   def crawl(self, *urls):
     links, seen = set(), set()
     queue = Queue()
@@ -48,7 +52,7 @@ class CrawlerBase(object):
 
     for url in urls:
       queue.put(url)
-    for k in range(self._threads):
+    for _ in range(self._threads):
       worker = threading.Thread(target=execute)
       worker.daemon = True
       worker.start()

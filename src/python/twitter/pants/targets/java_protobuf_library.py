@@ -14,19 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
+from .exportable_jvm_library import ExportableJvmLibrary
 
 
 class JavaProtobufLibrary(ExportableJvmLibrary):
   """Defines a target that builds java stubs from a protobuf IDL file."""
 
-  def __init__(self,
-               name,
-               sources,
-               provides = None,
-               dependencies = None,
-               excludes = None,
-               buildflags = None):
+  def __init__(self, name, sources, provides=None, dependencies=None, excludes=None,
+               buildflags=None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -36,18 +31,12 @@ class JavaProtobufLibrary(ExportableJvmLibrary):
         this module.
     excludes: An optional list of dependency exclude patterns to filter all of this module's
         transitive dependencies against.
-    buildflags: A list of additional command line arguments to pass to the underlying build system
-        for this target"""
+    buildflags: DEPRECATED - A list of additional command line arguments to pass to the underlying
+        build system for this target - now ignored.
+    """
 
-    ExportableJvmLibrary.__init__(self,
-                                  name,
-                                  sources,
-                                  provides,
-                                  dependencies,
-                                  excludes,
-                                  buildflags)
-    self.add_label('java')
-    self.add_label('codegen')
+    ExportableJvmLibrary.__init__(self, name, sources, provides, dependencies, excludes)
+    self.add_labels('java', 'codegen')
 
   def _as_jar_dependency(self):
     return ExportableJvmLibrary._as_jar_dependency(self).with_sources()

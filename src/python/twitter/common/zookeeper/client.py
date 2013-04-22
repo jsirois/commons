@@ -263,7 +263,9 @@ class ZooKeeper(object):
           result = self._fn(self._zk._zh)
           self._logger('%s success' % self)
           return result
-        except (zookeeper.ConnectionLossException, zookeeper.InvalidStateException, TypeError) as e:
+        except (zookeeper.ConnectionLossException,
+                zookeeper.InvalidStateException,
+                TypeError) as e:
           # TypeError because we raced on live latch from True=>False when _zh gets reinitialized.
           if isinstance(e, TypeError) and self._zk._zh is not None:
             self._logger('%s excepted, user error' % self)

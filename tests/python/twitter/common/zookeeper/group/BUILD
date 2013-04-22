@@ -1,7 +1,7 @@
 python_test_suite(
   name = 'group',
   dependencies = [
-    ':test_group',
+    pants(':test_group'),
   ],
 )
 

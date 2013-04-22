@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import hashlib
 import os
 import socket
@@ -7,8 +6,7 @@ import struct
 import time
 
 from twitter.common.dirutil import safe_delete, safe_mkdir, safe_mkdtemp
-from twitter.common.lang import AbstractClass, Compatibility
-from twitter.common.python.importer import Nested
+from twitter.common.lang import Compatibility
 from twitter.common.quantity import Amount, Time
 
 if Compatibility.PY3:
@@ -170,7 +168,7 @@ class CachedWeb(object):
         with open(target_tmp, 'wb') as disk_fp:
           disk_fp.write(http_fp.read())
         with open(headers_tmp, 'wb') as headers_fp:
-          headers_fp.write(struct.pack('>h', http_fp.code))
+          headers_fp.write(struct.pack('>h', http_fp.code or 0))
           headers_fp.write(str(http_fp.headers).encode('utf8'))
         os.rename(target_tmp, target)
         os.rename(headers_tmp, headers)

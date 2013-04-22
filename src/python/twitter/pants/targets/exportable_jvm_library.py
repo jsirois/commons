@@ -14,25 +14,18 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.targets.jvm_target import JvmTarget
+from .jvm_target import JvmTarget
 
 
 class ExportableJvmLibrary(JvmTarget):
   """A baseclass for java targets that support being exported to an artifact repository."""
 
-  def __init__(self,
-               name,
-               sources,
-               provides = None,
-               dependencies = None,
-               excludes = None,
-               buildflags = None):
-
-    # it's critical provides is set 1st since _provides() is called elsewhere in the constructor
-    # flow
+  def __init__(self, name, sources, provides=None, dependencies=None, excludes=None):
+    # It's critical that provides is set 1st since _provides() is called elsewhere in the
+    # constructor flow.
     self.provides = provides
 
-    JvmTarget.__init__(self, name, sources, dependencies, excludes, buildflags)
+    JvmTarget.__init__(self, name, sources, dependencies, excludes)
     self.add_labels('exportable')
 
   def _provides(self):

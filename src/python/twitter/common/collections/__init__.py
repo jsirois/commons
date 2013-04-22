@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==================================================================================================
 
-__author__ = 'John Sirois'
-
 from twitter.common.lang import Compatibility
 
 if Compatibility.PY2:
@@ -26,12 +24,17 @@ from .orderedset import OrderedSet
 from .ringbuffer import RingBuffer
 
 
-def maybe_list(value, expected_type=Compatibility.string):
-  """
-    Given a value that could be a single value or iterable of a particular
-    type, always return a list of that type.  By default the expected type
-    is a string, but can be specified with the 'expected_type' kwarg, which
-    can be a type or tuple of types. Raises ValueError if any type mismatches.
+def maybe_list(value, expected_type=Compatibility.string, raise_type=ValueError):
+  """Given a value that could be a single value or iterable of a particular type, always return a
+  list of that type.
+
+  By default the expected type is a string, but can be specified with the 'expected_type' kwarg,
+  which can be a type or tuple of types.
+
+  By default raises ValueError on 'expected_type' mismatch, but can be specified with the
+  'raise_type' kwarg.
+
+  Raises ValueError if any type mismatches.
   """
   from collections import Iterable
   if isinstance(value, expected_type):
@@ -39,10 +42,10 @@ def maybe_list(value, expected_type=Compatibility.string):
   elif isinstance(value, Iterable):
     real_values = list(value)
     if not all(isinstance(v, expected_type) for v in real_values):
-      raise ValueError('Element of list is not of type %r' % expected_type)
+      raise raise_type('Element of list is not of type ' + repr(expected_type))
     return real_values
   else:
-    raise ValueError('Value must be a %r or iterable of %r' % (expected_type, expected_type))
+    raise raise_type('Value must be a %r or iterable of %r' % (expected_type, expected_type))
 
 
 __all__ = (

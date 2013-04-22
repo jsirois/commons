@@ -16,7 +16,6 @@
 
 from __future__ import print_function
 
-import daemon
 import inspect
 import os
 import sys
@@ -189,8 +188,6 @@ class Goal(Command):
     Option("--verify-artifact-cache", "--no-verify-artifact-cache", action="callback",
       callback=_set_bool, dest="verify_artifact_cache", default=False,
       help="Whether to verify that cached artifacts are identical after rebuilding them."),
-    Option("--no-colors", dest="no_color", action="store_true", default=turn_off_colored_logging,
-           help="Do not colorize log messages."),
     Option("--all", dest="target_directory", action="append",
            help="DEPRECATED: Use [dir]: with no flag in a normal target position on the command "
                 "line. (Adds all targets found in the given directory's BUILD file. Can be "
@@ -255,7 +252,7 @@ class Goal(Command):
       exc_type, exc_value, _ = sys.exc_info()
       msg = StringIO()
       if include_traceback:
-        frame = inspect.trace()[-1]
+        frame = inspect.trace()[-2]
         filename = frame[1]
         lineno = frame[2]
         funcname = frame[3]
@@ -331,9 +328,6 @@ class Goal(Command):
 
       self.requested_goals = goals
 
-      # TODO(John Sirois): kill PANTS_NEW and its usages when pants.new is rolled out
-      ParseContext.enable_pantsnew()
-
       # Bootstrap goals by loading any configured bootstrap BUILD files
       with self.check_errors('The following bootstrap_buildfiles cannot be loaded:') as error:
         with self.timer.timing('parse:bootstrap'):
@@ -400,14 +394,6 @@ class Goal(Command):
     if self.options.dry_run:
       print('****** Dry Run ******')
 
-    with self.check_errors("Target contains a dependency cycle") as error:
-      with self.timer.timing('parse:check_cycles'):
-        for target in self.targets:
-          try:
-            InternalTarget.check_cycles(target)
-          except InternalTarget.CycleException as e:
-            error(target.id)
-
     logger = None
     if self.options.log or self.options.log_level:
       log.LogOptions.set_stderr_log_level((self.options.log_level or 'info').upper())
@@ -463,7 +449,12 @@ class Goal(Command):
     if logger:
       logger.debug('Operating on targets: %s' % self.targets)
 
-    return Phase.attempt(context, self.phases, print_timing=self.options.time)
+    ret = Phase.attempt(context, self.phases)
+    if self.options.time:
+      print('Timing report')
+      print('=============')
+      self.timer.print_timings()
+    return ret
 
   def cleanup(self):
     # TODO: Make this more selective? Only kill nailguns that affect state? E.g., checkstyle

@@ -31,8 +31,8 @@ import os
 import shlex
 import sys
 import threading
-
 from collections import defaultdict, deque
+from functools import partial
 
 from twitter.common import options
 from twitter.common.app.module import AppModule
@@ -282,8 +282,6 @@ class Application(object):
     argv = sys.argv[1:] if force_args is None else force_args
     if argv and argv[0] in self._commands:
       self._command = argv.pop(0)
-    elif None in self._commands:
-      self._command = self._commands[None].__name__
     else:
       self._command = None
     parser = self._construct_full_parser()
@@ -446,15 +444,36 @@ class Application(object):
     added_option = self._get_option_from_args(args, kwargs)
     self._add_option(calling_module, added_option)
 
-  def command(self, function):
+  def command(self, function=None, name=None):
     """
       Decorator to turn a function into an application command.
+
+      To add a command foo, the following patterns will both work:
+
+      @app.command
+      def foo(args, options):
+        ...
+
+      @app.command(name='foo')
+      def bar(args, options):
+        ...
+    """
+    if name is None:
+      return self._register_command(function)
+    else:
+      return partial(self._register_command, command_name=name)
+
+  def _register_command(self, function, command_name=None):
+    """
+      Registers function as the handler for command_name. Uses function.__name__ if command_name
+      is None.
     """
     if Inspection.find_calling_module() == '__main__':
-      func_name = function.__name__
-      if func_name in self._commands:
-        raise Application.Error('Found two definitions for command %s' % func_name)
-      self._commands[func_name] = function
+      if command_name is None:
+        command_name = function.__name__
+      if command_name in self._commands:
+        raise Application.Error('Found two definitions for command %s' % command_name)
+      self._commands[command_name] = function
     return function
 
   def default_command(self, function):
@@ -591,6 +610,7 @@ class Application(object):
     self._teardown_modules()
     self._debug_log('Finishing up module teardown.')
     nondaemons = 0
+    self.dump_profile()
     for thr in threading.enumerate():
       self._debug_log('  Active thread%s: %s' % (' (daemon)' if thr.isDaemon() else '', thr))
       if thr is not threading.current_thread() and not thr.isDaemon():
@@ -648,6 +668,11 @@ class Application(object):
     """
       If called from __main__ module, run script's main() method with arguments passed
       and global options parsed.
+
+      The following patterns are acceptable for the main method:
+         main()
+         main(args)
+         main(args, options)
     """
     main_module = Inspection.find_calling_module()
     if main_module != '__main__':

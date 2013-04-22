@@ -140,7 +140,7 @@ _mybottle_src_mybottle_resources_en_US_hello_mako = FileSpec(
 
 # <--------- Test Data ----------
 
-@pytest.mark.skipif("os.environ.get('CI_RUN', False)")
+@pytest.mark.skipif("True")
 class TestPEXBuilderMain(object):
   def _ensure_mybottle_pex_runs(self, mybottle_pex_path):
     max_wait_time = 10 # seconds

@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 import functools
 import posixpath
 import socket
@@ -12,6 +12,7 @@ except ImportError:
 
 from twitter.common.concurrent import Future
 from twitter.common.exceptions import ExceptionalThread
+from twitter.common.lang import Interface
 from twitter.common.zookeeper.constants import ReturnCode
 
 
@@ -50,12 +51,10 @@ class Membership(object):
       return 'Membership(%r)' % self._id
 
 
-class GroupInterface(object):
+class GroupInterface(Interface):
   """
     A group of members backed by immutable blob data.
   """
-
-  __metaclass__ = ABCMeta
 
   @abstractmethod
   def join(self, blob, callback=None, expire_callback=None):
@@ -67,7 +66,6 @@ class GroupInterface(object):
       If expire_callback is provided, it is called with no arguments when
       the membership is terminated for any reason.
     """
-    pass
 
   @abstractmethod
   def info(self, membership, callback=None):
@@ -76,7 +74,6 @@ class GroupInterface(object):
       Membership.error() if no membership exists.  If callback is provided,
       this operation is done asynchronously.
     """
-    pass
 
   @abstractmethod
   def cancel(self, membership, callback=None):
@@ -85,7 +82,6 @@ class GroupInterface(object):
       exist.  Returns false if the membership exists and we failed to cancel
       it.  If callback is provided, this operation is done asynchronously.
     """
-    pass
 
   @abstractmethod
   def monitor(self, membership_set=frozenset(), callback=None):
@@ -94,7 +90,6 @@ class GroupInterface(object):
       different.  If callback is provided, this operation is done
       asynchronously.
     """
-    pass
 
   @abstractmethod
   def list(self):
@@ -102,7 +97,6 @@ class GroupInterface(object):
       Synchronously return the list of underlying members.  Should only be
       used in place of monitor if you cannot afford to block indefinitely.
     """
-    pass
 
 
 class Promise(object):
@@ -139,17 +133,6 @@ def set_different(promise, current_members, actual_members):
     return True
 
 
-# TODO(wickman) Pull this out into twitter.common.decorators
-def documented_by(documenting_abc):
-  def document(cls):
-    cls_dict = cls.__dict__.copy()
-    for attr in documenting_abc.__abstractmethods__:
-      cls_dict[attr].__doc__ = getattr(documenting_abc, attr).__doc__
-    return type(cls.__name__, cls.__mro__[1:], cls_dict)
-  return document
-
-
-@documented_by(GroupInterface)
 class Group(GroupInterface):
   """
     An implementation of GroupInterface against Zookeeper.
@@ -181,22 +164,27 @@ class Group(GroupInterface):
     self._member_lock = threading.Lock()
     self._acl = acl or zk.DEFAULT_ACL
 
-  def _prepare_path(self, event):
+  def _prepare_path(self, success):
     class Background(ExceptionalThread):
       def run(_):
         child = '/'
-        failures = set()
         for component in self._path.split('/')[1:]:
           child = posixpath.join(child, component)
-          try:
-            self._zk.create(child, "", self._acl)
-          except zookeeper.NoAuthException:
-            if not self._zk.exists(child):
-              event.set(False)
-              return
-          except zookeeper.NodeExistsException:
-            continue
-        event.set(self._path not in failures)
+          while True:
+            try:
+              self._zk.create(child, "", self._acl)
+              break
+            except zookeeper.NodeExistsException:
+              break
+            except zookeeper.NoAuthException:
+              if self._zk.exists(child):
+                break
+              else:
+                success.set(False)
+                return
+            except zookeeper.OperationTimeoutException:
+              pass # retry
+        success.set(True)
     background = Background()
     background.daemon = True
     background.start()

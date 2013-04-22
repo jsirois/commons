@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import os
 import sys
-
 from zipimport import zipimporter
 
 from twitter.common.dirutil import safe_rmtree, safe_mkdtemp

@@ -45,8 +45,8 @@ class ServerSet(object):
   def join(self, endpoint, additional=None, shard=None, callback=None, expire_callback=None):
     """
       Given 'endpoint' (twitter.common.zookeeper.serverset.Endpoint) and an
-      optional map 'additional' of string => endpoint (also Endpoint), and an optional shard id,
-      create a ServiceInstance and join it into this ServerSet.
+      optional map 'additional' of string => endpoint (also Endpoint), and an
+      optional shard id, create a ServiceInstance and join it into this ServerSet.
 
       If 'callback' is provided, the join will be done asynchronously and
       'callback' will be called with the Membership object associated with

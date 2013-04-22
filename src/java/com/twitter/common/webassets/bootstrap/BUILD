@@ -18,7 +18,7 @@ java_library(name = 'bootstrap',
   provides = artifact(
     org = 'com.twitter.common-webassets',
     name = 'bootstrap',
-    repo = pants('build-support/twitter/ivy:internal'),
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
     pants('3rdparty:guava'),

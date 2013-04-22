@@ -14,14 +14,14 @@
 # limitations under the License.
 # ==================================================================================================
 
-from collections import defaultdict
-
 import os
 import shlex
 
+from collections import defaultdict
+
 from twitter.common.dirutil import safe_open, safe_mkdir
 
-from twitter.pants import has_sources, is_apt
+from twitter.pants import has_sources, is_apt, Task
 from twitter.pants.base.target import Target
 from twitter.pants.tasks import TaskError
 from twitter.pants.tasks.jvm_compiler_dependencies import Dependencies
@@ -74,12 +74,13 @@ class JavaCompile(NailgunTask):
                                  "enabled.")
 
     option_group.add_option(mkflag("args"), dest="java_compile_args", action="append",
-                            help = "Pass these extra args to javac.")
+                            help="Pass these extra args to javac.")
 
     option_group.add_option(mkflag("partition-size-hint"), dest="java_compile_partition_size_hint",
                             action="store", type="int", default=-1,
-                            help="Roughly how many source files to attempt to compile together. Set to a large number to compile "\
-                                 "all sources together. Set this to 0 to compile target-by-target. Default is set in pants.ini.")
+                            help="Roughly how many source files to attempt to compile together. Set"
+                                 " to a large number to compile all sources together. Set this to 0"
+                                 " to compile target-by-target. Default is set in pants.ini.")
 
   def __init__(self, context):
     NailgunTask.__init__(self, context, workdir=context.config.get('java-compile', 'nailgun_dir'))
@@ -253,7 +254,8 @@ class JavaCompile(NailgunTask):
     opts.extend(map(lambda arg: '-C%s' % arg, self._javac_opts))
 
     opts.extend(self._opts)
-    return self.runjava_indivisible(_JMAKE_MAIN, classpath=jmake_classpath, opts=opts, args=sources, jvmargs=self._jvm_args)
+    return self.runjava_indivisible(_JMAKE_MAIN, classpath=jmake_classpath, opts=opts, args=sources,
+                                    jvmargs=self._jvm_args)
 
   def check_artifact_cache(self, vts):
     # Special handling for java artifacts.

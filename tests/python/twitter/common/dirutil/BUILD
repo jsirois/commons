@@ -32,6 +32,6 @@ python_tests(name = 'dirutil',
 python_tests(name = 'fileset',
   sources = ['fileset_test.py'],
   dependencies = [
-    'src/python/twitter/common/dirutil',
+    pants('src/python/twitter/common/dirutil'),
   ]
 )

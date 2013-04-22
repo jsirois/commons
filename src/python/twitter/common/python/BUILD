@@ -18,7 +18,6 @@ python_library(
   name = "python",
   sources = rglobs('*.py'),
   dependencies = [
-    python_requirement('pip'),
     python_requirement('distribute'),
     pants('src/python/twitter/common'),
   ],
@@ -31,7 +30,11 @@ Twitter's Python interoperability libraries.  Includes support for package
 fetching, building, installing, "distillation" into eggs, a recursive
 zipimport implementation and Twitter's "PEX" standalone Python packaging
 environment.
-"""
+""",
+    namespace_packages = [
+      'twitter',
+      'twitter.common'
+    ]
   )
 )
 
@@ -39,9 +42,9 @@ python_binary(
   name = 'distiller',
   source = 'distiller.py',
   dependencies = [
-    'src/python/twitter/common/app',
-    'src/python/twitter/common/log',
-    ':python',
+    pants('src/python/twitter/common/app'),
+    pants('src/python/twitter/common/log'),
+    pants(':python'),
   ]
 )
 

@@ -34,6 +34,10 @@ python_library(
   provides = setup_py(
     name = 'twitter.common-core',
     version = '0.0.0',
-    description = "Twitter's core Python libraries."
+    description = "Twitter's core Python libraries.",
+    namespace_packages = [
+      'twitter',
+      'twitter.common'
+    ]
   )
 )

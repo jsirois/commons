@@ -34,7 +34,7 @@ python_library(
     python_requirement('pystache'),
     python_requirement("pytest"),
     python_requirement("pytest-cov"),
-    python_requirement("python-daemon"),
+    python_requirement("python_daemon"),
   ]
 )
 

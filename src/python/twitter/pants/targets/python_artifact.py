@@ -28,7 +28,6 @@ class PythonArtifact(object):
     'package_dir',
     'package_data',
     'packages',
-    'namespace_packages'
   ])
 
   def __init__(self, **kwargs):

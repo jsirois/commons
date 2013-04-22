@@ -18,7 +18,7 @@ __author__ = 'Benjy Weinberger'
 
 import os
 
-from twitter.pants import has_sources, is_scalac_plugin
+from twitter.pants import has_sources, is_scalac_plugin, get_buildroot
 from twitter.pants.targets.scala_library import ScalaLibrary
 from twitter.pants.tasks import Task, TaskError
 from twitter.pants.tasks.jvm_dependency_cache import JvmDependencyCache
@@ -29,7 +29,6 @@ from twitter.pants.tasks.scala.zinc_utils import ZincUtils
 
 def _is_scala(target):
   return has_sources(target, '.scala')
-
 
 
 class ScalaCompile(NailgunTask):
@@ -84,6 +83,11 @@ class ScalaCompile(NailgunTask):
       self._opts.extend(context.config.getlist('scala-compile', 'warning_args'))
     else:
       self._opts.extend(context.config.getlist('scala-compile', 'no_warning_args'))
+
+    # Various output directories.
+    workdir = context.config.get('scala-compile', 'workdir')
+    self._resources_dir = os.path.join(workdir, 'resources')
+    self._artifact_factory = ZincArtifactFactory(workdir, self.context, self._zinc_utils)
 
     # The ivy confs for which we're building.
     self._confs = context.config.getlist('scala-compile', 'confs')

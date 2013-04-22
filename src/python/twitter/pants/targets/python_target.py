@@ -15,9 +15,12 @@
 # ==================================================================================================
 
 from twitter.common.collections import OrderedSet
+
 from twitter.pants.base import Target
-from twitter.pants.targets.util import resolve
-from twitter.pants.targets.with_sources import TargetWithSources
+
+from .util import resolve
+from .with_sources import TargetWithSources
+
 
 class PythonTarget(TargetWithSources):
   def __init__(self, name, sources, resources=None, dependencies=None, provides=None):
@@ -25,7 +28,7 @@ class PythonTarget(TargetWithSources):
 
     processed_dependencies = resolve(dependencies)
 
-    self.add_label('python')
+    self.add_labels('python')
     self.sources = self._resolve_paths(self.target_base, sources)
     self.resources = self._resolve_paths(self.target_base, resources) if resources else OrderedSet()
     self.dependencies = OrderedSet(processed_dependencies or ())

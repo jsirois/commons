@@ -31,7 +31,7 @@ class Group(object):
           phase_timings[name].append(elapsed)
 
     tasks_by_goalname = dict((goal.name, task.__class__.__name__)
-        for goal, task in tasks_by_goal.items())
+                             for goal, task in tasks_by_goal.items())
 
     def expand_goal(goal):
       if len(goal) == 2: # goal is (group, goal)
@@ -43,9 +43,9 @@ class Group(object):
         return "%s->%s" % (goal, task_name)
 
     if phase not in executed:
-      # Note the locking strategy: We lock the first time we need to, and hold the lock until we're done,
-      # even if some of our deps don't themselves need to be serialized. This is because we may implicitly rely
-      # on pristine state from an earlier phase.
+      # Note the locking strategy: We lock the first time we need to, and hold the lock until we're
+      # done, even if some of our deps don't themselves need to be serialized. This is because we
+      # may implicitly rely on pristine state from an earlier phase.
       locked_by_me = False
 
       if context.is_unlocked() and phase.serialize():

@@ -14,19 +14,15 @@
 # limitations under the License.
 # ==================================================================================================
 
-from twitter.pants.targets.exportable_jvm_library import ExportableJvmLibrary
-from twitter.pants.targets.resources import WithLegacyResources
+from .exportable_jvm_library import ExportableJvmLibrary
+from .resources import WithLegacyResources
 
 
 class AnnotationProcessor(ExportableJvmLibrary, WithLegacyResources):
   """Defines a target that produces a java library containing one or more annotation processors."""
 
-  def __init__(self, name, sources,
-               provides = None,
-               dependencies = None,
-               excludes = None,
-               resources = None,
-               processors = None):
+  def __init__(self, name, sources, provides=None, dependencies=None, excludes=None, resources=None,
+               processors=None):
 
     """name: The name of this module target, addressable via pants via the portion of the spec
         following the colon
@@ -39,17 +35,10 @@ class AnnotationProcessor(ExportableJvmLibrary, WithLegacyResources):
     resources: An optional list of paths containing (filterable) text file resources to place in
         this module's jar
     processors: a list of the fully qualified class names of the annotation processors this library
-        exports"""
+        exports
+    """
 
-    ExportableJvmLibrary.__init__(self,
-                                  name,
-                                  sources,
-                                  provides,
-                                  dependencies,
-                                  excludes,
-                                  ())
-
+    ExportableJvmLibrary.__init__(self, name, sources, provides, dependencies, excludes)
     WithLegacyResources.__init__(self, name, sources=sources, resources=resources)
-
     self.add_labels('java', 'apt')
     self.processors = processors

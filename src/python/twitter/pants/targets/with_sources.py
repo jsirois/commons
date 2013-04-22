@@ -22,7 +22,9 @@ from twitter.common.contextutil import pushd
 from twitter.common.lang import Compatibility
 from twitter.pants import get_buildroot
 from twitter.pants.base import Target
-from twitter.pants.targets.sources import SourceRoot
+
+from .sources import SourceRoot
+
 
 class TargetWithSources(Target):
 
@@ -33,7 +35,7 @@ class TargetWithSources(Target):
     cls._source_to_targets[source].add(target)
 
   def __init__(self, name, sources=None):
-    Target.__init__(self, name, is_meta=False)
+    Target.__init__(self, name)
 
     self.add_labels('sources')
     self.target_base = SourceRoot.find(self)
@@ -42,7 +44,8 @@ class TargetWithSources(Target):
 
   def expand_files(self, recursive=True, include_buildfile=True):
     """Expand files used to build this target to absolute paths.  By default this expansion is done
-    recursively and target BUILD files are included."""
+    recursively and target BUILD files are included.
+    """
 
     files = []
 
@@ -73,24 +76,27 @@ class TargetWithSources(Target):
     self._resolved_sources = sources
 
   def _resolve_paths(self, rel_base, paths):
-    """
-      Resolves paths relative to the given rel_base from the build root.
-      For example:
-        target: ~/workspace/src/java/com/twitter/common/base/BUILD
-        rel_base: src/resources
+    """Resolves paths relative to the given rel_base from the build root.
 
-      Resolves paths from:
-        ~/workspace/src/resources/com/twitter/common/base
+    For example:
+      target: ~/workspace/src/java/com/twitter/common/base/BUILD
+      rel_base: src/resources
+
+    Resolves paths from:
+      ~/workspace/src/resources/com/twitter/common/base
     """
 
     if not paths:
       return []
 
     def flatten_paths(*items):
-      """Flattens one or more items into a list.  If the item is iterable each of its items is
-      flattened.  If an item is callable, it is called and the result is flattened.  Otherwise the
-      atom is appended to the flattened list.  These rules are applied recursively such that the
-      returned list will only contain non-iterable, non-callable atoms."""
+      """Flattens one or more items into a list.
+
+      If the item is iterable each of its items is flattened.  If an item is callable, it is called
+      and the result is flattened.  Otherwise the atom is appended to the flattened list.  These
+      rules are applied recursively such that the returned list will only contain non-iterable,
+      non-callable atoms.
+      """
 
       flat = []
 
@@ -117,4 +123,4 @@ class TargetWithSources(Target):
 
     resolve_basepath = os.path.join(get_buildroot(), rel_base, src_relpath)
     with pushd(resolve_basepath):
-      return [ os.path.normpath(os.path.join(src_relpath, path)) for path in flatten_paths(paths) ]
+      return [os.path.normpath(os.path.join(src_relpath, path)) for path in flatten_paths(paths)]
