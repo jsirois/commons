@@ -214,6 +214,9 @@ public class CmdLineProcessor extends AbstractProcessor {
           }
         }
       }
+    // TODO(John Sirois): Investigate narrowing this catch - its not clear there is any need to be
+    // so general.
+    // SUPPRESS CHECKSTYLE RegexpSinglelineJava
     } catch (RuntimeException e) {
       // Catch internal errors - when these bubble more useful queued error messages are lost in
       // some javac implementations.

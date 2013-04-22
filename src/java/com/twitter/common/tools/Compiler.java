@@ -213,6 +213,8 @@ public final class Compiler {
   public static int compile(String[] args) {
     try {
       return doCompile(args);
+    // We want a controlled exit.
+    // SUPPRESS CHECKSTYLE RegexpSinglelineJava
     } catch (Throwable t) {
       System.err.println("Unexpected compilation error:");
       t.printStackTrace(System.err);

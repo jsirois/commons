@@ -330,6 +330,8 @@ public final class Either<L, R> {
 
     try {
       return right(work.get());
+    // We're explicitly dealing with generic exception types here by design.
+    // SUPPRESS CHECKSTYLE RegexpSinglelineJava
     } catch (Exception e) {
       for (Class<? extends X> exceptionType : exceptionTypes) {
         if (exceptionType.isInstance(e)) {

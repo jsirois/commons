@@ -274,6 +274,8 @@ public class JUnitConsoleRunner {
       @Override public void run() {
         try {
           abortableListener.abort(new UnknownError("Abnormal VM exit - test crashed."));
+	// We want to trap and log no matter why abort failed for a better end user message.
+	// SUPPRESS CHECKSTYLE RegexpSinglelineJava
         } catch (Exception e) {
           out.println(e);
           e.printStackTrace(out);
@@ -340,6 +342,8 @@ public class JUnitConsoleRunner {
         // Any of a number of runtime linking errors can occur when trying to load a class,
         // fail with the test spec so the class failing to link is known.
         notFoundError(spec, out, e);
+      // See the comment below for justification.
+      // SUPPRESS CHECKSTYLE RegexpSinglelineJava
       } catch (RuntimeException e) {
         // The class may fail with some variant of RTE in its static initializers, trap these
         // and dump the bad spec in question to help narrow down issue.

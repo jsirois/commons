@@ -52,6 +52,8 @@ public class CompositeRequest extends ParentRunner<Request> {
       eachNotifier.fireTestIgnored();
     } catch (StoppedByUserException e) {
       throw e;
+    // We wan't to fail the test no matter what here for an intelligible user message.
+    // SUPPRESS CHECKSTYLE RegexpSinglelineJava
     } catch (Throwable e) {
       eachNotifier.addFailure(e);
     }
