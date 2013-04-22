@@ -28,7 +28,7 @@ python_library(
   dependencies = [
     python_requirement("ansicolors"),
     python_requirement("elementtree"),
-    python_requirement('markdown'),
+    python_requirement('Markdown'),
     python_requirement("pygments"),
     python_requirement("pylint", version_filter=pylint_build_filter),
     python_requirement('pystache'),
