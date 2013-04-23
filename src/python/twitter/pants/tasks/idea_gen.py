@@ -28,7 +28,7 @@ from twitter.pants.base.generator import TemplateData, Generator
 from twitter.pants.tasks.ide_gen import IdeGen, Project
 
 
-_TEMPLATE_BASEDIR = 'idea/templates'
+_TEMPLATE_BASEDIR = 'templates/idea'
 
 
 _VERSIONS = {
