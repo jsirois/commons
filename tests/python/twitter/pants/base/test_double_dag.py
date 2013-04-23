@@ -2,7 +2,7 @@ __author__ = 'Ryan Williams'
 
 import unittest
 
-from twitter.pants.base import DoubleDag
+from twitter.pants.base.double_dag import DoubleDag
 from twitter.pants.goal import Context
 from twitter.pants.testutils import MockTarget
 
