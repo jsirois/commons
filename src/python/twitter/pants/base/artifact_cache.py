@@ -20,7 +20,7 @@ import shutil
 import urlparse
 
 from twitter.common.quantity import Amount, Data
-from twitter.common.contextutil import open_tar, temporary_file
+from twitter.common.contextutil import open_tar, temporary_file, temporary_file_path
 from twitter.common.dirutil import safe_mkdir, safe_rmtree
 from twitter.common.lang import Compatibility
 
@@ -205,15 +205,14 @@ class RESTfulArtifactCache(ArtifactCache):
     self.compress = compress
 
   def try_insert(self, cache_key, build_artifacts):
-    with temporary_file() as tarfile:
+    with temporary_file_path() as tarfile:
       mode = 'w:bz2' if self.compress else 'w'
       with open_tar(tarfile, mode, dereference=True) as tarout:
         for artifact in build_artifacts:
           # Adds dirs recursively.
           tarout.add(artifact, os.path.relpath(artifact, self.artifact_root))
-      tarfile.close()
 
-      with open(tarfile.name, 'rb') as infile:
+      with open(tarfile, 'rb') as infile:
         path = self._path_for_key(cache_key)
         if not self._request('PUT', path, body=infile):
           raise self.CacheError('Failed to PUT to %s. Error: 404' % self._url_string(path))
@@ -223,9 +222,10 @@ class RESTfulArtifactCache(ArtifactCache):
 
   def use_cached_files(self, cache_key):
     # This implementation fetches the appropriate tarball and extracts it.
+    path = self._path_for_key(cache_key)
     try:
       # Send an HTTP request for the tarball.
-      response = self._request('GET', self._path_for_key(cache_key))
+      response = self._request('GET', path)
       if response is None:
         return False
       expected_size = int(response.getheader('content-length', -1))
