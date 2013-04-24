@@ -83,7 +83,10 @@ class ListTargetsTest(BaseListTargetsTest):
             pants('a/b/c/BUILD:c3'),
             pants('a/b/d/BUILD:d')
           ]
-        )
+        ).with_description("""
+        Exercises alias resolution.
+        Further description.
+        """)
         '''))
 
   def test_list_path(self):
@@ -161,7 +164,7 @@ class ListTargetsTest(BaseListTargetsTest):
     def expand(spec):
       for target in self.targets(spec):
         for tgt in target.resolve():
-          if isinstance(tgt, Target):
+          if isinstance(tgt, Target) and is_concrete(tgt):
             yield tgt
 
     targets = []
@@ -191,13 +194,3 @@ class ListTargetsTest(BaseListTargetsTest):
       args=['--test-documented']
     )
 
-  def assert_entries(self, sep, *output, **kwargs):
-    # We expect each output line to be suffixed with the separator, so for , and [1,2,3] we expect:
-    # '1,2,3,' - splitting this by the separator we should get ['1', '2', '3', ''] - always an extra
-    # empty string if the separator is properly always a suffix and not applied just between
-    # entries.
-    self.assertEqual(sorted(list(output) + ['']), sorted((self.execute_task(**kwargs)).split(sep)))
-
-  def assert_console_output(self, *output, **kwargs):
-    # Order may vary across platforms - we just care that the unique outputs all match up.
-    self.assertEqual(sorted(output), sorted(self.execute_console_task(**kwargs)))

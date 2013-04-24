@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-from __future__ import print_function
+import sys
 
 from twitter.pants.tasks import Task
 
@@ -24,12 +24,13 @@ class ConsoleTask(Task):
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
     option_group.add_option(mkflag("sep"), dest="console_%s_separator" % cls.__name__,
-                            default='\\n', help="String to use to separate path results.")
+                            default='\\n', help="String to use to separate results.")
 
-  def __init__(self, context):
+  def __init__(self, context, outstream=sys.stdout):
     Task.__init__(self, context)
     separator_option = "console_%s_separator" % self.__class__.__name__
-    self.console_separator = getattr(context.options, separator_option).decode('string-escape')
+    self._console_separator = getattr(context.options, separator_option).decode('string-escape')
+    self._outstream = outstream
 
   def execute(self, targets):
     try:

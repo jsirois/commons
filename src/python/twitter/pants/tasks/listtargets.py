@@ -14,14 +14,14 @@
 # limitations under the License.
 # =============================================================================
 
-from twitter.common.collections import OrderedSet
-from twitter.pants import is_exported
-from twitter.pants import get_buildroot
-from twitter.pants.base import Address, BuildFile, Target
-from twitter.pants.tasks.console_task import ConsoleTask
+from twitter.pants import is_exported, get_buildroot
+from twitter.pants.base import BuildFile, Target
 from twitter.pants.tasks import TaskError
+from twitter.pants.tasks.console_task import ConsoleTask
+
 
 __author__ = 'Senthil Kumaran'
+
 
 class ListTargets(ConsoleTask):
   """
@@ -32,13 +32,17 @@ class ListTargets(ConsoleTask):
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
     super(ListTargets, cls).setup_parser(option_group, args, mkflag)
-    option_group.add_option(mkflag("provides"), action="store_true",
-        dest="list_only_provides", default=False,
+
+    option_group.add_option(
+        mkflag("provides"),
+        action="store_true",
+        dest="list_provides", default=False,
         help="Specifies only targets that provide an artifact should be "
         "listed. The output will be 2 columns in this case: "
         "[target address] [artifact id]")
 
-    option_group.add_option(mkflag("provides-columns"),
+    option_group.add_option(
+        mkflag("provides-columns"),
         dest="list_provides_columns",
         default='address,artifact_id',
         help="Specifies the columns to include in listing output when "
@@ -46,9 +50,12 @@ class ListTargets(ConsoleTask):
         "Available columns are: address, artifact_id, repo_name, repo_url "
         "and repo_db")
 
-    option_group.add_option(mkflag("documented"), action="store_true", dest="list_documented",
-        default=False, help="Prints only targets that are documented with a description.")
-
+    option_group.add_option(
+        mkflag("documented"),
+        action="store_true",
+        dest="list_documented",
+        default=False,
+        help="Prints only targets that are documented with a description.")
 
   def __init__(self, context, **kwargs):
     super(ListTargets, self).__init__(context, **kwargs)
@@ -59,17 +66,17 @@ class ListTargets(ConsoleTask):
     self._root_dir = get_buildroot()
 
   def console_output(self, targets):
-    if self.provides:
+    if self._provides:
       def extract_artifact_id(target):
         provided_jar = target._as_jar_dependency()
         return "%s%s%s" % (provided_jar.org, '#', provided_jar.name)
 
       extractors = dict(
-        address = lambda target: str(target.address),
-        artifact_id = extract_artifact_id,
-        repo_name = lambda target: target.provides.repo.name,
-        repo_url = lambda target: target.provides.repo.url,
-        repo_db = lambda target: target.provides.repo.push_db,
+          address = lambda target: str(target.address),
+          artifact_id = extract_artifact_id,
+          repo_name = lambda target: target.provides.repo.name,
+          repo_url = lambda target: target.provides.repo.url,
+          repo_db = lambda target: target.provides.repo.push_db,
       )
 
       def print_provides(column_extractors, address):
@@ -78,11 +85,10 @@ class ListTargets(ConsoleTask):
           return " ".join(extractor(target) for extractor in column_extractors)
 
       try:
-        column_extractors = [ extractors[col] for col in (self.provides_columns.split(',')) ]
-      except KeyError as e:
-        raise TaskError("Invalid columns specified %s. "
-            "Valid ones include address, artifact_id, repo_name, repo_url and repo_db."
-            % self.provides_columns)
+        column_extractors = [extractors[col] for col in (self._provides_columns.split(','))]
+      except KeyError:
+        raise TaskError("Invalid columns specified %s. Valid ones include address, artifact_id, "
+                        "repo_name, repo_url and repo_db." % self._provides_columns)
 
       print_fn = lambda address: print_provides(column_extractors, address)
     elif self._documented:
