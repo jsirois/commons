@@ -44,6 +44,9 @@ class PrepareResources(Task):
       return os.path.join(self.workdir, resources.id)
 
     with self.invalidated(all_resources, invalidate_dependents=True) as invalidation_check:
+      self.context.log.debug('Operating on: %s' % invalidation_check)
+      self.context.log.debug('      all_vts: %s' % invalidation_check.all_vts)
+      self.context.log.debug('  invalid_vts: %s' % invalidation_check.invalid_vts)
       invalid_targets = set()
       for vt in invalidation_check.invalid_vts:
         invalid_targets.update(vt.targets)
@@ -55,10 +58,8 @@ class PrepareResources(Task):
           basedir = os.path.dirname(resource)
           destdir = os.path.join(resources_dir, basedir)
           safe_mkdir(destdir)
-          shutil.copy(
-            os.path.join(resources.target_base, resource),
-            os.path.join(resources_dir, resource)
-          )
+          shutil.copy(os.path.join(resources.target_base, resource),
+                      os.path.join(resources_dir, resource))
 
     genmap = self.context.products.get('resources')
     with self.context.state('classpath', []) as cp:

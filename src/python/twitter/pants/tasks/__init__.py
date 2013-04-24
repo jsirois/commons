@@ -178,7 +178,7 @@ class Task(object):
                                  only_externaldeps=only_buildfiles)
 
     initial_invalidation_check = cache_manager.check(targets, partition_size_hint)
-
+    print('initial_invalidation_check: %s' % initial_invalidation_check)
     # See if we have entire partitions cached.
     partitions_to_check = [vt for vt in initial_invalidation_check.all_vts_partitioned
                            if not vt.valid]

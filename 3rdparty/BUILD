@@ -28,6 +28,16 @@ page(name='readme', source='README.md')
 # Production libs
 #
 
+def add_log4j_excludes(jar):
+  return (jar.exclude(org='jline', name='jline')
+             .exclude(org='javax.jms', name='jms')
+             .exclude(org='com.sun.jdmk', name='jmxtools')
+             .exclude(org='com.sun.jmx', name='jmxri'))
+
+def add_zookeeper_excludes(jar):
+  return add_log4j_excludes(jar.exclude(org='com.twitter.common.zookeeper'))
+
+
 jar_library(name = 'antlr2',
             dependencies = [ jar(org = 'antlr', name = 'antlr', rev = '2.7.7') ])
 
@@ -207,9 +217,9 @@ jar_library(name = 'finagle-zipkin',
 
 jar_library(name = 'finagle-core',
             dependencies = [
-		    jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
-		        .with_sources(),
-            pants(':util-core'),
+              jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+                .with_sources(),
+              pants(':util-core'),
             ])
 
 jar_library(name = 'finagle-http',
@@ -220,21 +230,21 @@ jar_library(name = 'finagle-thrift',
 
 jar_library(name = 'finagle-serversets',
             dependencies = [
-             jar(org = 'com.twitter', name = 'finagle-serversets', rev = FINAGLE_REV)
-                .exclude(org='com.twitter.common')
-                .exclude(org='com.twitter.common.zookeeper')
+             add_zookeeper_excludes(
+               jar(org = 'com.twitter', name = 'finagle-serversets', rev = FINAGLE_REV)
+                 .exclude(org='com.twitter.common'))
             ])
 
 jar_library(name = 'finagle-memcached',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-memcached', rev = FINAGLE_REV)
-                .exclude(org='com.twitter.common.zookeeper')
+              add_zookeeper_excludes(
+                jar(org = 'com.twitter', name = 'finagle-memcached', rev = FINAGLE_REV))
             ])
 
 jar_library(name = 'finagle-kestrel',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-kestrel', rev = FINAGLE_REV)
-                .exclude(org='com.twitter.common.zookeeper')
+              add_zookeeper_excludes(
+                jar(org = 'com.twitter', name = 'finagle-kestrel', rev = FINAGLE_REV))
             ])
 
 jar_library(name = 'finagle-commons-stats',
@@ -353,7 +363,9 @@ jar_library(name = 'kryo-serializers',
            )
 
 jar_library(name = 'log4j',
-            dependencies = [ jar(org = 'log4j', name = 'log4j', rev = '1.2.15').with_sources() ])
+            dependencies = [
+              add_log4j_excludes(jar(org = 'log4j', name = 'log4j', rev = '1.2.15').with_sources())
+            ])
 
 # TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
 def lucene_jar_library(name, jar_name, rev, force=False):
@@ -568,8 +580,8 @@ jar_library(name = 'util-jvm',
 
 jar_library(name = 'util-zk-common',
             dependencies = [
-              jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV)
-                  .exclude(org='com.twitter.common.zookeeper')
+	      add_zookeeper_excludes(
+	        jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV))
             ])
 
 jar_library(name = 'util-thrift',
@@ -587,11 +599,8 @@ jar_library(name = 'vertica',
 
 jar_library(name = 'zookeeper',
             dependencies = [
-              jar(org = 'org.apache.zookeeper', name = 'zookeeper', rev = '3.3.4').with_sources()
-                .exclude(org = 'jline', name = 'jline')
-                .exclude(org = 'javax.jms', name = 'jms')
-                .exclude(org = 'com.sun.jdmk', name = 'jmxtools')
-                .exclude(org = 'com.sun.jmx', name = 'jmxri')
+              add_zookeeper_excludes(
+                jar(org = 'org.apache.zookeeper', name = 'zookeeper', rev = '3.3.4').with_sources())
             ]
            )
 
