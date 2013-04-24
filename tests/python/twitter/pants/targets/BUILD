@@ -19,5 +19,6 @@ python_tests(name = 'targets',
   dependencies = [
     pants("src/python/twitter/pants:pants-lib"),
     pants('tests/python/twitter/pants:base-test'),
+    pants('tests/python/twitter/pants/testutils'),
   ]
 )
