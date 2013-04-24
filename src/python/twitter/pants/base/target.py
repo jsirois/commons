@@ -170,7 +170,7 @@ class Target(object):
   def resolve(self):
     yield self
 
-  def walk(self, work, predicate = None):
+  def walk(self, work, predicate=None):
     """Performs a walk of this target's dependency graph visiting each node exactly once.  If a
     predicate is supplied it will be used to test each target before handing the target to work and
     descending.  Work can return targets in which case these will be added to the walk candidate set
@@ -178,7 +178,7 @@ class Target(object):
 
     self._walk(set(), work, predicate)
 
-  def _walk(self, walked, work, predicate = None):
+  def _walk(self, walked, work, predicate=None):
     for target in self.resolve():
       if target not in walked:
         walked.add(target)
