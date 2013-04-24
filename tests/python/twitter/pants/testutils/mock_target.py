@@ -6,11 +6,10 @@ from twitter.pants.targets import InternalTarget, TargetWithSources
 
 
 class MockTarget(InternalTarget, TargetWithSources):
-  def __init__(self, _id, dependencies=None, num_sources=0):
+  def __init__(self, name, dependencies=None, num_sources=0):
     with ParseContext.temp():
-      InternalTarget.__init__(self, _id, dependencies)
-      TargetWithSources.__init__(self, _id)
-
+      InternalTarget.__init__(self, name, dependencies)
+      TargetWithSources.__init__(self, name)
     self.num_sources = num_sources
 
   def resolve(self):
