@@ -165,6 +165,7 @@ class ZooKeeper(object):
 
   class Error(Exception): pass
   class ConnectionTimeout(Error): pass
+  class InvalidEnsemble(Error): pass
   class Stopped(Error): pass
 
   # White-list of methods that accept a ZK handle as their first argument
@@ -186,18 +187,29 @@ class ZooKeeper(object):
     zookeeper.CLOSING,
   ])
 
-  @staticmethod
-  def expand_ensemble(servers):
+  @classmethod
+  def expand_ensemble(cls, servers):
     """Expand comma-separated list of host:port to comma-separated, fully-resolved list of ip:port."""
     server_ports = []
     for server_port in servers.split(','):
-      server, port = server_port.split(':')
-      for ip in socket.gethostbyname_ex(server)[2]:
-        server_ports.append('%s:%s' % (ip, port))
+      server_split = server_port.split(':', 2)
+      if len(server_split) == 1:
+        server, port = server_split[0], cls.DEFAULT_PORT
+      else:
+        try:
+          server, port = server_split[0], int(server_split[1])
+        except ValueError:
+          raise cls.InvalidEnsemble('Invalid ensemble string: %s' % server_port)
+      try:
+        for ip in socket.gethostbyname_ex(server)[2]:
+          server_ports.append('%s:%s' % (ip, port))
+      except socket.gaierror:
+        raise cls.InvalidEnsemble('Could not resolve %s' % server)
     return ','.join(server_ports)
 
   DEFAULT_TIMEOUT_SECONDS = 30.0
   DEFAULT_ENSEMBLE = 'localhost:2181'
+  DEFAULT_PORT = 2181
   DEFAULT_ACL = ZooDefs.Acls.OPEN_ACL_UNSAFE
   MAX_RECONNECTS = 1
 

@@ -27,6 +27,7 @@ import zipfile
 from contextlib import closing, contextmanager
 
 from twitter.common.dirutil import safe_delete
+from twitter.common.lang import Compatibility
 
 
 @contextmanager
@@ -144,20 +145,24 @@ def mutable_sys():
 
 
 @contextmanager
-def open_zip(path, *args, **kwargs):
+def open_zip(path_or_file, *args, **kwargs):
   """
     A with-context for zip files.  Passes through positional and kwargs to zipfile.ZipFile.
   """
-  with closing(zipfile.ZipFile(path, *args, **kwargs)) as zip:
+  with closing(zipfile.ZipFile(path_or_file, *args, **kwargs)) as zip:
     yield zip
 
 
 @contextmanager
-def open_tar(path, *args, **kwargs):
+def open_tar(path_or_file, *args, **kwargs):
   """
     A with-context for tar files.  Passes through positional and kwargs to tarfile.open.
+
+    If path_or_file is a file, caller must close it separately.
   """
-  with closing(tarfile.open(path, *args, **kwargs)) as tar:
+  (path, fileobj) = ((path_or_file, None) if isinstance(path_or_file, Compatibility.string)
+                     else (None, path_or_file))
+  with closing(tarfile.open(path, *args, fileobj=fileobj, **kwargs)) as tar:
     yield tar
 
 
