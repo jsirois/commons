@@ -35,8 +35,9 @@ class BuildLint(Task):
       action="callback", callback=mkflag.set_bool,
       help="[%default] apply lint rules transitively to all dependency buildfiles.")
 
-    option_group.add_option(mkflag("include-intransitive-deps"), mkflag("include-intransitive-deps", negate=True),
-      dest="builtlint_include_intransitive", default=False,
+    option_group.add_option(mkflag("include-intransitive-deps"),
+      mkflag("include-intransitive-deps", negate=True),
+      dest="buildlint_include_intransitive", default=False,
       action="callback", callback=mkflag.set_bool,
       help="[%default] correct both simple missing dependencies and intransitive missing deps")
 
