@@ -525,10 +525,11 @@ try:
   import daemon
 
   def async_safe_rmtree(root):
-    new_path = root + '.deletable.%f' % time.time()
-    os.rename(root, new_path)
-    with daemon.DaemonContext():
-      safe_rmtree(new_path)
+    if os.path.exists(root):
+      new_path = root + '.deletable.%f' % time.time()
+      os.rename(root, new_path)
+      with daemon.DaemonContext():
+        safe_rmtree(new_path)
 
   goal(
     name='clean-all-async',
