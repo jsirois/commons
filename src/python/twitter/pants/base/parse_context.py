@@ -111,16 +111,17 @@ class ParseContext(object):
         try:
           os.chdir(self.buildfile.parent_path)
           for buildfile in buildfile_family:
-            self.buildfile = buildfile
-            ParseContext._parsed.add(self.buildfile)
+            # We may have traversed a sibling already, guard against re-parsing it.
+            if buildfile not in ParseContext._parsed:
+              ParseContext._parsed.add(buildfile)
 
-            eval_globals = copy.copy(pants_context)
-            eval_globals.update({
-              'ROOT_DIR': buildfile.root_dir,
-              '__file__': buildfile.full_path,
-            })
-            eval_globals.update(global_args)
-            Compatibility.exec_function(buildfile.code(), eval_globals)
+              eval_globals = copy.copy(pants_context)
+              eval_globals.update({
+                'ROOT_DIR': buildfile.root_dir,
+                '__file__': buildfile.full_path,
+              })
+              eval_globals.update(global_args)
+              Compatibility.exec_function(buildfile.code(), eval_globals)
         finally:
           os.chdir(start)
 
