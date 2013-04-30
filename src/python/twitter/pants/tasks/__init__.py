@@ -178,20 +178,20 @@ class Task(object):
                                  only_externaldeps=only_buildfiles)
 
     initial_invalidation_check = cache_manager.check(targets, partition_size_hint)
-    print('initial_invalidation_check: %s' % initial_invalidation_check)
+
     # See if we have entire partitions cached.
     partitions_to_check = [vt for vt in initial_invalidation_check.all_vts_partitioned
                            if not vt.valid]
     cached_partitions, uncached_partitions = self.check_artifact_cache(partitions_to_check)
 
     # See if we have any individual targets from the uncached partitions.
-    vts_to_check = [vt for vt in itertools.chain.from_iterable(
-      [x.versioned_targets for x in uncached_partitions]) if not vt.valid]
+    uncached_vts = [x.versioned_targets for x in uncached_partitions]
+    vts_to_check = [vt for vt in itertools.chain.from_iterable(uncached_vts) if not vt.valid]
     cached_targets, uncached_targets = self.check_artifact_cache(vts_to_check)
 
     # Now that we've checked the cache, re-partition whatever is still invalid.
-    invalidation_check = \
-      InvalidationCheck(initial_invalidation_check.all_vts, uncached_targets, partition_size_hint)
+    invalidation_check = InvalidationCheck(initial_invalidation_check.all_vts, uncached_targets,
+                                           partition_size_hint)
 
     # Do some reporting.
     num_invalid_partitions = len(invalidation_check.invalid_vts_partitioned)

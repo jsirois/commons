@@ -22,13 +22,9 @@ from twitter.pants import is_concrete
 from twitter.pants.base import ParseContext, Target
 from twitter.pants.targets.with_sources import TargetWithSources
 
+
 class Resources(TargetWithSources):
   """Describes a set of resource files to be embedded in a library or binary."""
-
-  def __init__(self, name, sources):
-    TargetWithSources.__init__(self, name)
-
-    self.sources = self._resolve_paths(self.target_base, sources)
 
 
 class WithLegacyResources(TargetWithSources):

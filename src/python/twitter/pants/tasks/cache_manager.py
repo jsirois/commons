@@ -19,7 +19,7 @@ try:
 except ImportError:
   import pickle
 
-from twitter.pants import is_internal
+from twitter.pants import has_sources
 from twitter.pants.base.build_invalidator import (
     BuildInvalidator,
     CacheKeyGenerator,
@@ -302,7 +302,7 @@ class CacheManager(object):
 
   def _order_target_list(self, targets):
     """Orders the targets topologically, from least to most dependent."""
-    targets = set(filter(is_internal, targets))
+    targets = set(filter(has_sources, targets))
     return filter(targets.__contains__, reversed(InternalTarget.sort_targets(targets)))
 
   def _key_for(self, target, dependency_keys):

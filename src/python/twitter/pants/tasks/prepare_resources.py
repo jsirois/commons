@@ -43,10 +43,7 @@ class PrepareResources(Task):
     def target_dir(resources):
       return os.path.join(self.workdir, resources.id)
 
-    with self.invalidated(all_resources, invalidate_dependents=True) as invalidation_check:
-      self.context.log.debug('Operating on: %s' % invalidation_check)
-      self.context.log.debug('      all_vts: %s' % invalidation_check.all_vts)
-      self.context.log.debug('  invalid_vts: %s' % invalidation_check.invalid_vts)
+    with self.invalidated(all_resources) as invalidation_check:
       invalid_targets = set()
       for vt in invalidation_check.invalid_vts:
         invalid_targets.update(vt.targets)

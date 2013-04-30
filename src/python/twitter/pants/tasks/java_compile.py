@@ -139,7 +139,7 @@ class JavaCompile(NailgunTask):
           cp.insert(0, (conf, self._classes_dir))
 
       with self.invalidated(java_targets, invalidate_dependents=True,
-          partition_size_hint=self._partition_size_hint) as invalidation_check:
+                            partition_size_hint=self._partition_size_hint) as invalidation_check:
         for vt in invalidation_check.invalid_vts_partitioned:
           # Compile, using partitions for efficiency.
           self.execute_single_compilation(vt, cp)

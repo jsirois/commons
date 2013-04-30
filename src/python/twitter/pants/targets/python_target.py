@@ -24,12 +24,11 @@ from .with_sources import TargetWithSources
 
 class PythonTarget(TargetWithSources):
   def __init__(self, name, sources, resources=None, dependencies=None, provides=None):
-    TargetWithSources.__init__(self, name)
+    TargetWithSources.__init__(self, name, sources)
 
     processed_dependencies = resolve(dependencies)
 
     self.add_labels('python')
-    self.sources = self._resolve_paths(self.target_base, sources)
     self.resources = self._resolve_paths(self.target_base, resources) if resources else OrderedSet()
     self.dependencies = OrderedSet(processed_dependencies or ())
     self.provides = provides
