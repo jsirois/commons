@@ -16,7 +16,7 @@
 
 java_library(name = 'bootstrap',
   provides = artifact(
-    org = 'com.twitter.common-webassets',
+    org = 'com.twitter.common.webassets',
     name = 'bootstrap',
     repo = pants('build-support/commons/ivy:public'),
   ),
@@ -26,5 +26,5 @@ java_library(name = 'bootstrap',
     pants('src/java/com/twitter/common/application/http'),
   ],
   sources = globs('*.java'),
-  resources = globs('css/*.css') + globs('js/*.js') + rglobs('img/*.png'),
+  resources = globs('**/css/*.css') + globs('**/js/*.js') + rglobs('**/img/*.png'),
 )

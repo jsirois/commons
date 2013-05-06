@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-# This BUILD file defines common external library dependencies used across many modules.  Modules
+# This BUILD file defines common external library dependencies used across many modules. Modules
 # can use these jar_library deps by specifying pants('3rdparty:[name]') in their dependencies list.
 
 ###################
@@ -22,7 +22,6 @@
 #
 
 page(name='readme', source='README.md')
-
 
 ###################
 # Production libs
@@ -53,8 +52,8 @@ jar_library(name = 'antlr-3.4',
 
 jar_library(name = 'antlr4',
             dependencies = [
-                jar(org = 'org.antlr', name = 'antlr4', rev = '4.0').with_sources(),
-                jar(org = 'org.antlr', name = 'antlr4-runtime', rev = '4.0').with_sources()
+                jar(org = 'org.antlr', name = 'antlr4', rev = '4.1').with_sources(),
+                jar(org = 'org.antlr', name = 'antlr4-runtime', rev = '4.1').with_sources()
              ]
            )
 
@@ -94,17 +93,13 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
-CASCADING2_REV = '2.1.6-wip-114'
+CASCADING2_REV = '2.1.6.t3'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-core', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-core', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
-            ])
-
-jar_library(name = 'cascading-kryo',
-            dependencies = [
-              jar(org = 'cascading.kryo', name = 'cascading.kryo', rev = '0.4.6')
+                .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
 
 jar_library(name = 'dspace-geoip',
@@ -114,19 +109,21 @@ jar_library(name = 'dspace-geoip',
 
 jar_library(name = 'maple',
             dependencies = [
-              jar(org = 'com.twitter', name = 'maple', rev = '0.2.7').with_sources()
+              jar(org = 'com.twitter', name = 'maple', rev = '0.3.1').with_sources()
             ])
 
 jar_library(name = 'cascading2-local',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-local', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-local', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
+                .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
 
 jar_library(name = 'cascading2-hadoop',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-hadoop', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-hadoop', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
+                .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
 
 
@@ -137,7 +134,7 @@ jar_library(name = 'cascading-thrift',
             ])
 
 jar_library(name = 'cascading2-test',
-    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV) ]
+    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV, force=True) ]
   )
 
 jar_library(name = 'cascading.jdbc',
@@ -204,21 +201,37 @@ jar_library(name = 'commons-dbcp',
             ]
            )
 
+jar_library(name = 'commons-validator',
+            dependencies = [
+              jar(org = 'commons-validator', name = 'commons-validator', rev = '1.4.0'),
+            ]
+           )
+
 jar_library(name = 'dnsjava',
             dependencies = [
               jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
             ])
 
-# common rev for all com.twitter%finagle* artifacts
-FINAGLE_REV = '5.3.23'
+# Common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
+# Please keep the science netty version in sync with the version used by finagle.
+NETTY_REV = '3.8.0.Final'
+FINAGLE_REV = '6.8.1'
+UTIL_REV = '6.8.1'
+SERVER_REV = '1.3.1'
+
+jar_library(name = 'netty',
+            dependencies = [ jar(org = 'io.netty', name = 'netty', rev = NETTY_REV) ])
+
+jar_library(name = 'finagle-exception',
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-core',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
-                .with_sources(),
+		          jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+		            .with_sources(),
               pants(':util-core'),
             ])
 
@@ -226,7 +239,8 @@ jar_library(name = 'finagle-http',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-http', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-thrift',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift', rev = FINAGLE_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift', rev = FINAGLE_REV)
+                                .withSources() ])
 
 jar_library(name = 'finagle-serversets',
             dependencies = [
@@ -253,14 +267,34 @@ jar_library(name = 'finagle-commons-stats',
                 .exclude(org='com.twitter.common')
             ])
 
+jar_library(name = 'finagle-thriftmux',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-thriftmux', rev = FINAGLE_REV).with_sources()
+            ])
+
+jar_library(name = 'finagle-mysql',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-mysql', rev = FINAGLE_REV).with_sources()
+            ])
+
 jar_library(name = 'finagle-ostrich4',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-ostrich4', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-ostrich4', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-redis',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV).with_sources()
+            ])
+
+jar_library(name = 'finagle-stream',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-stream', rev = FINAGLE_REV).with_sources()
+            ])
+
+jar_library(name = 'finagle-stats',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-stats', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'gdata-core',
@@ -271,16 +305,28 @@ jar_library(name = 'gson',
               jar(org = 'com.google.code.gson', name = 'gson', rev = '2.2.2').with_sources()
             ])
 
+# common rev for all com.google.guava%guava* artifacts
+GUAVA_REV = '15.0'
+
 jar_library(name = 'guava',
             dependencies = [
               jar(
-                org = 'com.google.guava', name = 'guava', rev = '14.0.1',
+                org = 'com.google.guava', name = 'guava', rev = GUAVA_REV,
                 apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
               ).with_sources(),
 
-              # Defined in provided scope so we provide here.
+              # Defined in provided scope so we provide here
               pants(':jsr305'),
               jar(org = 'javax.inject', name = 'javax.inject', rev = '1').with_sources(),
+            ]
+           )
+
+jar_library(name = 'guava-testlib',
+            dependencies = [
+              jar(
+                org = 'com.google.guava', name = 'guava-testlib', rev = GUAVA_REV,
+                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
+              ).with_sources()
             ]
            )
 
@@ -328,14 +374,14 @@ jar_library(name = 'jetty',
 
 jar_library(name = 'joda-money',
             dependencies = [
-              jar(org = 'org.joda', name = 'joda-money', rev = '0.6').with_sources()
+              jar(org = 'org.joda', name = 'joda-money', rev = '0.9').with_sources()
             ]
            )
 
 jar_library(name = 'joda-time',
             dependencies = [
-              jar(org = 'joda-time', name = 'joda-time', rev = '2.1'),
-              jar(org = 'org.joda', name = 'joda-convert', rev = '1.2')
+              jar(org = 'joda-time', name = 'joda-time', rev = '2.3'),
+              jar(org = 'org.joda', name = 'joda-convert', rev = '1.5')
             ]
            )
 
@@ -347,6 +393,14 @@ jar_library(name = 'json-simple',
             dependencies = [
               jar(org = 'com.googlecode.json-simple', name = 'json-simple', rev = '1.1')])
 
+# Extract from the jsr166e proposal
+# See http://github.com/twitter/jsr166e
+jar_library(name = 'jsr166e',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'jsr166e', rev = '1.0.0').with_sources()
+            ]
+           )
+
 jar_library(name = 'jsr305',
             dependencies = [
               jar(org = 'com.google.code.findbugs', name = 'jsr305', rev = '1.3.9')
@@ -355,57 +409,6 @@ jar_library(name = 'jsr305',
 
 jar_library(name = 'jvyaml',
             dependencies = [ jar(org = 'org.jvyaml', name = 'jvyaml', rev = '0.2.1') ])
-
-jar_library(name = 'kryo-serializers',
-            dependencies = [
-              jar(org = 'de.javakaffee', name = 'kryo-serializers', rev = '0.9')
-            ]
-           )
-
-jar_library(name = 'log4j',
-            dependencies = [
-              add_log4j_excludes(jar(org = 'log4j', name = 'log4j', rev = '1.2.15').with_sources())
-            ])
-
-# TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
-def lucene_jar_library(name, jar_name, rev, force=False):
-  jar_library(name = name,
-              dependencies = [
-                jar(org = 'org.apache.lucene',
-                    name = jar_name,
-                    rev = rev,
-                    force=force)
-                .withSources()])
-
-LUCENE_TARGETS = ('lucene-analyzers-common', \
-                  'lucene-core', \
-                  'lucene-queries', \
-                  'lucene-spatial', \
-                  'lucene-queryparser', \
-                  'lucene-test-framework', \
-                  'lucene-analyzers-smartcn', \
-                  'lucene-facet', \
-                  'lucene-suggest')
-
-# make backwards compatible unversioned default targets
-for t in LUCENE_TARGETS:
-  lucene_jar_library(t, t, '4.1.0')
-
-# Alias for lucene-analyzers-common to be backwards compatible
-# TODO: fix this
-java_library(name = 'lucene-analyzers',
-             dependencies = [pants(':lucene-analyzers-common')])
-
-# Make explicitly versioned targets
-# **** Please don't edit this target, instead, create a new, similar one below,
-# **** or edit the loop above instead for new revisions.
-# **** This is important because we don't want this target to ever change without warning
-# **** as it can cause long-lived indexes stored on disk or in hdfs to become unreadable / invalid
-for t in LUCENE_TARGETS:
-  lucene_jar_library(t + '-4.1.0', t, '4.1.0', force=True)
-
-jar_library(name = 'meat-locker',
-            dependencies = [ jar(org='com.twitter', name='meat-locker', rev='0.1.6') ])
 
 jar_library(name = 'mimepull',
             dependencies = [ jar(org='org.jvnet.mimepull', name='mimepull', rev='1.8').with_sources() ])
@@ -420,7 +423,17 @@ jar_library(name = 'mustache',
 
 jar_library(name = 'ostrich',
             dependencies = [
-              jar(org = 'com.twitter', name = 'ostrich', rev = '8.2.3').with_sources()
+              jar(org = 'com.twitter', name = 'ostrich', rev = '9.1.2').with_sources()
+            ])
+
+jar_library(name='passbird-thrift-only',
+            dependencies=[
+              thrift_jar(org='com.twitter', name='passbird-thrift-only', rev='5.0.3')
+            ])
+
+jar_library(name='promptbird-thrift-only',
+            dependencies=[
+              thrift_jar(org='com.twitter', name='promptbird-thrift-only', rev='3.17.0')
             ])
 
 jar_library(name = 'protobuf-2.4.1',
@@ -457,19 +470,6 @@ jar_library(name = 'scalatest',
             ]
            )
 
-jar_library(name = 'scrooge-runtime',
-            dependencies = [
-              # used by scrooge-generator in BUILD.tools:scrooge-gen
-              jar(org='com.twitter', name='scrooge-runtime', rev='3.0.9').with_sources()
-            ]
-          )
-
-jar_library(name = 'jerkson',
-            dependencies = [
-              jar(org='com.codahale', name='jerkson_2.9.3', rev='0.5.0').with_sources()
-            ]
-           )
-
 jar_library(name = 'servlet-api',
             dependencies = [
               jar(org = 'javax.servlet', name = 'servlet-api', rev = '2.5').with_sources()
@@ -502,6 +502,12 @@ jar_library(name = 'snakeyaml',
             ]
            )
 
+jar_library(name = 'snappy',
+            dependencies = [
+              jar(org = 'org.iq80.snappy', name = 'snappy', rev = '0.1').with_sources()
+            ]
+           )
+
 jar_library(name = 'spy-memcached',
             dependencies = [
               jar(org = 'spy', name = 'spymemcached', rev = '2.8.1')
@@ -516,7 +522,7 @@ jar_library(name = 'stringtemplate',
 
 jar_library(name = 'libthrift-0.5.0',
             dependencies = [
-              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0-1'),
+              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0-1').with_sources(),
             ]
            )
 
@@ -557,13 +563,38 @@ jar_library(name = 'twitter4j',
               jar(org = 'org.twitter4j', name = 'twitter4j-core', rev = '2.1.6-patched-1')
                 .intransitive()
             ]
-           )
+           ).with_description('Deprecated & broken - use hbc https://github.com/twitter/hbc')
+
+# hbc-internal is stuck at 1.3.3 and the 1.3.3 series uses twitter4j 2.2.6.  As soon as hbc-internal
+# comes up to hbc-* 1.4.0 external release parity, we should bump to twitter4j 3.x.
+def twitter4j_lib(name):
+  dep = jar(org='org.twitter4j', name=name, rev='2.2.6').with_sources()
+  return jar_library(name=name, dependencies=[dep])
+
+twitter4j_lib('twitter4j-core')
+twitter4j_lib('twitter4j-stream')
+
+jar_library(name = 'twitter-server',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'twitter-server', rev = SERVER_REV)
+                .with_sources()
+                .exclude(org = 'com.twitter.common.zookeeper')
+                .exclude(org = 'com.twitter.common_internal', name = 'zookeeper-utils'),
+              pants('src/java/com/twitter/common/zookeeper:candidate'),
+              pants('src/java/com/twitter/common/zookeeper:client'),
+              pants('src/java/com/twitter/common/zookeeper:group'),
+              pants('src/java/com/twitter/common/zookeeper:server-set'),
+              pants('src/java/com/twitter/common/zookeeper:singleton-service'),
+              pants('src/java/com/twitter/common_internal/zookeeper'),
+            ])
 
 jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
-# common rev for all com.twitter%util* artifacts
-UTIL_REV = '5.3.15'
+jar_library(name = 'twitter-config-yaml',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'twitter-config-yaml', rev = '1.2.0').with_sources()
+            ])
 
 jar_library(name = 'util',
             dependencies = [
@@ -571,17 +602,25 @@ jar_library(name = 'util',
                   .exclude(org = 'com.twitter.common.zookeeper')
             ])
 
+jar_library(name = 'util-app',
+            dependencies = [
+                jar(org = 'com.twitter', name = 'util-app', rev = UTIL_REV).with_sources() ])
+
 jar_library(name = 'util-core',
             dependencies = [
-		    jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
+                jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
+
+jar_library(name = 'util-eval',
+            dependencies = [
+                jar(org = 'com.twitter', name = 'util-eval', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-jvm',
             dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
 
 jar_library(name = 'util-zk-common',
             dependencies = [
-	      add_zookeeper_excludes(
-	        jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV))
+	            add_zookeeper_excludes(
+	              jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV))
             ])
 
 jar_library(name = 'util-thrift',
@@ -596,6 +635,11 @@ jar_library(name = 'util-logging',
 
 jar_library(name = 'vertica',
             dependencies = [ jar(org = 'com.vertica', name = 'vertica', rev = '4.1.2') ])
+
+jar_library(name = "xerces",
+            dependencies = [
+              jar(org = 'xerces', name = 'xercesImpl', rev = '2.9.1')
+            ])
 
 jar_library(name = 'zookeeper',
             dependencies = [
@@ -622,7 +666,22 @@ jar_library(name = 'commons-net',
 
 jar_library(name = 'easymock',
             dependencies = [
-              jar(org = 'org.easymock', name = 'easymock', rev = '3.1').with_sources()
+              jar(org = 'org.easymock', name = 'easymock', rev = '3.2').with_sources(),
+              # Class extension is needed to support the old version of easymockclassextension that
+              # is not dependend on by the easymock dependency
+              jar(org = 'org.easymock', name = 'easymockclassextension', rev = '3.2').with_sources(),
+            ]
+           )
+
+jar_library(name = 'powermock-junit4',
+            dependencies = [
+              jar(org = 'org.powermock', name = 'powermock-module-junit4', rev = '1.4.12').with_sources(),
+            ]
+           )
+
+jar_library(name = 'powermock-easymock',
+            dependencies = [
+              jar(org = 'org.powermock', name = 'powermock-api-easymock', rev = '1.4.12').with_sources()
             ]
            )
 

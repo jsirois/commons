@@ -16,7 +16,6 @@
 
 from glob import glob
 
-
 java_tests(name = 'inject',
   dependencies = [
     '3rdparty:commons-lang',

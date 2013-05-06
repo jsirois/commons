@@ -27,7 +27,7 @@ java_tests(name = 'handlers',
     pants('src/java/com/twitter/common/net/http/handlers'),
     pants('src/java/com/twitter/common/net/http/handlers:time-series'),
     pants('src/java/com/twitter/common/stats:time-series'),
-    pants('src/java/com/twitter/common/testing'),
+    pants('src/java/com/twitter/common/testing/easymock'),
   ],
   sources = glob('*.java')
 )

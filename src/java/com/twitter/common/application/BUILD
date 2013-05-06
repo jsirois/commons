@@ -29,11 +29,10 @@ java_library(name = 'action',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    '3rdparty:guice',
-    'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/net:util',
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('src/java/com/twitter/common/base'),
   ],
   sources = ACTION_SOURCES
 )

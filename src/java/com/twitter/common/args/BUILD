@@ -19,6 +19,7 @@ CORE_SOURCES = [
  'Arg.java',
  'ArgParser.java',
  'CmdLine.java',
+ 'NoParser.java',
  'Parser.java',
  'ParserOracle.java',
  'Positional.java',

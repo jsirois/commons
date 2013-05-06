@@ -151,7 +151,6 @@ public class ZooKeeperMap<V> extends ForwardingMap<String, V> {
     return zkMap;
   }
 
-
   /**
    * Returns an initialized ZooKeeperMap.  The given path must exist at the time of
    * creation or a {@link KeeperException} will be thrown.
