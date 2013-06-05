@@ -34,6 +34,8 @@ def add_log4j_excludes(jar):
             .exclude(org='com.sun.jdmk', name='jmxtools')
             .exclude(org='com.sun.jmx', name='jmxri'))
 
+jar_library(name = 'antlr3',
+            dependencies = [ jar(org = 'antlr', name = 'antlr', rev = '3.1.3') ])
 
 def add_zookeeper_excludes(jar):
   return add_log4j_excludes(jar.exclude(org='com.twitter.common.zookeeper'))
@@ -104,6 +106,22 @@ jar_library(name='commons-lang',
             ]
            )
 
+jar_library(name = 'commons-logging',
+            dependencies = [
+              jar(org = 'commons-logging', name = 'commons-logging', rev = '1.1.1'),
+            ]
+           )
+
+jar_library(name = 'commons-dbcp',
+            dependencies = [
+              jar(org = 'commons-dbcp', name = 'commons-dbcp', rev = '1.2.2'),
+            ]
+           )
+
+jar_library(name = 'dnsjava',
+            dependencies = [
+              jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
+            ])
 
 # common rev for all com.twitter%finagle* artifacts
 FINAGLE_REV = '6.8.1'
@@ -206,6 +224,35 @@ jar_library(name='log4j',
               add_log4j_excludes(jar(org='log4j', name='log4j', rev='1.2.15').with_sources())
             ])
 
+jar_library(name = 'jsch',
+            dependencies = [
+              jar(org = 'com.jcraft', name = 'jsch', rev = '0.1.48')])
+
+jar_library(name = 'json-simple',
+            dependencies = [
+              jar(org = 'com.googlecode.json-simple', name = 'json-simple', rev = '1.1')])
+
+# Extract from the jsr166e proposal
+# See http://github.com/twitter/jsr166e
+jar_library(name = 'jsr166e',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'jsr166e', rev = '1.0.0').with_sources()
+            ]
+           )
+
+jar_library(name = 'jsr305',
+            dependencies = [
+              jar(org = 'com.google.code.findbugs', name = 'jsr305', rev = '1.3.9')
+            ]
+           )
+
+jar_library(name = 'jvyaml',
+            dependencies = [ jar(org = 'org.jvyaml', name = 'jvyaml', rev = '0.2.1') ])
+
+jar_library(name = 'kryo',
+            dependencies = [
+              jar(org = 'com.esotericsoftware.kryo', name = 'kryo', rev = '2.17')
+            ])
 
 # TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
 def lucene_jar_library(name, jar_name, rev, force=False):
