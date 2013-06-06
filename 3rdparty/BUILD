@@ -251,7 +251,7 @@ jar_library(name = 'jvyaml',
 
 jar_library(name = 'kryo',
             dependencies = [
-              jar(org = 'com.esotericsoftware.kryo', name = 'kryo', rev = '2.17')
+              jar(org = 'com.esotericsoftware.kryo', name = 'kryo', rev = '2.21')
             ])
 
 # TODO: move all lucene targets to 3rdparty/jvm/org/apache/lucene
