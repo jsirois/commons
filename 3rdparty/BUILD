@@ -272,6 +272,11 @@ LUCENE_TARGETS = ('lucene-analyzers-common',
 for t in LUCENE_TARGETS:
   lucene_jar_library(t, t, '4.1.0')
 
+# Alias for lucene-analyzers-common to be backwards compatible
+# TODO: fix this
+jar_library(name = 'lucene-analyzers',
+            dependencies = [pants(':lucene-analyzers-common')])
+
 # Make explicitly versioned targets
 # **** Please don't edit this target, instead, create a new, similar one below,
 # **** or edit the loop above instead for new revisions.
@@ -384,6 +389,18 @@ jar_library(name='zookeeper',
                 jar(org='org.apache.zookeeper', name='zookeeper', rev='3.3.4').with_sources())
             ]
            )
+
+jar_library(name = 'twadoop',
+            dependencies = [
+              jar(org ='com.twitter.twadoop', name='twadoop', rev = '1.0')
+            ]
+           )
+
+jar_library(name = 'commons-net',
+           dependencies = [
+             jar(org = 'commons-net', name = 'commons-net', rev = '3.1')
+           ]
+          )
 
 ###############
 # Test support
