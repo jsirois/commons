@@ -268,16 +268,28 @@ jar_library(name = 'gson',
               jar(org = 'com.google.code.gson', name = 'gson', rev = '2.2.2').with_sources()
             ])
 
+# common rev for all com.google.guava%guava* artifacts
+GUAVA_REV = '14.0.1'
+
 jar_library(name = 'guava',
             dependencies = [
               jar(
-                org = 'com.google.guava', name = 'guava', rev = '14.0.1',
+                org = 'com.google.guava', name = 'guava', rev = GUAVA_REV,
                 apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
               ).with_sources(),
 
               # Defined in provided scope so we provide here.
               pants(':jsr305'),
               jar(org = 'javax.inject', name = 'javax.inject', rev = '1').with_sources(),
+            ]
+           )
+
+jar_library(name = 'guava-testlib',
+            dependencies = [
+              jar(
+                org = 'com.google.guava', name = 'guava-testlib', rev = GUAVA_REV,
+                apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
+              ).with_sources()
             ]
            )
 
