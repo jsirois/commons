@@ -571,7 +571,16 @@ jar_library(name = 'twitter4j',
               jar(org = 'org.twitter4j', name = 'twitter4j-core', rev = '2.1.6-patched-1')
                 .intransitive()
             ]
-           )
+           ).with_description('Deprecated & broken - use hbc https://github.com/twitter/hbc')
+
+# hbc-internal is stuck at 1.3.3 and the 1.3.3 series uses twitter4j 2.2.6.  As soon as hbc-internal
+# comes up to hbc-* 1.4.0 external release parity, we should bump to twitter4j 3.x.
+def twitter4j_lib(name):
+  dep = jar(org='org.twitter4j', name=name, rev='2.2.6').with_sources()
+  return jar_library(name=name, dependencies=[dep])
+
+twitter4j_lib('twitter4j-core')
+twitter4j_lib('twitter4j-stream')
 
 jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
