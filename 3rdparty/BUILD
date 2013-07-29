@@ -625,6 +625,11 @@ jar_library(name = 'util-logging',
 jar_library(name = 'vertica',
             dependencies = [ jar(org = 'com.vertica', name = 'vertica', rev = '4.1.2') ])
 
+jar_library(name = "xerces",
+            dependencies = [
+              jar(org = 'xerces', name = 'xercesImpl', rev = '2.9.1')
+            ])
+
 jar_library(name = 'zookeeper',
             dependencies = [
               jar(org = 'org.apache.zookeeper', name = 'zookeeper', rev = '3.3.4').with_sources()
