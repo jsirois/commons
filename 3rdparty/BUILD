@@ -562,6 +562,10 @@ jar_library(name = 'util',
                   .exclude(org = 'com.twitter.common.zookeeper')
             ])
 
+jar_library(name = 'util-app',
+            dependencies = [
+                jar(org = 'com.twitter', name = 'util-app', rev = UTIL_REV).with_sources() ])
+
 jar_library(name = 'util-core',
             dependencies = [
                 jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
