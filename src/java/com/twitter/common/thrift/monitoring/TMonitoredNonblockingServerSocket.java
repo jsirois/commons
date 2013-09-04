@@ -17,12 +17,15 @@
 package com.twitter.common.thrift.monitoring;
 
 import com.google.common.base.Preconditions;
+
 import com.twitter.common.net.monitoring.ConnectionMonitor;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TTransportException;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 /**
  * Extension of TNonblockingServerSocket that allows for tracking of connected clients.
@@ -58,22 +61,40 @@ public class TMonitoredNonblockingServerSocket extends TNonblockingServerSocket 
 
   @Override
   protected TNonblockingSocket acceptImpl() throws TTransportException {
-    /* TODO(William Farner): Finish implementing...may require an object proxy.
     final TNonblockingSocket socket = super.acceptImpl();
+    if (socket == null) {
+      return socket;
+    }
+    try {
+      SocketAddress socketAddress = socket.getSocketChannel().getRemoteAddress();
+      if (socketAddress instanceof InetSocketAddress) {
+        final InetSocketAddress remoteAddress = (InetSocketAddress) socketAddress;
 
-    TNonblockingSocket wrappedSocket = new TNonblockingSocket(socket.get) {
-      @Override public void close() {
-        super.close();
-        monitor.disconnected(this);
+        TNonblockingSocket monitoredSocket = new TNonblockingSocket(
+            socket.getSocketChannel()) {
+          boolean closed = false;
+
+          @Override
+          public void close() {
+            try {
+              super.close();
+            } finally {
+              if (!closed) {
+                monitor.released(remoteAddress);
+              }
+              closed = true;
+            }
+          }
+        };
+
+        monitor.connected(remoteAddress);
+        return monitoredSocket;
+      } else {
+        return socket;
       }
-    };
-
-    monitor.connected(wrappedSocket, socket.getSocket().getInetAddress());
-
-    return wrappedSocket;
-
-    */
-    return super.acceptImpl();
+    } catch (IOException ie) {
+      return socket;
+    }
   }
 
   @Override

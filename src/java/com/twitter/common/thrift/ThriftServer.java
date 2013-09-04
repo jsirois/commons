@@ -53,6 +53,7 @@ import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Time;
 import com.twitter.common.stats.StatImpl;
 import com.twitter.common.stats.Stats;
+import com.twitter.common.thrift.monitoring.TMonitoredNonblockingServerSocket;
 import com.twitter.common.thrift.monitoring.TMonitoredProcessor;
 import com.twitter.common.thrift.monitoring.TMonitoredServerSocket;
 import com.twitter.thrift.Status;
@@ -125,10 +126,20 @@ public abstract class ThriftServer {
   public static final ExceptionalFunction<ServerSetup, TServer, TTransportException>
       NONBLOCKING_SERVER = new ExceptionalFunction<ServerSetup, TServer, TTransportException>() {
         @Override public TServer apply(ServerSetup setup) throws TTransportException {
-          TNonblockingServerSocket socket = setup.getSocketTimeout() == null
-              ? new TNonblockingServerSocket(setup.getPort())
-              : new TNonblockingServerSocket(setup.getPort(),
-                  setup.getSocketTimeout().as(Time.MILLISECONDS));
+          TNonblockingServerSocket socket;
+          if (setup.isMonitored()) {
+            socket =
+                setup.getSocketTimeout() == null
+                    ? new TMonitoredNonblockingServerSocket(setup.getPort(), setup.getMonitor())
+                    : new TMonitoredNonblockingServerSocket(setup.getPort(),
+                    setup.getSocketTimeout().as(Time.MILLISECONDS), setup.getMonitor());
+          } else {
+            socket =
+                setup.getSocketTimeout() == null
+                    ? new TNonblockingServerSocket(setup.getPort())
+                    : new TNonblockingServerSocket(setup.getPort(),
+                    setup.getSocketTimeout().as(Time.MILLISECONDS));
+          }
 
           setup.setSocket(getServerSocketFor(socket));
 
