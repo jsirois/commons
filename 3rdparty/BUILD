@@ -201,8 +201,10 @@ jar_library(name = 'dnsjava',
               jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
             ])
 
-# common rev for all com.twitter%finagle* artifacts
+# common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
 FINAGLE_REV = '6.5.2'
+UTIL_REV = '6.3.8'
+SERVER_REV = '1.0.3'
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
@@ -545,6 +547,10 @@ def twitter4j_lib(name):
 twitter4j_lib('twitter4j-core')
 twitter4j_lib('twitter4j-stream')
 
+jar_library(name = 'twitter-server',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'twitter-server', rev = SERVER_REV).with_sources() ])
+
 jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
 
@@ -552,9 +558,6 @@ jar_library(name = 'twitter-config-yaml',
             dependencies = [
               jar(org = 'com.twitter', name = 'twitter-config-yaml', rev = '1.1.0').with_sources()
             ])
-
-# common rev for all com.twitter%util* artifacts
-UTIL_REV = '6.3.8'
 
 jar_library(name = 'util',
             dependencies = [
