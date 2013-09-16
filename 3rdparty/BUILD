@@ -87,7 +87,7 @@ CASCADING2_REV = '2.1.6.t1'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-core', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-core', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
                 .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
@@ -109,14 +109,14 @@ jar_library(name = 'maple',
 
 jar_library(name = 'cascading2-local',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-local', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-local', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
                 .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
 
 jar_library(name = 'cascading2-hadoop',
             dependencies = [
-              jar(org = 'cascading', name = 'cascading-hadoop', rev = CASCADING2_REV)
+              jar(org = 'cascading', name = 'cascading-hadoop', rev = CASCADING2_REV, force=True)
                 .exclude(org = 'org.apache.hadoop', name="hadoop-core")
                 .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
@@ -129,7 +129,7 @@ jar_library(name = 'cascading-thrift',
             ])
 
 jar_library(name = 'cascading2-test',
-    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV) ]
+    dependencies = [ jar(org = 'cascading', name = 'cascading-test', rev = CASCADING2_REV, force=True) ]
   )
 
 jar_library(name = 'cascading.jdbc',
