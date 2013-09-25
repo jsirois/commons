@@ -196,6 +196,12 @@ jar_library(name = 'commons-dbcp',
             ]
            )
 
+jar_library(name = 'commons-validator',
+            dependencies = [
+              jar(org = 'commons-validator', name = 'commons-validator', rev = '1.4.0'),
+            ]
+           )
+
 jar_library(name = 'dnsjava',
             dependencies = [
               jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
