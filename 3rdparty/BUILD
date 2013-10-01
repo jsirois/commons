@@ -226,7 +226,8 @@ jar_library(name = 'finagle-http',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-http', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-thrift',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift', rev = FINAGLE_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift', rev = FINAGLE_REV)
+                                .withSources() ])
 
 jar_library(name = 'finagle-serversets',
             dependencies = [
@@ -501,7 +502,7 @@ jar_library(name = 'stringtemplate',
 
 jar_library(name = 'libthrift-0.5.0',
             dependencies = [
-              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0-1'),
+              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.5.0-1').with_sources(),
             ]
            )
 
