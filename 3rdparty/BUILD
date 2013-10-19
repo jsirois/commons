@@ -92,11 +92,6 @@ jar_library(name = 'cascading2-core',
                 .exclude(org = 'org.codehaus.janino', name = 'janino')
             ])
 
-jar_library(name = 'cascading-kryo',
-            dependencies = [
-              jar(org = 'cascading.kryo', name = 'cascading.kryo', rev = '0.4.6')
-            ])
-
 jar_library(name = 'dspace-geoip',
             dependencies = [
               jar(org = 'org.dspace.dependencies', name = 'dspace-geoip', rev = '1.2.3')
@@ -381,11 +376,6 @@ jar_library(name = 'jsr305',
 
 jar_library(name = 'jvyaml',
             dependencies = [ jar(org = 'org.jvyaml', name = 'jvyaml', rev = '0.2.1') ])
-
-jar_library(name = 'kryo',
-            dependencies = [
-              jar(org = 'com.esotericsoftware.kryo', name = 'kryo', rev = '2.21')
-            ])
 
 jar_library(name = 'mimepull',
             dependencies = [ jar(org='org.jvnet.mimepull', name='mimepull', rev='1.8').with_sources() ])
