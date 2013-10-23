@@ -203,9 +203,12 @@ jar_library(name = 'dnsjava',
             ])
 
 # common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
-FINAGLE_REV = '6.5.2'
-UTIL_REV = '6.3.8'
-SERVER_REV = '1.0.3'
+FINAGLE_REV = '6.7.4'
+UTIL_REV = '6.7.0'
+SERVER_REV = '1.2.0'
+
+jar_library(name = 'finagle-exception',
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-zipkin',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
@@ -251,7 +254,12 @@ jar_library(name = 'finagle-commons-stats',
 
 jar_library(name = 'finagle-thriftmux',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-thriftmux', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-thriftmux', rev = FINAGLE_REV).with_sources()
+            ])
+
+jar_library(name = 'finagle-mysql',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-mysql', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-ostrich4',
