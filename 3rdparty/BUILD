@@ -272,6 +272,11 @@ jar_library(name = 'finagle-redis',
               jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV)
             ])
 
+jar_library(name = 'finagle-stats',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-stats', rev = FINAGLE_REV).with_sources()
+            ])
+
 jar_library(name = 'gdata-core',
             dependencies = [ jar(org = 'com.google.gdata', name = 'core', rev = '1.47.1') ])
 
