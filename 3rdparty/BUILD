@@ -264,12 +264,17 @@ jar_library(name = 'finagle-mysql',
 
 jar_library(name = 'finagle-ostrich4',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-ostrich4', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-ostrich4', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-redis',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV).with_sources()
+            ])
+
+jar_library(name = 'finagle-stream',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-stream', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-stats',
