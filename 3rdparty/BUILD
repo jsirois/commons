@@ -566,7 +566,7 @@ jar_library(name = 'twitter-text',
 
 jar_library(name = 'twitter-config-yaml',
             dependencies = [
-              jar(org = 'com.twitter', name = 'twitter-config-yaml', rev = '1.1.0').with_sources()
+              jar(org = 'com.twitter', name = 'twitter-config-yaml', rev = '1.2.0').with_sources()
             ])
 
 jar_library(name = 'util',
