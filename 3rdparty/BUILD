@@ -203,9 +203,9 @@ jar_library(name = 'dnsjava',
             ])
 
 # common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
-FINAGLE_REV = '6.7.4'
-UTIL_REV = '6.7.0'
-SERVER_REV = '1.2.0'
+FINAGLE_REV = '6.8.1'
+UTIL_REV = '6.8.1'
+SERVER_REV = '1.3.1'
 
 jar_library(name = 'finagle-exception',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception', rev = FINAGLE_REV) ])
