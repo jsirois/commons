@@ -202,10 +202,15 @@ jar_library(name = 'dnsjava',
               jar(org = 'dnsjava', name = 'dnsjava', rev = '2.1.1').with_sources(),
             ])
 
-# common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
+# Common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
+# Please keep the science netty version in sync with the version used by finagle.
+NETTY_REV = '3.7.0.Final'
 FINAGLE_REV = '6.8.1'
 UTIL_REV = '6.8.1'
 SERVER_REV = '1.3.1'
+
+jar_library(name = 'netty',
+            dependencies = [ jar(org = 'io.netty', name = 'netty', rev = NETTY_REV) ])
 
 jar_library(name = 'finagle-exception',
             dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception', rev = FINAGLE_REV) ])
@@ -215,9 +220,9 @@ jar_library(name = 'finagle-zipkin',
 
 jar_library(name = 'finagle-core',
             dependencies = [
-		    jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
-		        .with_sources(),
-            pants(':util-core'),
+		          jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+		            .with_sources(),
+              pants(':util-core'),
             ])
 
 jar_library(name = 'finagle-http',
