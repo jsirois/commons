@@ -204,7 +204,7 @@ jar_library(name = 'dnsjava',
 
 # Common revs for finagle/util/twitter-server artifacts: these need to be bumped in sync
 # Please keep the science netty version in sync with the version used by finagle.
-NETTY_REV = '3.7.0.Final'
+NETTY_REV = '3.8.0.Final'
 FINAGLE_REV = '6.8.1'
 UTIL_REV = '6.8.1'
 SERVER_REV = '1.3.1'
