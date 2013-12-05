@@ -305,7 +305,7 @@ jar_library(name = 'guava',
                 apidocs = 'http://docs.guava-libraries.googlecode.com/git-history/v14.0.1/javadoc/'
               ).with_sources(),
 
-              # Defined in provided scope so we provide here.
+              # Defined in provided scope so we provide here
               pants(':jsr305'),
               jar(org = 'javax.inject', name = 'javax.inject', rev = '1').with_sources(),
             ]
