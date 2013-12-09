@@ -416,6 +416,16 @@ jar_library(name = 'ostrich',
               jar(org = 'com.twitter', name = 'ostrich', rev = '9.1.2').with_sources()
             ])
 
+jar_library(name='passbird-thrift-only',
+            dependencies=[
+              thrift_jar(org='com.twitter', name='passbird-thrift-only', rev='5.0.3')
+            ])
+
+jar_library(name='promptbird-thrift-only',
+            dependencies=[
+              thrift_jar(org='com.twitter', name='promptbird-thrift-only', rev='3.17.0')
+            ])
+
 jar_library(name = 'protobuf-2.4.1',
             dependencies = [
               jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.4.1').with_sources()
