@@ -603,6 +603,10 @@ jar_library(name = 'util-core',
             dependencies = [
                 jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
 
+jar_library(name = 'util-eval',
+            dependencies = [
+                jar(org = 'com.twitter', name = 'util-eval', rev = UTIL_REV).with_sources() ])
+
 jar_library(name = 'util-jvm',
             dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
 
