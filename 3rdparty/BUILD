@@ -579,7 +579,17 @@ twitter4j_lib('twitter4j-stream')
 
 jar_library(name = 'twitter-server',
             dependencies = [
-              jar(org = 'com.twitter', name = 'twitter-server', rev = SERVER_REV).with_sources() ])
+              jar(org = 'com.twitter', name = 'twitter-server', rev = SERVER_REV)
+                .with_sources()
+                .exclude(org = 'com.twitter.common.zookeeper')
+                .exclude(org = 'com.twitter.common_internal', name = 'zookeeper-utils'),
+              pants('src/java/com/twitter/common/zookeeper:candidate'),
+              pants('src/java/com/twitter/common/zookeeper:client'),
+              pants('src/java/com/twitter/common/zookeeper:group'),
+              pants('src/java/com/twitter/common/zookeeper:server-set'),
+              pants('src/java/com/twitter/common/zookeeper:singleton-service'),
+              pants('src/java/com/twitter/common_internal/zookeeper'),
+            ])
 
 jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
