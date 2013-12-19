@@ -12,3 +12,10 @@ source_root('tests/java', java_library, junit_tests, page)
 source_root('tests/python', page, python_library, python_tests, python_test_suite)
 source_root('tests/resources', page, resources)
 source_root('tests/scala', page, junit_tests, scala_library, scala_specs)
+
+resources(
+  name='pants-ini',
+  sources=['pants.ini'],
+).with_description('''
+Needed by the CI scripts. If this target is changed, CI will build all targets.
+''')
