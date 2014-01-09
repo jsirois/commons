@@ -296,7 +296,7 @@ jar_library(name = 'gson',
             ])
 
 # common rev for all com.google.guava%guava* artifacts
-GUAVA_REV = '14.0.1'
+GUAVA_REV = '15.0'
 
 jar_library(name = 'guava',
             dependencies = [
