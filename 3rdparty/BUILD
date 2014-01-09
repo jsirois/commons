@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2014 Twitter, Inc.
+# Copyright 2011 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==================================================================================================
 
-# This BUILD file defines common external library dependencies used across many modules.  Modules
+# This BUILD file defines common external library dependencies used across many modules. Modules
 # can use these jar_library deps by specifying pants('3rdparty:[name]') in their dependencies list.
 
 ###################
