@@ -59,6 +59,9 @@ public class BlockJUnit4ClassRunnerWithRetry extends BlockJUnit4ClassRunner {
             err.println("Test " + testName + " is FLAKY; passed after " + (i + 1) + " attempts");
           }
           return;
+        // We want to trap and and retry here.  The trapping is in fact limited to Exception (which
+        // would still require a suppress) and AssertionError.
+        // SUPPRESS CHECKSTYLE RegexpSinglelineJava
         } catch (Throwable t) {
           // Test failed - save the very first thrown exception. However, if we caught an
           // Error other than AssertionError, exit immediately. It probably doesn't make

@@ -75,6 +75,8 @@ public class ConsoleRunnerTest {
     try {
       ConsoleRunner.main(asArgsArray("FlakyTest -num-retries 2"));
       Assert.fail("Should have failed with RuntimeException due to FlakyTest.methodAlwaysFails");
+    // We need to test bubbling here.
+    // SUPPRESS CHECKSTYLE RegexpSinglelineJava
     } catch (RuntimeException ex) {
       // Expected due to FlakyTest.methodAlwaysFails()
     } finally {
