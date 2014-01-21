@@ -16,20 +16,23 @@
 
 package com.twitter.common.stats;
 
-import com.twitter.common.base.Supplier;
-import com.twitter.common.util.testing.FakeTicker;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.easymock.IMocksControl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.twitter.common.base.Supplier;
 import com.twitter.common.util.testing.FakeTicker;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.easymock.EasyMock.createControl;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author William Farner

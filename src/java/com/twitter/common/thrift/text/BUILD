@@ -17,11 +17,16 @@
 
 
 java_library(name = 'text',
+  provides = artifact(
+    org = 'com.twitter.common',
+    name = 'thrift-text',
+    repo = pants('build-support/commons/ivy:public'),
+  ),
   dependencies = [
-    '3rdparty:commons-codec',
-    '3rdparty:gson',
-    '3rdparty:guava',
-    '3rdparty:thrift',
+    pants('3rdparty:commons-codec'),
+    pants('3rdparty:gson'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:thrift'),
   ],
   sources = globs('*.java')
 )

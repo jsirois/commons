@@ -23,7 +23,7 @@ java_tests(name = 'lifecycle',
     pants('src/java/com/twitter/common/application:action'),
     pants('src/java/com/twitter/common/application/modules:lifecycle'),
     pants('src/java/com/twitter/common/base'),
-    pants('src/java/com/twitter/common/testing'),
+     pants('src/java/com/twitter/common/testing:action'),
   ],
   sources = [ 'LifecycleModuleTest.java' ]
 )

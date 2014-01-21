@@ -17,25 +17,16 @@
 package com.twitter.common.metrics;
 
 /**
- * A metric that has a name and a variable number value.
- *
- * @param <T> Value type.
+ * A counter that can only be incremented.
  */
-public interface Gauge<T extends Number> {
+public interface Counter {
+  /**
+   * Increment the counter by 1, equivalent to add(1L).
+   */
+  void increment();
 
   /**
-   * Gets the name of this stat. For sake of convention, variable names should be alphanumeric, and
-   * use underscores.
-   *
-   * @return The variable name.
+   * Increment the counter by an arbitrary value.
    */
-  String getName();
-
-  /**
-   * Reads the latest value of the metric.
-   * Must never return {@code null}.
-   *
-   * @return The metric value.
-   */
-  T read();
+  void add(long n);
 }

@@ -1,8 +1,5 @@
 package com.twitter.common.util.concurrent;
 
-import java.lang.Exception;
-import java.lang.IllegalArgumentException;
-import java.lang.NullPointerException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -16,8 +13,7 @@ import org.junit.Test;
 
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Time;
-import com.twitter.common.testing.EasyMockTest;
-import com.twitter.common.util.concurrent.MoreExecutors;
+import com.twitter.common.testing.easymock.EasyMockTest;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;

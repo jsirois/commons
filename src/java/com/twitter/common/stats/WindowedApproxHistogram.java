@@ -14,7 +14,7 @@
 // limitations under the License.
 // =================================================================================================
 
-package com.twitter.common.metrics;
+package com.twitter.common.stats;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -23,9 +23,6 @@ import com.google.common.base.Supplier;
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Data;
 import com.twitter.common.quantity.Time;
-import com.twitter.common.stats.ApproximateHistogram;
-import com.twitter.common.stats.Histogram;
-import com.twitter.common.stats.Precision;
 import com.twitter.common.util.Clock;
 
 /**
@@ -49,7 +46,7 @@ public class WindowedApproxHistogram extends WindowedHistogram<ApproximateHistog
    * @param slices number of slices in the window
    * @param maxMemory maximum memory used by the whole histogram
    */
-  @VisibleForTesting WindowedApproxHistogram(Amount<Long, Time> window, final int slices,
+  public WindowedApproxHistogram(Amount<Long, Time> window, final int slices,
       final Amount<Long, Data> maxMemory, Clock clock) {
     super(ApproximateHistogram.class, window, slices,
         new Supplier<ApproximateHistogram>() {
@@ -78,7 +75,7 @@ public class WindowedApproxHistogram extends WindowedHistogram<ApproximateHistog
    * @param slices number of slices in the window
    * @param precision precision of the whole histogram
    */
-  @VisibleForTesting WindowedApproxHistogram(Amount<Long, Time> window, final int slices,
+  public WindowedApproxHistogram(Amount<Long, Time> window, final int slices,
       final Precision precision, Clock clock) {
     super(ApproximateHistogram.class, window, slices,
         new Supplier<ApproximateHistogram>() {
@@ -148,5 +145,12 @@ public class WindowedApproxHistogram extends WindowedHistogram<ApproximateHistog
    */
   public WindowedApproxHistogram() {
     this(DEFAULT_WINDOW, DEFAULT_SLICES, DEFAULT_MAX_MEMORY, Clock.SYSTEM_CLOCK);
+  }
+
+  /**
+   * WindowedApproxHistogram constructor with custom Clock (for testing purposes only).
+   */
+  @VisibleForTesting public WindowedApproxHistogram(Clock clock) {
+    this(DEFAULT_WINDOW, DEFAULT_SLICES, DEFAULT_MAX_MEMORY, clock);
   }
 }

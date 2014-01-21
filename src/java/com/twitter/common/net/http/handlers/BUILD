@@ -28,10 +28,10 @@ java_library(name = 'text',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'net-http-handlers-text',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:servlet-api',
+    pants('3rdparty:servlet-api')
   ],
   sources = TEXT_SOURCES
 )
@@ -40,7 +40,7 @@ java_library(name = 'string-template',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'net-http-handlers-string-template',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
     pants('3rdparty:guava'),
@@ -57,7 +57,7 @@ java_library(name = 'handlers',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'net-http-handlers',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
     pants('3rdparty:commons-codec'),
@@ -86,17 +86,18 @@ java_library(name = 'thrift',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'net-http-handlers-thrift',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:servlet-api'),
+    pants('3rdparty:stringtemplate'),
+    pants(':string-template'),
+    pants('src/java/com/twitter/common/base'),
+
     # TODO(John Sirois): the only need is for the non-existent thrift:monitoring
-    '3rdparty:guava',
-    '3rdparty:guice',
-    '3rdparty:servlet-api',
-    '3rdparty:stringtemplate',
-    'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/thrift',
-    ':string-template',
+    pants('src/java/com/twitter/common/thrift'),
   ],
   sources = THRIFT_SOURCES,
   resources = [ 'thrift.st' ]
@@ -106,7 +107,7 @@ java_library(name = 'time-series',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'net-http-handlers-time-series',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
     pants('3rdparty:gson'),

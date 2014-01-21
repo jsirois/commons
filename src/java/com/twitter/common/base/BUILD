@@ -18,13 +18,13 @@ java_library(name = 'base',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'base',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    'src/java/com/twitter/common/quantity',
-    'src/java/com/twitter/common/util:system-mocks',
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('src/java/com/twitter/common/quantity'),
+    pants('src/java/com/twitter/common/util:system-mocks'),
   ],
   sources = globs('*.java'),
 )

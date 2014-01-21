@@ -22,13 +22,13 @@ java_library(name = 'inject',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'inject',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    '3rdparty:guice',
-    '3rdparty:guice-multibindings',
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants('3rdparty:guice-multibindings'),
   ],
   sources = globs('*.java') - TIMED_SOURCES
 )
@@ -37,16 +37,16 @@ java_library(name = 'timed',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'inject-timed',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:aopalliance',
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    '3rdparty:guice',
-    'src/java/com/twitter/common/stats',
-    'src/java/com/twitter/common/stats:time-series',
-    ':inject',
+    pants('3rdparty:aopalliance'),
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:guice'),
+    pants(':inject'),
+    pants('src/java/com/twitter/common/stats'),
+    pants('src/java/com/twitter/common/stats:time-series'),
   ],
   sources = TIMED_SOURCES
 )

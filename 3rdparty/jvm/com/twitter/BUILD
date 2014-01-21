@@ -44,27 +44,3 @@ jar_library(name='scrooge-serializer',
     jar(org=ORG, name='scrooge-serializer', rev=SCROOGE_REV).with_sources()
   ]
 )
-
-jar_library(name='thumbingbird-thrift-image-fetcher-only',
-  dependencies=[
-    thrift_jar(org=ORG, name='thumbingbird-thrift-image-fetcher-only', rev='1.1.0')
-  ]
-)
-
-jar_library(name='thumbingbird-thrift-thumbnail-only',
-  dependencies=[
-    thrift_jar(org=ORG, name='thumbingbird-thrift-thumbnail-only', rev='1.1.0')
-  ]
-)
-
-jar_library(name = 'deferredrpc-client',
-  dependencies=[
-    jar(org=ORG, name='deferredrpc-client', rev='2.0.12') 
-  ]
-)
-
-jar_library(name = 'scribelib-idl',
-  dependencies=[
-    thrift_jar(org=ORG, name='scribelib', rev='1.1.55').with_sources(), 
-  ]
-)

@@ -20,7 +20,7 @@ java_tests(name = 'compiler',
     pants('3rdparty:guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:tl4j'),
-    pants('src/java/com/twitter/common/testing'),
+     pants('src/java/com/twitter/common/testing:action'),
     pants('src/java/com/twitter/common/tools:compiler')
   ]
 )

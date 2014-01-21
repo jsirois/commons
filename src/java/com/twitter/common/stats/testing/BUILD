@@ -1,5 +1,5 @@
 # ==================================================================================================
-# Copyright 2012 Twitter, Inc.
+# Copyright 2013 Twitter, Inc.
 # --------------------------------------------------------------------------------------------------
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this work except in compliance with the License.
@@ -14,21 +14,9 @@
 # limitations under the License.
 # ==================================================================================================
 
-java_library(name = 'compiler',
-  provides = artifact(
-    org = 'com.twitter.common.tools',
-    name = 'java-compiler',
-    repo = pants('build-support/commons/ivy:public'),
-  ),
+java_library(name = 'histogram',
+  dependencies = [
+    pants('src/java/com/twitter/common/stats:util'),
+  ],
   sources = globs('*.java'),
-  dependencies = [
-    jar(org = 'org.fusesource.jansi', name='jansi', rev='1.8').with_sources()
-  ]
-)
-
-jvm_binary(name = 'compiler-main',
-  main = 'com.twitter.common.tools.Compiler',
-  dependencies = [
-    pants(':compiler')
-  ]
 )

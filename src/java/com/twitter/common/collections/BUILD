@@ -20,12 +20,12 @@ java_library(name = 'collections',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'collections',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    '3rdparty:jsr305',
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:jsr305'),
   ],
   sources = globs('*.java'),
 )

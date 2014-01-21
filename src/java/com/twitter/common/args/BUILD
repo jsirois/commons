@@ -32,11 +32,11 @@ annotation_processor(name = 'core',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'args-core',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:guava',
-    '3rdparty:jsr305',
+    pants('3rdparty:guava'),
+    pants('3rdparty:jsr305'),
   ],
   sources = CORE_SOURCES,
 )
@@ -45,13 +45,13 @@ annotation_processor(name = 'apt',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'args-apt',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:commons-lang',
-    '3rdparty:guava',
-    '3rdparty:jsr305',
-    ':core',
+    pants(':core'),
+    pants('3rdparty:commons-lang'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:jsr305'),
   ],
   sources = APT_SOURCES,
   processors = [ 'com.twitter.common.args.apt.CmdLineProcessor' ]
@@ -61,15 +61,15 @@ java_library(name = 'args',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'args',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:guava',
-    'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/net:util',
-    'src/java/com/twitter/common/quantity',
-    ':apt',
-    ':core',
+    pants(':apt'),
+    pants(':core'),
+    pants('3rdparty:guava'),
+    pants('src/java/com/twitter/common/base'),
+    pants('src/java/com/twitter/common/net:util'),
+    pants('src/java/com/twitter/common/quantity'),
   ],
   sources = rglobs('*.java') - APT_SOURCES - CORE_SOURCES - DURATION_PARSER
 )
@@ -78,12 +78,12 @@ java_library(name = 'duration_parser',
   provides = artifact(
     org = 'com.twitter.common',
     name = 'args-duration-parser',
-    repo = 'build-support/commons/ivy:public',
+    repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    '3rdparty:guava',
-    '3rdparty:util-core',
-    ':args',
+    pants(':args'),
+    pants('3rdparty:guava'),
+    pants('3rdparty:util-core'),
   ],
   sources = DURATION_PARSER
 )
