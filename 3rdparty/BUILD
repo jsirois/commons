@@ -624,6 +624,8 @@ jar_library(name = 'util-zk-common',
             dependencies = [
               jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV)
                   .exclude(org='com.twitter.common.zookeeper')
+                  # TODO: remove after https://reviewboard.twitter.biz/r/278855/ lands
+                  .exclude(org='com.twitter', name='util-eval')
             ])
 
 jar_library(name = 'util-thrift',
