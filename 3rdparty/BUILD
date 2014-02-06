@@ -393,7 +393,7 @@ jar_library(name = 'jsr166e',
 
 jar_library(name = 'jsr305',
             dependencies = [
-              jar(org = 'com.google.code.findbugs', name = 'jsr305', rev = '1.3.9')
+              jar(org = 'com.google.code.findbugs', name = 'jsr305', rev = '2.0.1')
             ]
            )
 
