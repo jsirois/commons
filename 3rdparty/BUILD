@@ -220,8 +220,8 @@ jar_library(name = 'finagle-zipkin',
 
 jar_library(name = 'finagle-core',
             dependencies = [
-		          jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
-		            .with_sources(),
+                          jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+                            .with_sources(),
               pants(':util-core'),
             ])
 
@@ -378,6 +378,10 @@ jar_library(name = 'joda-time',
 jar_library(name = 'jsch',
             dependencies = [
               jar(org = 'com.jcraft', name = 'jsch', rev = '0.1.48')])
+
+jar_library(name = 'json4s',
+            dependencies = [
+              jar(org = 'org.json4s', name = 'json4s-native_2.9.2', rev = '3.2.6')])
 
 jar_library(name = 'json-simple',
             dependencies = [
