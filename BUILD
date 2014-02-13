@@ -7,6 +7,7 @@ source_root('src/python', page, python_binary, python_library)
 source_root('src/resources', page, resources)
 source_root('src/scala', jvm_binary, page, scala_library)
 source_root('src/thrift', java_thrift_library, page, python_thrift_library, ruby_thrift_library, thrift_library)
+source_root('3rdparty/thrift', java_thrift_library, page, python_thrift_library, ruby_thrift_library, thrift_library)
 
 source_root('tests/java', java_library, junit_tests, page)
 source_root('tests/python', page, python_library, python_tests, python_test_suite)
