@@ -83,7 +83,7 @@ version.
 Notice: force is NOT transitive, so any indirectly depended package will not have forced version
            ''')
 
-CASCADING2_REV = '2.1.6.t3'
+CASCADING2_REV = '2.5.2'
 
 jar_library(name = 'cascading2-core',
             dependencies = [
@@ -95,6 +95,11 @@ jar_library(name = 'cascading2-core',
 jar_library(name = 'dspace-geoip',
             dependencies = [
               jar(org = 'org.dspace.dependencies', name = 'dspace-geoip', rev = '1.2.3')
+            ])
+
+jar_library(name = "cascading-jdbc-core",
+            dependencies = [
+              jar(org = 'cascading', name = 'cascading-jdbc-core', rev = '2.5.1')
             ])
 
 jar_library(name = 'maple',
