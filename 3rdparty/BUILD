@@ -245,6 +245,11 @@ jar_library(name = 'finagle-memcached',
                 .exclude(org='com.twitter.common.zookeeper')
             ])
 
+jar_library(name = 'finagle-mux',
+            dependencies = [
+              jar(org = 'com.twitter', name = 'finagle-mux', rev = FINAGLE_REV).with_sources()
+            ])
+
 jar_library(name = 'finagle-kestrel',
             dependencies = [
               jar(org = 'com.twitter', name = 'finagle-kestrel', rev = FINAGLE_REV)
