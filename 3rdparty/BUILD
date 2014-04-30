@@ -420,7 +420,7 @@ jar_library(name = 'mustache',
             dependencies = [
               jar(org = 'com.github.spullara.mustache.java',
                   name = 'compiler',
-                  rev = '0.8.4').with_sources()
+                  rev = '0.8.14').with_sources()
               ]
             )
 
@@ -720,7 +720,7 @@ jar_library(name = 'hamcrest-core',
 jar_library(name = 'junit',
             dependencies = [
               jar(org = 'junit', name = 'junit-dep', rev = '4.10').with_sources(),
-              pants(':hamcrest-core')
+              pants(':hamcrest-core'),
             ]
            )
 
