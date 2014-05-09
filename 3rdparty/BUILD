@@ -429,16 +429,6 @@ jar_library(name = 'ostrich',
               jar(org = 'com.twitter', name = 'ostrich', rev = '9.1.2').with_sources()
             ])
 
-jar_library(name='passbird-thrift-only',
-            dependencies=[
-              thrift_jar(org='com.twitter', name='passbird-thrift-only', rev='5.0.3')
-            ])
-
-jar_library(name='promptbird-thrift-only',
-            dependencies=[
-              thrift_jar(org='com.twitter', name='promptbird-thrift-only', rev='3.17.0')
-            ])
-
 jar_library(name = 'protobuf-2.4.1',
             dependencies = [
               jar(org = 'com.google.protobuf', name = 'protobuf-java', rev = '2.4.1').with_sources()
@@ -587,20 +577,6 @@ def twitter4j_lib(name):
 
 twitter4j_lib('twitter4j-core')
 twitter4j_lib('twitter4j-stream')
-
-jar_library(name = 'twitter-server',
-            dependencies = [
-              jar(org = 'com.twitter', name = 'twitter-server', rev = SERVER_REV)
-                .with_sources()
-                .exclude(org = 'com.twitter.common.zookeeper')
-                .exclude(org = 'com.twitter.common_internal', name = 'zookeeper-utils'),
-              pants('src/java/com/twitter/common/zookeeper:candidate'),
-              pants('src/java/com/twitter/common/zookeeper:client'),
-              pants('src/java/com/twitter/common/zookeeper:group'),
-              pants('src/java/com/twitter/common/zookeeper:server-set'),
-              pants('src/java/com/twitter/common/zookeeper:singleton-service'),
-              pants('src/java/com/twitter/common_internal/zookeeper'),
-            ])
 
 jar_library(name = 'twitter-text',
             dependencies = [ jar(org = 'com.twitter', name = 'twitter-text', rev = '1.5.0') ])
