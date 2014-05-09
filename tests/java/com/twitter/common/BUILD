@@ -17,7 +17,7 @@
 jar_library(name = 'small',
   dependencies = [
     pants('tests/java/com/twitter/common/application'),
-    pants('tests/java/com/twitter/common/application/modules:all'),
+    pants('tests/java/com/twitter/common/application/modules:lifecycle'),
     pants('tests/java/com/twitter/common/args:small'),
     pants('tests/java/com/twitter/common/base'),
     pants('tests/java/com/twitter/common/collections'),

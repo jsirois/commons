@@ -21,7 +21,7 @@ java_library(name = 'guice',
     repo = 'build-support/commons/ivy:public',
   ),
   dependencies = [
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:guice',
     'src/java/com/twitter/common/application/modules:lifecycle',
     'src/java/com/twitter/common/application:action',

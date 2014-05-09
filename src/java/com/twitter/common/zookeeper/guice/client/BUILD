@@ -21,7 +21,7 @@ java_library(name = 'client',
     repo = pants('build-support/commons/ivy:public'),
   ),
   dependencies = [
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('src/java/com/twitter/common/application'),
     pants('src/java/com/twitter/common/inject'),

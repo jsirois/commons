@@ -22,7 +22,7 @@ java_library(name = 'base',
   ),
   dependencies = [
     '3rdparty:commons-lang',
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     'src/java/com/twitter/common/quantity',
     'src/java/com/twitter/common/util:system-mocks',
   ],

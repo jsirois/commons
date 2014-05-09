@@ -36,7 +36,7 @@ LARGE = [
 java_tests(name = 'small',
   dependencies = [
     pants('3rdparty:easymock'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('src/java/com/twitter/common/base'),
     pants('src/java/com/twitter/common/collections'),
@@ -50,7 +50,7 @@ java_tests(name = 'small',
 
 java_tests(name = 'medium-main',
   dependencies = [
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:junit'),
     pants('3rdparty:mockito'),
@@ -78,7 +78,7 @@ jar_library(name = 'medium',
 java_tests(name = 'large',
   dependencies = [
     pants('3rdparty:easymock'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:thrift'),
     pants('3rdparty:tl4j'),

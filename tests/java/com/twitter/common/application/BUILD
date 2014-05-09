@@ -17,7 +17,7 @@
 java_tests(name = 'application',
   dependencies = [
     pants('3rdparty:easymock'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:junit'),
     pants('src/java/com/twitter/common/application'),

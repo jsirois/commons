@@ -21,7 +21,7 @@ java_library(name='memcached',
     repo='build-support/commons/ivy:public',
   ),
   dependencies=[
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:spy-memcached',
   ],
   sources=['Memcached.java']
@@ -29,7 +29,7 @@ java_library(name='memcached',
 
 java_library(name='thrift-transcoder',
   dependencies=[
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:spy-memcached',
     '3rdparty:thrift',
     'src/java/com/twitter/common/io',

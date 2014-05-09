@@ -18,7 +18,7 @@
 
 java_tests(name = 'quantity',
   dependencies = [
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:junit',
     '3rdparty:tl4j',
     'src/java/com/twitter/common/quantity',

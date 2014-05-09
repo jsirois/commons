@@ -22,7 +22,7 @@ java_library(name='julbridge',
   ),
   dependencies=[
     pants('3rdparty:log4j'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
   ],
   sources=globs('*.java')
 )

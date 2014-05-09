@@ -22,7 +22,7 @@ java_library(name='easymock',
   ),
   dependencies = [
     pants('3rdparty:easymock'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:tl4j'),
   ],
