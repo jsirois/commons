@@ -23,7 +23,7 @@ java_tests(name='lifecycle',
     'src/java/com/twitter/common/application/modules:lifecycle',
     'src/java/com/twitter/common/application:action',
     'src/java/com/twitter/common/base',
-    'src/java/com/twitter/common/testing',
+    'src/java/com/twitter/common/testing/easymock',
   ],
   sources=['LifecycleModuleTest.java']
 )

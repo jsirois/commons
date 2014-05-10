@@ -413,6 +413,9 @@ jar_library(name = 'jsr305',
 jar_library(name = 'jvyaml',
             dependencies = [ jar(org = 'org.jvyaml', name = 'jvyaml', rev = '0.2.1') ])
 
+jar_library(name = 'log4j',
+            dependencies = [ jar(org = 'log4j', name = 'log4j', rev = '1.2.15').with_sources() ])
+
 jar_library(name = 'mimepull',
             dependencies = [ jar(org='org.jvnet.mimepull', name='mimepull', rev='1.8').with_sources() ])
 
