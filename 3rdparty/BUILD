@@ -218,83 +218,83 @@ jar_library(name = 'netty',
             dependencies = [ jar(org = 'io.netty', name = 'netty', rev = NETTY_REV) ])
 
 jar_library(name = 'finagle-exception',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception', rev = FINAGLE_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-exception_2.9.2', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-zipkin',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin', rev = FINAGLE_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-zipkin_2.9.2', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-core',
             dependencies = [
-                          jar(org = 'com.twitter', name = 'finagle-core', rev = FINAGLE_REV)
+                          jar(org = 'com.twitter', name = 'finagle-core_2.9.2', rev = FINAGLE_REV)
                             .with_sources(),
               pants(':util-core'),
             ])
 
 jar_library(name = 'finagle-http',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-http', rev = FINAGLE_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-http_2.9.2', rev = FINAGLE_REV) ])
 
 jar_library(name = 'finagle-thrift',
-            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift', rev = FINAGLE_REV)
+            dependencies = [ jar(org = 'com.twitter', name = 'finagle-thrift_2.9.2', rev = FINAGLE_REV)
                                 .withSources() ])
 
 jar_library(name = 'finagle-serversets',
             dependencies = [
-             jar(org = 'com.twitter', name = 'finagle-serversets', rev = FINAGLE_REV)
+             jar(org = 'com.twitter', name = 'finagle-serversets_2.9.2', rev = FINAGLE_REV)
                 .exclude(org='com.twitter.common')
                 .exclude(org='com.twitter.common.zookeeper')
             ])
 
 jar_library(name = 'finagle-memcached',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-memcached', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-memcached_2.9.2', rev = FINAGLE_REV)
                 .exclude(org='com.twitter.common.zookeeper')
             ])
 
 jar_library(name = 'finagle-mux',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-mux', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-mux_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-kestrel',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-kestrel', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-kestrel_2.9.2', rev = FINAGLE_REV)
                 .exclude(org='com.twitter.common.zookeeper')
             ])
 
 jar_library(name = 'finagle-commons-stats',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-commons-stats', rev = FINAGLE_REV)
+              jar(org = 'com.twitter', name = 'finagle-commons-stats_2.9.2', rev = FINAGLE_REV)
                 .exclude(org='com.twitter.common')
             ])
 
 jar_library(name = 'finagle-thriftmux',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-thriftmux', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-thriftmux_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-mysql',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-mysql', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-mysql_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-ostrich4',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-ostrich4', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-ostrich4_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-redis',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-redis', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-redis_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-stream',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-stream', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-stream_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'finagle-stats',
             dependencies = [
-              jar(org = 'com.twitter', name = 'finagle-stats', rev = FINAGLE_REV).with_sources()
+              jar(org = 'com.twitter', name = 'finagle-stats_2.9.2', rev = FINAGLE_REV).with_sources()
             ])
 
 jar_library(name = 'gdata-core',
@@ -589,34 +589,28 @@ jar_library(name = 'twitter-config-yaml',
               jar(org = 'com.twitter', name = 'twitter-config-yaml', rev = '1.2.0').with_sources()
             ])
 
-jar_library(name = 'util',
-            dependencies = [
-              jar(org = 'com.twitter', name = 'util', rev = UTIL_REV)
-                  .exclude(org = 'com.twitter.common.zookeeper')
-            ])
-
 jar_library(name = 'util-app',
             dependencies = [
-                jar(org = 'com.twitter', name = 'util-app', rev = UTIL_REV).with_sources() ])
+                jar(org = 'com.twitter', name = 'util-app_2.9.2', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-core',
             dependencies = [
-                jar(org = 'com.twitter', name = 'util-core', rev = UTIL_REV).with_sources() ])
+                jar(org = 'com.twitter', name = 'util-core_2.9.2', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-codec',
             dependencies = [
-                jar(org = 'com.twitter', name = 'util-codec', rev = UTIL_REV).with_sources() ])
+                jar(org = 'com.twitter', name = 'util-codec_2.9.2', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-eval',
             dependencies = [
-                jar(org = 'com.twitter', name = 'util-eval', rev = UTIL_REV).with_sources() ])
+                jar(org = 'com.twitter', name = 'util-eval_2.9.2', rev = UTIL_REV).with_sources() ])
 
 jar_library(name = 'util-jvm',
-            dependencies = [ jar(org = 'com.twitter', name = 'util-jvm', rev = UTIL_REV) ])
+            dependencies = [ jar(org = 'com.twitter', name = 'util-jvm_2.9.2', rev = UTIL_REV) ])
 
 jar_library(name = 'util-zk-common',
             dependencies = [
-              jar(org = 'com.twitter', name = 'util-zk-common', rev = UTIL_REV)
+              jar(org = 'com.twitter', name = 'util-zk-common_2.9.2', rev = UTIL_REV)
                   .exclude(org='com.twitter.common.zookeeper')
                   # TODO: remove after https://reviewboard.twitter.biz/r/278855/ lands
                   .exclude(org='com.twitter', name='util-eval')
@@ -624,12 +618,12 @@ jar_library(name = 'util-zk-common',
 
 jar_library(name = 'util-thrift',
             dependencies = [
-              jar(org = 'com.twitter', name = 'util-thrift', rev = UTIL_REV)
+              jar(org = 'com.twitter', name = 'util-thrift_2.9.2', rev = UTIL_REV)
             ])
 
 jar_library(name = 'util-logging',
             dependencies = [
-              jar(org = 'com.twitter', name = 'util-logging', rev = UTIL_REV)
+              jar(org = 'com.twitter', name = 'util-logging_2.9.2', rev = UTIL_REV)
             ])
 
 jar_library(name = 'vertica',
