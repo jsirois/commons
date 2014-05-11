@@ -21,7 +21,7 @@ java_library(name='scribe',
     repo=pants('build-support/commons/ivy:public'),
   ),
   dependencies=[
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:thrift'),
     pants('src/java/com/twitter/common/logging'),
     pants('src/java/com/twitter/common/quantity'),

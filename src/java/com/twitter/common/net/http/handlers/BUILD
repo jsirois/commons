@@ -45,7 +45,7 @@ java_library(
     repo='build-support/commons/ivy:public',
   ),
   dependencies=[
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:servlet-api'),
     pants('3rdparty:stringtemplate'),
@@ -65,7 +65,7 @@ java_library(
   dependencies=[
     pants('3rdparty:commons-codec'),
     pants('3rdparty:gson'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:servlet-api'),
     pants('3rdparty:stringtemplate'),
@@ -93,7 +93,7 @@ java_library(
     repo='build-support/commons/ivy:public',
   ),
   dependencies=[
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:guice',
     '3rdparty:servlet-api',
     '3rdparty:stringtemplate',
@@ -117,7 +117,7 @@ java_library(
   ),
   dependencies=[
     pants('3rdparty:gson'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:servlet-api'),
     pants('src/java/com/twitter/common/collections'),
@@ -134,9 +134,9 @@ java_library(
     repo=pants('build-support/commons/ivy:public'),
   ),
   dependencies=[
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
-    pants('3rdparty:jsr305'),
+    pants('3rdparty/jvm/com/google/code/findbugs:jsr305'),
     pants('3rdparty:servlet-api'),
   ],
   sources=PARAMS_SOURCES

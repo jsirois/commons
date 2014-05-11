@@ -17,7 +17,7 @@
 java_tests(name = 'inject',
   dependencies = [
     pants('3rdparty:commons-lang'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:guice'),
     pants('3rdparty:guice-multibindings'),
     pants('3rdparty:junit'),

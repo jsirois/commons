@@ -17,7 +17,7 @@
 java_tests(name = 'stats',
   dependencies = [
     pants('3rdparty:easymock'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:mockito'),
     pants('src/java/com/twitter/common/junit/annotations'),

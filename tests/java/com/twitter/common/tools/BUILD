@@ -17,7 +17,7 @@
 java_tests(name = 'compiler',
   sources = globs('*.java'),
   dependencies = [
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:tl4j'),
     pants('src/java/com/twitter/common/testing/easymock'),

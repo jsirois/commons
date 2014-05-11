@@ -3,7 +3,7 @@
 
 java_library(name='echo',
   dependencies=[
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:hadoop-core'),
   ],
   sources=globs('*.java'),

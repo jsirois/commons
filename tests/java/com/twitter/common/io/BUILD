@@ -16,7 +16,7 @@
 
 java_tests(name = 'io',
   dependencies = [
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:junit'),
     pants('3rdparty:thrift'),
     pants('3rdparty:tl4j'),

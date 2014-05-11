@@ -17,7 +17,7 @@
 java_tests(name='lifecycle',
   dependencies=[
     '3rdparty:easymock',
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:guice',
     '3rdparty:junit',
     'src/java/com/twitter/common/application/modules:lifecycle',

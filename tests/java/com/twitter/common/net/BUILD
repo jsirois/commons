@@ -19,7 +19,7 @@
 java_tests(name = 'net',
   dependencies = [
     pants('3rdparty:commons-codec'),
-    pants('3rdparty:guava'),
+    pants('3rdparty/jvm/com/google/guava'),
     pants('3rdparty:hamcrest-core'),
     pants('3rdparty:jetty'),
     pants('3rdparty:junit'),

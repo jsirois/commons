@@ -1,6 +1,6 @@
 java_tests(name = 'angrybird',
   dependencies = [
-    '3rdparty:guava',
+    '3rdparty/jvm/com/google/guava',
     '3rdparty:hamcrest-core',
     '3rdparty:junit',
     'src/java/com/twitter/common/testing:action',
