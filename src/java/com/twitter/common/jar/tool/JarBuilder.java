@@ -1023,8 +1023,14 @@ public class JarBuilder implements Closeable {
           throws IOException {
 
         JarEntry entry = new JarEntry(path);
-        entry.setMethod(compress ? JarEntry.DEFLATED : JarEntry.STORED);
-        if (!compress) {
+        int method;
+        if (!entry.isDirectory()) {
+          method = JarEntry.STORED;
+        } else {
+          method = compress ? JarEntry.DEFLATED : JarEntry.STORED;
+        }
+        entry.setMethod(method);
+        if (method == JarEntry.STORED) {
           prepareEntry(entry, contents);
         }
         return entry;
