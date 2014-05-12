@@ -18,12 +18,16 @@ SCALA_REV='2.9.2'
 
 def make_lib(name, rev, scala_rev=None, excludes=None, deps=None):
   artifact_name = name if scala_rev is None else '%s_%s' % (name, scala_rev)
-  jar_dep = jar(org='com.twitter', name=artifact_name, rev=FINAGLE_REV).with_sources()
+  jar_dep = jar(org='com.twitter', name=artifact_name, rev=rev).with_sources()
   if excludes:
     for exclude in excludes:
       jar_dep.exclude(exclude.org, exclude.name)
   jar_library(name=name, dependencies=[jar_dep] + (deps or []))
   
+  
+make_lib('scrooge-core', '3.14.1', scala_rev=SCALA_REV)
+
+
 # Common revs for finagle/util artifacts: these need to be bumped in sync
 FINAGLE_REV='6.15.0'
 UTIL_REV='6.15.0'
